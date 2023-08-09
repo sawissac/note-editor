@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { IconFolderFilled, IconFile } from "@tabler/icons-react";
+import { IconFolderFilled, IconFile, IconCircleArrowRightFilled } from "@tabler/icons-react";
 import { FolderSystemConstant } from "../../util/types";
 import { FolderSystemType } from "../../util/FolderSystem";
 import { twMerge } from "tailwind-merge";
@@ -34,9 +34,10 @@ const FolderButton: React.FC<{
       onBlur={() => {
         setValue(name);
         setDisableInput(true);
+        window.getSelection()?.removeAllRanges()
       }}
       onDoubleClick={() => {
-        setDisableInput(false);
+          setDisableInput(false);
       }}
       onClick={onClick}
     >
@@ -48,7 +49,7 @@ const FolderButton: React.FC<{
 
       <input
         ref={inputRef}
-        className="w-full select-none bg-transparent"
+        className="max-w-fit w-36 select-none bg-transparent"
         value={value}
         onChange={(ev) => setValue(ev.target.value)}
         disabled={disableInput}
@@ -59,6 +60,13 @@ const FolderButton: React.FC<{
           }
         }}
       />
+      {
+        type !== FolderSystemType.File && <IconCircleArrowRightFilled size={25} className="text-neutral-400 ml-auto" onDoubleClick={(ev)=>{
+          ev.stopPropagation();
+
+        }}/>
+      }
+      
     </div>
   );
 };

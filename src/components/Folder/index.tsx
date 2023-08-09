@@ -3,28 +3,33 @@ import IsolatedLayout from "../Layout/IsolatedLayout";
 import ScrollableLayout from "../Layout/ScrollableLayout";
 import FolderButton from "./FolderButton";
 import TopNav from "./TopNav";
+import CopyDest from "./CopyDest";
 
 const Folder = () => {
-  const [data, currentIndex, setCurrentIndex, rename] = useFolderStore(
+  const [data, copy, currentId, setCurrentIndex, rename] = useFolderStore(
     (store) => [
       store.data,
-      store.currentIndex,
-      store.setCurrentIndex,
+      store.copy,
+      store.currentId,
+      store.setCurrentId,
       store.rename,
     ],
   );
 
+  
+
   return (
     <IsolatedLayout className="fixed bottom-0 left-0 right-0 w-[300px] bg-neutral-50">
       <TopNav />
+      {copy && <CopyDest />}
       <ScrollableLayout>
-        {data.map((i, index) => (
+        {data.map((i) => (
           <FolderButton
             key={i.id}
             folderData={i}
-            active={currentIndex === index}
+            active={currentId === i.id}
             onClick={() => {
-              setCurrentIndex(index);
+              setCurrentIndex(i.id);
             }}
             onInputKeyEnter={(_, inputValue) => {
               rename(inputValue);

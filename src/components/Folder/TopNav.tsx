@@ -3,12 +3,22 @@ import {
   IconFilePlus,
   IconCopy,
   IconClipboardList,
+  IconHome,
 } from "@tabler/icons-react";
 import { useFolderStore } from "./store";
 
 const TopNav = () => {
-  const [createFolder, createFile] = useFolderStore((store) => [store.createFolder, store.createFile]);
+  const [createFolder, createFile, copyFile] = useFolderStore((store) => [
+    store.createFolder,
+    store.createFile,
+    store.copyFile,
+  ]);
   const ActionIcon = [
+    {
+      Icon: IconHome,
+      action: () => {
+      },
+    },
     {
       Icon: IconFolderPlus,
       action: () => {
@@ -18,12 +28,14 @@ const TopNav = () => {
     {
       Icon: IconFilePlus,
       action: () => {
-        createFile("File Name")
+        createFile("File Name");
       },
     },
     {
       Icon: IconCopy,
-      action: () => {},
+      action: () => {
+        copyFile();
+      },
     },
     {
       Icon: IconClipboardList,

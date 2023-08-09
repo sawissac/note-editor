@@ -16,10 +16,11 @@ const create = {
     };
   },
   folder(name: string): FolderSystemConstant {
+    const id = shortUUID.generate()
     return {
-      id: shortUUID.generate(),
+      id,
       name,
-      topLevel: null,
+      topLevel: id,
       type: FolderSystemType.Folder,
     };
   },
