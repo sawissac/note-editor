@@ -1,7 +1,9 @@
 import React, { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 
-const IsolatedLayout: React.FC<{ children: ReactNode; className?: string }> = ({
+type IsolatedLayoutInterface = { children: ReactNode; className?: string };
+
+const IsolatedLayout: React.FC<IsolatedLayoutInterface> = ({
   children,
   className,
 }) => {

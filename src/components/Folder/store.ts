@@ -6,8 +6,8 @@ import { FolderSystem } from "../../util/FolderSystem";
 type State = {
   currentId: null | string;
   copy: null | string;
+  currentDir: null | string
   data: FolderSystemConstant[];
-  currentDir: string | ""
 };
 
 type Action = {
@@ -17,15 +17,15 @@ type Action = {
   copyFile: () => void;
   resetCopy: () => void;
   rename: (rename: string) => void;
-  setCurrentDir: (dirName: string) => void;
+  setCurrentDir: (id: null | string) => void;
 };
 
 export const useFolderStore = create<State & Action>()(
   immer((set) => ({
-    currentDir: "",
     currentId: null,
-    data: [],
     copy: null,
+    currentDir: null,
+    data: [],
     createFolder(name) {
       set((store) => {
         store.data.push(FolderSystem.create.folder(name));
@@ -65,9 +65,9 @@ export const useFolderStore = create<State & Action>()(
         store.currentId = id;
       });
     },
-    setCurrentDir(dirName){
+    setCurrentDir(id){
       set((store) => {
-        store.currentDir = dirName;
+        store.currentDir = id;
       });
     }
   })),

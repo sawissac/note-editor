@@ -20,7 +20,7 @@ const create = {
     return {
       id,
       name,
-      topLevel: id,
+      topLevel: null,
       type: FolderSystemType.Folder,
     };
   },

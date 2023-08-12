@@ -6,9 +6,7 @@ type ScrollableLayoutInterface = {
   children: ReactNode;
 };
 
-const ScrollableLayout: React.FC<ScrollableLayoutInterface> = ({
-  children,
-}) => {
+const ScrollableLayout: React.FC<ScrollableLayoutInterface> = ({children}) => {
   const scrollDisable = useScrollModeStore((store) => store.scrollDisable);
   return (
     <div
