@@ -1,13 +1,14 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { FolderSystemConstant } from "../../util/types";
-import { FolderSystem } from "../../util/FolderSystem";
+import { FolderSystem, FolderSystemType } from "../../util/FolderSystem";
+import { generateMock } from "../../util/generateMock";
 
 type State = {
   currentId: null | string;
-  copy: null | string;
-  currentDir: null | string
+  currentDir: null | string;
   data: FolderSystemConstant[];
+  dirHistory: string[];
 };
 
 type Action = {
@@ -15,30 +16,36 @@ type Action = {
   createFile: (name: string) => void;
   setCurrentId: (id: string) => void;
   copyFile: () => void;
-  resetCopy: () => void;
   rename: (rename: string) => void;
-  setCurrentDir: (id: null | string) => void;
+  setCurrentDir: (id: null | string, isHome: boolean) => void;
+  deleteFile: () => void;
+  dirBack: () => void;
 };
 
-export const useFolderStore = create<State & Action>()(
-  immer((set) => ({
+export const useFolderStore = create(
+  immer<State & Action>((set) => ({
     currentId: null,
-    copy: null,
     currentDir: null,
-    data: [],
+    dirHistory: [],
+    data: generateMock(30, () => FolderSystem.create.file("New File", null)),
     createFolder(name) {
       set((store) => {
-        store.data.push(FolderSystem.create.folder(name));
+        store.data.push(FolderSystem.create.folder(name, store.currentDir));
       });
     },
     createFile(name) {
       set((store) => {
-        store.data.push(FolderSystem.create.file(name));
+        store.data.push(FolderSystem.create.file(name, store.currentDir));
       });
     },
     copyFile() {
       set((store) => {
-        store.copy = store.currentId;
+        const file = store.data.find((data) => data.id === store.currentId);
+        if (file?.type === FolderSystemType.File) {
+          store.data.push(
+            FolderSystem.create.file(`${file.name}-copy`, store.currentDir),
+          );
+        }
       });
     },
     rename(rename) {
@@ -55,20 +62,35 @@ export const useFolderStore = create<State & Action>()(
         });
       });
     },
-    resetCopy(){
+    deleteFile() {
       set((store) => {
-        store.copy = null;
-      }); 
+        store.data = FolderSystem.deleteF(store.data, store.currentId);
+        store.currentId = null;
+      });
     },
     setCurrentId(id) {
       set((store) => {
         store.currentId = id;
       });
     },
-    setCurrentDir(id){
+    setCurrentDir(id, isHome) {
       set((store) => {
         store.currentDir = id;
+        if (!isHome) {
+          store.dirHistory.push(id as string);
+        } else {
+          store.dirHistory = [];
+        }
       });
-    }
+    },
+    dirBack() {
+      set((store) => {
+        store.dirHistory.pop();
+        store.currentDir =
+          store.dirHistory.length === 0
+            ? null
+            : store.dirHistory[store.dirHistory.length - 1];
+      });
+    },
   })),
 );

@@ -1,3 +1,4 @@
+import ShowIf from "../ShowIf";
 import React, { useState, useRef, useEffect } from "react";
 import { FolderSystemConstant } from "../../util/types";
 import { FolderSystemType } from "../../util/FolderSystem";
@@ -6,9 +7,10 @@ import {
   IconFolderFilled,
   IconFile,
   IconCircleArrowRightFilled,
+  IconNotebook,
 } from "@tabler/icons-react";
-import ShowIf from "../ShowIf";
 import { useFolderStore } from "./store";
+import { useFileViewStore } from "../FileView/store";
 
 type FolderLayerInterface = {
   active: boolean;
@@ -26,11 +28,12 @@ const FolderLayer: React.FC<FolderLayerInterface> = ({
   onClick,
   onInputKeyEnter,
 }) => {
+  const [createTab] = useFileViewStore((store) => [store.createTab]);
   const { id, name, type } = folderData;
   const [value, setValue] = useState(name);
   const [disableInput, setDisableInput] = useState(true);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const setCurrentDir = useFolderStore(store=>store.setCurrentDir)
+  const setCurrentDir = useFolderStore((store) => store.setCurrentDir);
 
   useEffect(() => {
     if (inputRef.current && disableInput === false) {
@@ -81,9 +84,19 @@ const FolderLayer: React.FC<FolderLayerInterface> = ({
           <IconCircleArrowRightFilled
             size={25}
             className="ml-auto text-neutral-400"
-            onDoubleClick={(ev) => {
+            onClick={(ev) => {
               ev.stopPropagation();
-              setCurrentDir(id)
+              setCurrentDir(id, false);
+            }}
+          />
+        }
+        else={
+          <IconNotebook
+            size={25}
+            className="ml-auto text-neutral-400"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              createTab(id);
             }}
           />
         }

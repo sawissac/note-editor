@@ -3,25 +3,40 @@ import {
   IconFolderPlus,
   IconFilePlus,
   IconCopy,
-  IconClipboardList,
   IconHome,
+  IconTrash,
+  IconArrowLeft,
 } from "@tabler/icons-react";
 import { useFolderStore } from "./store";
 
 const TopNav = () => {
-  const [setCurrentDir, createFolder, createFile, copyFile] = useFolderStore((store) => [
+  const [
+    setCurrentDir,
+    createFolder,
+    createFile,
+    copyFile,
+    deleteFile,
+    dirBack,
+  ] = useFolderStore((store) => [
     store.setCurrentDir,
     store.createFolder,
     store.createFile,
     store.copyFile,
+    store.deleteFile,
+    store.dirBack,
   ]);
-
   const ActionIcon = React.useMemo(
     () => [
       {
         Icon: IconHome,
         action: () => {
-          setCurrentDir(null)
+          setCurrentDir(null, true);
+        },
+      },
+      {
+        Icon: IconArrowLeft,
+        action: () => {
+          dirBack();
         },
       },
       {
@@ -43,15 +58,17 @@ const TopNav = () => {
         },
       },
       {
-        Icon: IconClipboardList,
-        action: () => {},
+        Icon: IconTrash,
+        action: () => {
+          deleteFile();
+        },
       },
     ],
-    [copyFile, createFile, createFolder, setCurrentDir],
+    [copyFile, createFile, createFolder, deleteFile, dirBack, setCurrentDir],
   );
 
   return (
-    <div className="flex flex-row items-center justify-start gap-4 border-b-2 border-neutral-100 p-4">
+    <div className="flex flex-row items-center justify-start gap-4 border-b-2 border-neutral-100 px-4 h-[65px]">
       {ActionIcon.map((Data, index) => {
         return (
           <Data.Icon
