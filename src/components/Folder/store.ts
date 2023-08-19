@@ -27,7 +27,7 @@ export const useFolderStore = create(
     currentId: null,
     currentDir: null,
     dirHistory: [],
-    data: generateMock(30, () => FolderSystem.create.file("New File", null)),
+    data: generateMock(0, () => FolderSystem.create.file("New File", null)),
     createFolder(name) {
       set((store) => {
         store.data.push(FolderSystem.create.folder(name, store.currentDir));

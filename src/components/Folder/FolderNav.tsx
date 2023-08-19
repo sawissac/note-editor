@@ -42,13 +42,13 @@ const TopNav = () => {
       {
         Icon: IconFolderPlus,
         action: () => {
-          createFolder("Folder Name");
+          createFolder("New Folder");
         },
       },
       {
         Icon: IconFilePlus,
         action: () => {
-          createFile("File Name");
+          createFile("New File");
         },
       },
       {

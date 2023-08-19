@@ -5,9 +5,10 @@ import FolderNav from "./FolderNav";
 import { useFolderStore } from "./store";
 import { FolderSystemType } from "../../util/FolderSystem";
 import { FolderSystemConstant } from "../../util/types";
-import { frame } from "../../util/Frame";
+import { px, useFrameStore } from "../../store/Frame";
 
 const Folder = () => {
+  const [FrameHeight] = useFrameStore((store) => [store.height]);
   const [data, currentDir, currentId, setCurrentIndex, rename] = useFolderStore(
     (store) => [
       store.data,
@@ -41,13 +42,16 @@ const Folder = () => {
     <IsolatedLayout
       className="fixed bottom-0 left-0 right-0 w-[300px] bg-neutral-50 shadow-md"
       style={{
-        height: frame.height(),
+        height: px(FrameHeight),
       }}
     >
       <FolderNav />
-      <ScrollableLayout scrollType="y" style={{
-        height: 0
-      }}>
+      <ScrollableLayout
+        scrollType="y"
+        style={{
+          height: px(FrameHeight - 65),
+        }}
+      >
         {renderData.map((i) => (
           <FolderLayer
             key={i.id}

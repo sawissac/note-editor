@@ -1,4 +1,3 @@
-import React from "react";
 import IsolatedLayout from "../Layout/IsolatedLayout";
 import ScrollableLayout from "../Layout/ScrollableLayout";
 import { useFileViewStore } from "./store";

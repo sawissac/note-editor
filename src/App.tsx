@@ -1,16 +1,18 @@
 import FileView from "./components/FileView";
 import Folder from "./components/Folder";
+import AutoLayoutRebuild from "./components/Layout/AutoLayoutRebuild";
 import IsolatedLayout from "./components/Layout/IsolatedLayout";
-import { frame } from "./util/Frame";
+import { px, useFrameStore } from "./store/Frame";
 
 function App() {
+  const [FrameHeight] = useFrameStore((store) => [store.height]);
   return (
-    <IsolatedLayout style={{
-      height: frame.height() 
-    }}>
-      <Folder />
-      <FileView />
-    </IsolatedLayout>
+    <AutoLayoutRebuild>
+      <IsolatedLayout style={{ height: px(FrameHeight) }}>
+        <Folder />
+        <FileView />
+      </IsolatedLayout>
+    </AutoLayoutRebuild>
   );
 }
 
