@@ -1,0 +1,102 @@
+import { createSelector } from "@reduxjs/toolkit";
+
+import type { FsNode } from "@/store/fs-slice";
+import type { RootState } from "@/store";
+
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
+export function compareNodes(a: FsNode, b: FsNode) {
+  if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+  return collator.compare(a.name, b.name);
+}
+
+export const selectNodes = (state: RootState) => state.fs.nodes;
+
+/** parentId ("" for root) → sorted children. */
+export const selectChildrenMap = createSelector([selectNodes], (nodes) => {
+  const map = new Map<string, FsNode[]>();
+  for (const node of Object.values(nodes)) {
+    const key = node.parentId ?? "";
+    const list = map.get(key);
+    if (list) list.push(node);
+    else map.set(key, [node]);
+  }
+  for (const list of map.values()) list.sort(compareNodes);
+  return map;
+});
+
+export function getDescendantIds(nodes: Record<string, FsNode>, id: string) {
+  const out: string[] = [id];
+  for (let i = 0; i < out.length; i++) {
+    for (const node of Object.values(nodes)) {
+      if (node.parentId === out[i]) out.push(node.id);
+    }
+  }
+  return out;
+}
+
+export function getPath(nodes: Record<string, FsNode>, id: string | null) {
+  const parts: string[] = [];
+  let cur = id ? nodes[id] : undefined;
+  while (cur) {
+    parts.unshift(cur.name);
+    cur = cur.parentId ? nodes[cur.parentId] : undefined;
+  }
+  return parts;
+}
+
+/** Ancestors of `id`, root first. */
+export function getAncestorIds(nodes: Record<string, FsNode>, id: string) {
+  const out: string[] = [];
+  let cur = nodes[id]?.parentId ? nodes[nodes[id].parentId!] : undefined;
+  while (cur) {
+    out.unshift(cur.id);
+    cur = cur.parentId ? nodes[cur.parentId] : undefined;
+  }
+  return out;
+}
+
+export function isNameTaken(
+  nodes: Record<string, FsNode>,
+  parentId: string | null,
+  name: string,
+  exceptId?: string,
+) {
+  const lower = name.toLowerCase();
+  return Object.values(nodes).some(
+    (n) =>
+      n.parentId === parentId &&
+      n.id !== exceptId &&
+      n.name.toLowerCase() === lower,
+  );
+}
+
+/** "notes.md" → "notes (1).md" → "notes (2).md" until free. */
+export function uniqueName(
+  nodes: Record<string, FsNode>,
+  parentId: string | null,
+  name: string,
+  exceptId?: string,
+) {
+  if (!isNameTaken(nodes, parentId, name, exceptId)) return name;
+  const dot = name.lastIndexOf(".");
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : "";
+  for (let i = 1; ; i++) {
+    const next = `${base} (${i})${ext}`;
+    if (!isNameTaken(nodes, parentId, next, exceptId)) return next;
+  }
+}
+
+/** Folder a "new file" action should target given the current selection. */
+export function getTargetFolderId(
+  nodes: Record<string, FsNode>,
+  selectedId: string | null,
+) {
+  const node = selectedId ? nodes[selectedId] : undefined;
+  if (!node) return null;
+  return node.type === "folder" ? node.id : node.parentId;
+}

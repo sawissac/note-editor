@@ -1,0 +1,248 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 5745e741406db781ace9be45388f6d90b6bb065c..ef1ce3796e4ad952883e95ab2be1d04814410a07 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -42337,6 +42337,34 @@ function useDocxEditor(options = {}) {
+     },
+     [applyModelChange]
+   );
++  const deleteImage = React9.useCallback(
++    (location) => {
++      applyModelChange((current) => {
++        const next = cloneDocModel(current);
++        const { paragraph, tableNode } = getParagraphAtLocation(
++          next,
++          imageLocationToParagraphLocation(location)
++        );
++        if (!paragraph) {
++          return current;
++        }
++        const child = paragraph.children[location.childIndex];
++        if (!child || child.type !== "image") {
++          return current;
++        }
++        paragraph.children.splice(location.childIndex, 1);
++        if (paragraph.children.length === 0) {
++          paragraph.children.push({ type: "text", text: "" });
++        }
++        paragraph.sourceXml = void 0;
++        if (tableNode) {
++          tableNode.sourceXml = void 0;
++        }
++        return next;
++      }, "Deleted image");
++    },
++    [applyModelChange]
++  );
+   const setSyntheticTextBoxText = React9.useCallback(
+     (location, text, storyIndex) => {
+       let accepted = false;
+@@ -43653,6 +43681,7 @@ function useDocxEditor(options = {}) {
+     insertImageFile,
+     appendParagraph,
+     resizeImage,
++    deleteImage,
+     setSyntheticTextBoxText,
+     setImageWrapMode,
+     moveFloatingImage,
+@@ -53319,7 +53348,14 @@ function DocxEditorViewer({
+         ...clipboardActions,
+         ...wrapActions,
+         ...positioningActions,
+-        ...layerActions
++        ...layerActions,
++        {
++          id: "image-delete",
++          label: "Delete Image",
++          shortcut: "Del",
++          destructive: true,
++          separatorBefore: true
++        }
+       ];
+     },
+     [isReadOnly, tableContextMenuActions]
+@@ -53761,6 +53797,15 @@ function DocxEditorViewer({
+           case "image-move-with-text":
+           case "image-fix-position-on-page":
+           case "image-edit-wrap-boundary":
++          case "image-delete": {
++            const resolvedImage = resolveContextImage();
++            if (resolvedImage) {
++              setSelectedImage(void 0);
++              setResizePreview(void 0);
++              editor.deleteImage(resolvedImage.location);
++            }
++            break;
++          }
+           case "image-more-layout-options": {
+             const resolvedImage = resolveContextImage();
+             if (!resolvedImage) {
+@@ -53948,6 +53993,33 @@ function DocxEditorViewer({
+       setResizePreview(void 0);
+     }
+   }, [editor.model, selectedImage]);
++  React9.useEffect(() => {
++    if (!selectedImage || isReadOnly) {
++      return;
++    }
++    const onSelectedImageKeyDown = (event) => {
++      if (event.defaultPrevented || event.isComposing) {
++        return;
++      }
++      if (event.key !== "Backspace" && event.key !== "Delete" || event.metaKey || event.ctrlKey || event.altKey) {
++        return;
++      }
++      const target = event.target;
++      if (target instanceof Element && eventTargetIsInteractiveControl(target)) {
++        return;
++      }
++      event.preventDefault();
++      event.stopPropagation();
++      const location = selectedImage;
++      setSelectedImage(void 0);
++      setResizePreview(void 0);
++      editor.deleteImage(location);
++    };
++    window.addEventListener("keydown", onSelectedImageKeyDown, true);
++    return () => {
++      window.removeEventListener("keydown", onSelectedImageKeyDown, true);
++    };
++  }, [editor, isReadOnly, selectedImage]);
+   React9.useEffect(() => {
+     activeWrappedParagraphSessionRef.current = activeWrappedParagraphSession;
+   }, [activeWrappedParagraphSession]);
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 2897cf5e70d7de83725b058c7fb63f25aa20c18f..72be19666451fe7d7eb165689d1dec0e179f3097 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -1753,6 +1753,8 @@ interface DocxEditorController {
+     insertImageFile: (file: File) => Promise<void>;
+     appendParagraph: (text?: string) => number;
+     resizeImage: (location: DocxImageLocation, widthPx: number, heightPx: number) => void;
++    /** Removes the image run at `location` (one undo step). */
++    deleteImage: (location: DocxImageLocation) => void;
+     setSyntheticTextBoxText: (location: DocxImageLocation, text: string, storyIndex?: number) => boolean;
+     setImageWrapMode: (location: DocxImageLocation, mode: DocxImageWrapMode, seedFloating?: Partial<NonNullable<ImageRunNode["floating"]>>) => void;
+     moveFloatingImage: (location: DocxImageLocation, patch: Partial<NonNullable<ImageRunNode["floating"]>>, options?: {
+@@ -1802,7 +1804,7 @@ interface DocxEditorController {
+     commitSectionParagraphText: (location: DocxSectionParagraphLocation, text: string) => void;
+ }
+ type DocxTableContextMenuActionId = "insert-row-above" | "insert-row-below" | "insert-column-left" | "insert-column-right" | "delete-row" | "delete-column" | "delete-table";
+-type DocxContextMenuActionId = DocxTableContextMenuActionId | "cut" | "copy" | "paste" | "image-wrap-inline" | "image-wrap-square" | "image-wrap-tight" | "image-wrap-through" | "image-wrap-top-and-bottom" | "image-wrap-behind-text" | "image-wrap-in-front-of-text" | "image-edit-wrap-boundary" | "image-move-with-text" | "image-fix-position-on-page" | "image-more-layout-options" | "image-bring-to-front" | "image-bring-forward" | "image-in-front-of-text" | "image-send-to-back" | "image-send-backward" | "image-behind-text";
++type DocxContextMenuActionId = DocxTableContextMenuActionId | "cut" | "copy" | "paste" | "image-wrap-inline" | "image-wrap-square" | "image-wrap-tight" | "image-wrap-through" | "image-wrap-top-and-bottom" | "image-wrap-behind-text" | "image-wrap-in-front-of-text" | "image-edit-wrap-boundary" | "image-move-with-text" | "image-fix-position-on-page" | "image-more-layout-options" | "image-bring-to-front" | "image-bring-forward" | "image-in-front-of-text" | "image-send-to-back" | "image-send-backward" | "image-behind-text" | "image-delete";
+ interface DocxTableContextMenuContext {
+     /** Zero-based table index in the document body. */
+     tableIndex: number;
+diff --git a/dist/index.js b/dist/index.js
+index 46f3c3bd0c75794f066a058703ee2a1759b953c9..655692fed6b953f55dfec4e213017673bf2ef8dc 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -40859,6 +40859,34 @@ function useDocxEditor(options = {}) {
+     },
+     [applyModelChange]
+   );
++  const deleteImage = React9.useCallback(
++    (location) => {
++      applyModelChange((current) => {
++        const next = cloneDocModel(current);
++        const { paragraph, tableNode } = getParagraphAtLocation(
++          next,
++          imageLocationToParagraphLocation(location)
++        );
++        if (!paragraph) {
++          return current;
++        }
++        const child = paragraph.children[location.childIndex];
++        if (!child || child.type !== "image") {
++          return current;
++        }
++        paragraph.children.splice(location.childIndex, 1);
++        if (paragraph.children.length === 0) {
++          paragraph.children.push({ type: "text", text: "" });
++        }
++        paragraph.sourceXml = void 0;
++        if (tableNode) {
++          tableNode.sourceXml = void 0;
++        }
++        return next;
++      }, "Deleted image");
++    },
++    [applyModelChange]
++  );
+   const setSyntheticTextBoxText = React9.useCallback(
+     (location, text, storyIndex) => {
+       let accepted = false;
+@@ -42175,6 +42203,7 @@ function useDocxEditor(options = {}) {
+     insertImageFile,
+     appendParagraph,
+     resizeImage,
++    deleteImage,
+     setSyntheticTextBoxText,
+     setImageWrapMode,
+     moveFloatingImage,
+@@ -51841,7 +51870,14 @@ function DocxEditorViewer({
+         ...clipboardActions,
+         ...wrapActions,
+         ...positioningActions,
+-        ...layerActions
++        ...layerActions,
++        {
++          id: "image-delete",
++          label: "Delete Image",
++          shortcut: "Del",
++          destructive: true,
++          separatorBefore: true
++        }
+       ];
+     },
+     [isReadOnly, tableContextMenuActions]
+@@ -52283,6 +52319,15 @@ function DocxEditorViewer({
+           case "image-move-with-text":
+           case "image-fix-position-on-page":
+           case "image-edit-wrap-boundary":
++          case "image-delete": {
++            const resolvedImage = resolveContextImage();
++            if (resolvedImage) {
++              setSelectedImage(void 0);
++              setResizePreview(void 0);
++              editor.deleteImage(resolvedImage.location);
++            }
++            break;
++          }
+           case "image-more-layout-options": {
+             const resolvedImage = resolveContextImage();
+             if (!resolvedImage) {
+@@ -52470,6 +52515,33 @@ function DocxEditorViewer({
+       setResizePreview(void 0);
+     }
+   }, [editor.model, selectedImage]);
++  React9.useEffect(() => {
++    if (!selectedImage || isReadOnly) {
++      return;
++    }
++    const onSelectedImageKeyDown = (event) => {
++      if (event.defaultPrevented || event.isComposing) {
++        return;
++      }
++      if (event.key !== "Backspace" && event.key !== "Delete" || event.metaKey || event.ctrlKey || event.altKey) {
++        return;
++      }
++      const target = event.target;
++      if (target instanceof Element && eventTargetIsInteractiveControl(target)) {
++        return;
++      }
++      event.preventDefault();
++      event.stopPropagation();
++      const location = selectedImage;
++      setSelectedImage(void 0);
++      setResizePreview(void 0);
++      editor.deleteImage(location);
++    };
++    window.addEventListener("keydown", onSelectedImageKeyDown, true);
++    return () => {
++      window.removeEventListener("keydown", onSelectedImageKeyDown, true);
++    };
++  }, [editor, isReadOnly, selectedImage]);
+   React9.useEffect(() => {
+     activeWrappedParagraphSessionRef.current = activeWrappedParagraphSession;
+   }, [activeWrappedParagraphSession]);

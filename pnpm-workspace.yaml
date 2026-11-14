@@ -1,0 +1,4 @@
+allowBuilds:
+  esbuild: true
+patchedDependencies:
+  '@extend-ai/react-docx@0.14.10': patches/@extend-ai__react-docx@0.14.10.patch
