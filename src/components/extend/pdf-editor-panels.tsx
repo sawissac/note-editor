@@ -55,16 +55,16 @@ import {
 import type { degrees, ParseSpeeds, PDFDocument } from "pdf-lib"
 
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/shadcn/badge"
-import { Button } from "@/components/shadcn/button"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Switch } from "@/components/shadcn/switch"
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { getFormFieldTypeLabel } from "@/components/extend/pdf-editor-properties"
 import {
   ArrowDownGlyph,
@@ -944,13 +944,15 @@ export function PdfEditorPagesPanel({
         ) : isEncrypted ? (
           <span>Remove protection to edit pages.</span>
         ) : hasSelection ? (
-          <button
+          <Button
             type="button"
-            className="underline-offset-2 hover:underline"
+            variant="link"
+            size="xs"
+            className="h-auto p-0"
             onClick={() => setSelected(new Set())}
           >
             Clear
-          </button>
+          </Button>
         ) : null}
       </div>
       <PdfEditorScrollArea

@@ -11,17 +11,17 @@ import type { CaptureAreaEvent } from "@embedpdf/plugin-capture/react"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
-import { Kbd } from "@/components/shadcn/kbd"
+import { Button } from "@/components/ui/button"
+import { Kbd } from "@/components/ui/kbd"
 import {
   ScrollArea as InlineScrollArea,
   ScrollBar,
-} from "@/components/shadcn/scroll-area"
+} from "@/components/ui/scroll-area"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
+} from "@/components/ui/tooltip"
 import { IconLayoutSidebar, IconLayoutSidebarRight, IconArrowBackUp, IconArrowForwardUp, IconCircleMinus, IconCirclePlus, IconRotateClockwise, IconSearch, IconDots, IconDownload, IconUpload, IconPrinter, IconMaximize, IconMinimize, IconHandStop, IconPointer, IconCamera, IconZoomInArea, IconBook, IconFile, IconArrowsHorizontal, IconArrowsVertical, IconHighlight, IconUnderline, IconStrikethrough, IconWaveSine, IconPencil, IconBrush, IconTypography, IconMessage2, IconNote, IconSquare, IconCircle, IconLine, IconArrowUpRight, IconVectorSpline, IconPolygon, IconPhoto, IconRubberStamp, IconLink, IconCursorText, IconReplace, IconTrash, IconLayersUnion, IconLayersSubtract, IconLock, IconLockOpen, IconMessageCircle, IconMessages, IconCheck, IconX, IconPlus, IconMinus, IconCopy, IconEyeOff, IconEye, IconSquareDashed, IconSignature, IconForms, IconSquareCheck, IconCircleDot, IconSelect, IconList, IconListTree, IconPaperclip, IconLayoutGrid, IconAdjustmentsHorizontal, IconInfoCircle, IconShieldLock, IconFileText, IconChevronDown, IconChevronUp, IconChevronLeft, IconChevronRight, IconStack2, IconFilePlus, IconScissors, IconArrowMerge, IconRefresh, IconDeviceFloppy, IconKeyboard, IconPalette, IconBold, IconItalic, IconAlignLeft, IconAlignCenter, IconAlignRight, IconAlignBoxTopCenter, IconAlignBoxCenterMiddle, IconAlignBoxBottomCenter, IconFlag, IconClipboard, IconKey, IconExternalLink, IconArrowsMove, IconAlertTriangle, IconArrowUp, IconArrowDown, IconEdit, IconSparkles } from "@tabler/icons-react"
 
 /* -------------------------------------------------------------------------- */

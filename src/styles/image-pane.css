@@ -1,0 +1,130 @@
+/* ImagePane (image files) — BEM block `image-pane`.
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. The
+ * scrollable stage and its status line fill the left; tools sit in tabs in
+ * the right column. Form fields reuse the `pane-field` block. */
+
+@layer components {
+  .image-pane {
+    @apply bg-app-bg grid h-full min-h-0 grid-rows-[minmax(18rem,1fr)_minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_19rem] md:grid-rows-1;
+  }
+
+  /* ── Viewer ───────────────────────────────────────────────────────── */
+  .image-pane__viewer {
+    @apply flex min-h-0 min-w-0 flex-col;
+  }
+  .image-pane__stage {
+    @apply min-h-0 flex-1 overflow-auto;
+  }
+  /* At least the stage's size so a small image centres; grows (and the
+   * stage scrolls) when the zoomed image is bigger. */
+  .image-pane__canvas-area {
+    @apply grid h-max min-h-full w-max min-w-full place-items-center p-12;
+  }
+  /* Checkerboard, so transparent pixels read as transparent. */
+  .image-pane__frame {
+    @apply border-app-border relative block shrink-0 cursor-crosshair border bg-[repeating-conic-gradient(var(--app-hover)_0_25%,var(--app-bg)_0_50%)] bg-size-[16px_16px];
+  }
+  .image-pane__picture {
+    @apply block size-full select-none;
+  }
+  /* Zoomed far in: show pixels as squares, not a blur. */
+  .image-pane__picture--pixelated {
+    @apply [image-rendering:pixelated];
+  }
+
+  .image-pane__status {
+    @apply border-app-border bg-app-panel text-app-dim flex h-7 shrink-0 items-center gap-3 overflow-hidden border-t px-3 font-mono text-[11px] whitespace-nowrap;
+  }
+  .image-pane__status-item {
+    @apply flex min-w-0 items-center gap-1.5 truncate;
+  }
+  .image-pane__status-item--error {
+    @apply text-app-error;
+  }
+  .image-pane__status-item--hint {
+    @apply font-description opacity-70;
+  }
+  .image-pane__status-spacer {
+    @apply flex-1;
+  }
+  .image-pane__swatch {
+    @apply border-app-border-mid size-3 shrink-0 rounded-sm border;
+  }
+
+  .image-pane__message {
+    @apply font-description text-app-dim flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-[12px];
+  }
+
+  /* ── Import (empty `.img`, or "Replace") ──────────────────────────── */
+  .image-pane__import {
+    @apply bg-app-bg flex h-full items-center justify-center overflow-auto p-8;
+  }
+  .image-pane__import-box {
+    @apply flex w-full max-w-lg flex-col items-stretch gap-3;
+  }
+  .image-pane__import-title {
+    @apply font-display text-app-bright m-0 text-[16px] font-semibold;
+  }
+  .image-pane__import-error {
+    @apply font-description text-app-error m-0 flex items-start gap-1.5 text-[12px] leading-snug;
+  }
+
+  /* ── Tools ────────────────────────────────────────────────────────── */
+  .image-pane__side {
+    @apply border-app-border bg-app-panel flex min-h-0 flex-col overflow-y-auto border-t md:border-t-0 md:border-l;
+  }
+  .image-pane__note {
+    @apply border-app-border font-description text-app-dim m-0 flex items-start gap-1.5 border-b p-3 text-[11px] leading-snug;
+  }
+  .image-pane__panel {
+    @apply divide-app-border flex flex-col divide-y;
+  }
+  .image-pane__section {
+    @apply flex flex-col gap-2.5 p-3;
+  }
+  .image-pane__heading {
+    @apply font-title text-app-dim m-0 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  /* Two fields / buttons per row. */
+  .image-pane__grid {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .image-pane__actions {
+    @apply flex flex-wrap gap-2;
+  }
+  /* One full-width button per line (Export tab). */
+  .image-pane__actions--list {
+    @apply flex-col flex-nowrap;
+  }
+}
+
+/* ── image-pane × compacto / react-image-crop ──────────────────────────
+ * Unlayered so these outrank the components' own utilities, without `!`. */
+.image-pane__tabs {
+  @apply gap-0;
+}
+.image-pane__tab-list {
+  @apply border-app-border h-9 w-full justify-start rounded-none border-b px-2;
+}
+.image-pane__chips {
+  @apply w-full flex-wrap;
+}
+.image-pane__tool {
+  @apply justify-start;
+}
+.image-pane__action {
+  @apply w-full justify-start;
+}
+.image-pane__bar-icon {
+  @apply w-7 px-0;
+}
+.image-pane__zoom-label {
+  @apply min-w-12 justify-center tabular-nums;
+}
+/* Crop selection in the app accent. */
+.image-pane__crop {
+  --rc-focus-color: var(--app-accent);
+  --rc-border-color: color-mix(in srgb, var(--app-accent) 80%, white);
+  --rc-drag-handle-bg-colour: var(--app-accent);
+}

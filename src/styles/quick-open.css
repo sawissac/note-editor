@@ -1,0 +1,56 @@
+/* QuickOpen — BEM block `quick-open`.
+ *
+ * The ⌘P palette's own parts: result rows' text, match highlights, the
+ * create-row error and the mode footer. The dialog shell and rows come from
+ * `ui/command`. Imported from `src/index.css`, so `@apply` resolves the
+ * app-* theme. */
+
+@layer components {
+  .quick-open__label {
+    @apply text-app-bright min-w-0 truncate;
+  }
+  /* Content hits: the file name keeps its width, the snippet truncates. */
+  .quick-open__label--fixed {
+    @apply max-w-[40%] shrink-0;
+  }
+  .quick-open__name {
+    @apply text-app-bright font-medium;
+  }
+  .quick-open__detail {
+    @apply text-app-dim ml-auto min-w-0 shrink truncate pl-3 font-mono text-[11px];
+  }
+  .quick-open__match {
+    @apply text-app-accent bg-transparent font-semibold underline decoration-1 underline-offset-2;
+  }
+  .quick-open__badge {
+    @apply border-app-border-mid text-app-dim shrink-0 rounded-sm border px-1 font-mono text-[10px] leading-4 uppercase;
+  }
+  .quick-open__error {
+    @apply text-app-error ml-auto min-w-0 truncate pl-3 text-[11px];
+  }
+  .quick-open__line {
+    @apply text-app-dim font-mono text-[11px];
+  }
+  .quick-open__snippet {
+    @apply text-app-dim min-w-0 flex-1 truncate pl-2 font-mono text-[11px] whitespace-pre;
+  }
+  .quick-open__notice {
+    @apply text-app-dim px-4 py-4 text-center text-[12px];
+  }
+
+  /* ── Mode footer ──────────────────────────────────────────────────── */
+  .quick-open__footer {
+    @apply border-app-border bg-app-sidebar flex h-7 shrink-0 items-center gap-1 border-t px-2;
+  }
+  .quick-open__status {
+    @apply text-app-dim ml-auto flex items-center gap-1 text-[11px];
+  }
+  .quick-open__spinner {
+    @apply size-3 animate-spin;
+  }
+}
+
+/* Unlayered so it outranks the compacto component's own utilities. */
+.quick-open__hint {
+  @apply h-5 min-w-0 px-1.5 text-[11px];
+}

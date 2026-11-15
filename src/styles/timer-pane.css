@@ -1,0 +1,191 @@
+/* TimerPane (`.timer` files) — BEM block `timer-pane`.
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. One
+ * big countdown ring with transport controls, the queue listed under it.
+ * Loop / sound toggles are portalled into the file bar. */
+
+@layer components {
+  .timer-pane {
+    @apply bg-app-bg h-full min-h-0 overflow-y-auto outline-none;
+  }
+  .timer-pane__inner {
+    @apply mx-auto flex max-w-xl flex-col gap-6 px-4 pt-8 pb-10;
+  }
+  .timer-pane__error {
+    @apply font-description text-app-error m-0 flex items-start gap-1.5 text-[12px] leading-snug;
+  }
+  .timer-pane__empty {
+    @apply font-description text-app-dim m-0 py-3 text-center text-[12px];
+  }
+  .timer-pane__alerts {
+    @apply self-center;
+  }
+
+  /* ── Countdown ────────────────────────────────────────────────────── */
+  .timer-pane__hero {
+    @apply flex flex-col items-center gap-3;
+  }
+  .timer-pane__ring {
+    @apply relative aspect-square w-full max-w-[17rem];
+  }
+  .timer-pane__ring-svg {
+    @apply size-full -rotate-90;
+  }
+  .timer-pane__ring-track {
+    @apply stroke-app-border fill-none stroke-[6];
+  }
+  .timer-pane__ring-bar {
+    @apply stroke-app-accent fill-none stroke-[6] transition-[stroke-dashoffset] duration-300 ease-linear [stroke-linecap:round];
+  }
+  .timer-pane__hero--paused .timer-pane__ring-bar {
+    @apply stroke-app-warn;
+  }
+  .timer-pane__hero--done .timer-pane__ring-bar {
+    @apply stroke-app-success;
+  }
+  .timer-pane__ring-text {
+    @apply absolute inset-0 flex flex-col items-center justify-center gap-1 px-8 text-center;
+  }
+  .timer-pane__hero-label {
+    @apply font-title text-app-dim max-w-full truncate text-[12px] font-semibold tracking-[0.08em] uppercase;
+  }
+  .timer-pane__clock {
+    @apply font-display text-app-bright text-[56px] leading-none font-semibold tracking-[-0.03em] tabular-nums;
+  }
+  .timer-pane__hero--done .timer-pane__clock {
+    @apply text-app-success;
+  }
+  .timer-pane__state {
+    @apply font-title bg-app-hover text-app-dim rounded-full px-2 text-[9px] leading-4 font-semibold tracking-[0.12em] uppercase;
+  }
+  .timer-pane__hero--running .timer-pane__state {
+    @apply bg-app-accent/15 text-app-accent;
+  }
+  .timer-pane__hero--paused .timer-pane__state {
+    @apply bg-app-warn/15 text-app-warn;
+  }
+  .timer-pane__hero--done .timer-pane__state {
+    @apply bg-app-success/15 text-app-success;
+  }
+  .timer-pane__caption {
+    @apply font-description text-app-dim m-0 text-center text-[12px] tabular-nums;
+  }
+  .timer-pane__controls {
+    @apply flex items-center gap-4;
+  }
+  .timer-pane__control-icon {
+    @apply size-4;
+  }
+  .timer-pane__control--primary .timer-pane__control-icon {
+    @apply size-6;
+  }
+
+  /* ── Queue list ───────────────────────────────────────────────────── */
+  .timer-pane__queue {
+    @apply flex flex-col gap-2;
+  }
+  .timer-pane__queue-head {
+    @apply flex items-baseline justify-between gap-2 px-1;
+  }
+  .timer-pane__heading {
+    @apply font-title text-app-dim m-0 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  .timer-pane__summary {
+    @apply font-description text-app-dim text-[11px] tabular-nums;
+  }
+  .timer-pane__list {
+    @apply border-app-border bg-app-panel divide-app-border m-0 flex list-none flex-col divide-y overflow-hidden rounded-lg border p-0;
+  }
+  .timer-pane__row {
+    @apply hover:bg-app-hover relative flex h-11 cursor-pointer items-center gap-2 pr-1.5 pl-1 transition-colors duration-150;
+  }
+  .timer-pane__row--selected {
+    @apply bg-app-selected hover:bg-app-selected;
+  }
+  .timer-pane__row--current {
+    @apply bg-app-accent-faint hover:bg-app-accent-faint;
+  }
+  /* Lifted while being dragged to a new place in the queue. */
+  .timer-pane__row--dragging {
+    @apply bg-app-panel ring-app-border-accent z-10 cursor-grabbing shadow-lg ring-1;
+  }
+  .timer-pane__row-handle {
+    @apply text-app-dim relative -mr-1 cursor-grab touch-none active:cursor-grabbing;
+  }
+  .timer-pane__row--past {
+    @apply opacity-55;
+  }
+  /* Elapsed share of the running timer, behind the row's content. */
+  .timer-pane__row-fill {
+    @apply bg-app-accent/10 pointer-events-none absolute inset-y-0 left-0 transition-[width] duration-300 ease-linear;
+  }
+  .timer-pane__row--paused .timer-pane__row-fill {
+    @apply bg-app-warn/10;
+  }
+  .timer-pane__row--done .timer-pane__row-fill {
+    @apply bg-app-success/10;
+  }
+  .timer-pane__row-index {
+    @apply bg-app-hover text-app-dim relative flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-semibold;
+  }
+  .timer-pane__row--current .timer-pane__row-index {
+    @apply bg-app-accent text-app-on-solid;
+  }
+  .timer-pane__row--done .timer-pane__row-index {
+    @apply bg-app-success/20 text-app-success;
+  }
+  .timer-pane__row-index-icon {
+    @apply size-3;
+  }
+  .timer-pane__row-label {
+    @apply text-app-bright placeholder:text-app-dim hover:border-app-border focus-visible:border-app-accent focus-visible:bg-app-bg relative h-7 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-[13px] font-medium outline-none;
+  }
+  .timer-pane__row-time {
+    @apply text-app-bright relative flex shrink-0 items-center gap-1.5 font-mono text-[13px] font-semibold tabular-nums;
+  }
+  .timer-pane__row--paused .timer-pane__row-time {
+    @apply text-app-warn;
+  }
+  .timer-pane__row-tag {
+    @apply font-title bg-app-hover text-app-dim rounded-sm px-1 text-[9px] leading-4 font-semibold tracking-[0.1em] uppercase;
+  }
+  .timer-pane__duration {
+    @apply relative flex shrink-0 items-center gap-0.5;
+  }
+  .timer-pane__part {
+    @apply flex items-center;
+  }
+  .timer-pane__number {
+    @apply text-app-bright hover:border-app-border focus-visible:border-app-accent focus-visible:bg-app-bg h-7 w-8 [appearance:textfield] rounded-md border border-transparent bg-transparent px-0.5 text-right font-mono text-[12px] tabular-nums outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
+  }
+  .timer-pane__unit {
+    @apply text-app-dim mr-0.5 font-mono text-[10px];
+  }
+  .timer-pane__row-actions {
+    @apply relative flex shrink-0 items-center;
+  }
+  .timer-pane__row-button {
+    @apply text-app-dim;
+  }
+  .timer-pane__row-icon {
+    @apply size-3.5;
+  }
+
+  /* ── Add row ──────────────────────────────────────────────────────── */
+  .timer-pane__presets {
+    @apply flex flex-wrap items-center gap-1.5;
+  }
+}
+
+/* ── timer-pane × compacto ─────────────────────────────────────────────
+ * Unlayered so these outrank the compacto Button's own utilities, which
+ * win over `@layer components`. */
+.timer-pane__control {
+  @apply rounded-full;
+}
+.timer-pane__control--primary {
+  @apply size-14;
+}
+.timer-pane__row-button--danger {
+  @apply hover:text-app-error;
+}

@@ -6,8 +6,8 @@ import type {
 } from "@extend-ai/react-docx"
 
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/shadcn/badge"
-import { Card } from "@/components/shadcn/card"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
 
 type AnnotationBadgeVariant =
   | "outline"

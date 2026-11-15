@@ -20,11 +20,11 @@ import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 import { createPortal } from "react-dom"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   ContextMenuSeparator,
   ContextMenuShortcut,
-} from "@/components/shadcn/context-menu"
+} from "@/components/ui/context-menu"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -34,33 +34,33 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu"
-import { Input } from "@/components/shadcn/input"
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/shadcn/popover"
+} from "@/components/ui/popover"
 import {
   ScrollArea as InlineScrollArea,
   ScrollBar,
-} from "@/components/shadcn/scroll-area"
+} from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Separator } from "@/components/shadcn/separator"
-import { Tabs, TabsList, TabsTrigger } from "@/components/shadcn/tabs"
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
-import { IconDots, IconMoon, IconDownload, IconUpload, IconSearch, IconChevronLeft, IconArrowRight, IconCircleMinus, IconCirclePlus, IconLoader2 } from "@tabler/icons-react"
+} from "@/components/ui/tooltip"
+import { IconDots, IconMoon, IconDownload, IconUpload, IconSearch, IconChevronLeft, IconCircleMinus, IconCirclePlus, IconLoader2, IconChevronRight } from "@tabler/icons-react"
 
 export const XLSX_CONTEXT_MENU_CLASS_NAME =
   "origin-(--transform-origin) rounded-lg border bg-popover text-popover-foreground shadow-lg/5 outline-none not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] dark:before:shadow-[0_-1px_--theme(--color-white/6%)]"
@@ -797,7 +797,7 @@ function WorkbookSearchPopover({
                 disabled={isSearching || searchResults.length === 0}
                 onClick={() => goToRelativeResult(1)}
               >
-                <IconArrowRight className="size-4" />
+                <IconChevronRight className="size-4" />
               </Button>
             </div>
           </div>

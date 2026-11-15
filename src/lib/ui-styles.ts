@@ -146,3 +146,10 @@ export const actionCardSub =
 export const paneToolbarBtn =
   "h-7 gap-1 bg-app-bg px-2 font-title text-[11px] font-semibold tracking-[0.06em] text-app-dim uppercase hover:text-app-bright [&_svg:not([class*='size-'])]:size-3.5 " +
   "data-active:bg-app-selected data-active:text-app-accent";
+
+/**
+ * Solid (default-variant) compacto Button sized to sit next to
+ * {@link paneToolbarBtn} in the pane toolbar — the one primary action there.
+ */
+export const paneToolbarSolidBtn =
+  "h-7 gap-1 px-2 font-title text-[11px] font-semibold tracking-[0.06em] uppercase [&_svg:not([class*='size-'])]:size-3.5";

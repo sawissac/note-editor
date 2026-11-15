@@ -10,6 +10,7 @@ import {
   type GetDocumentBytes,
   SaveBridgeProvider,
 } from "@/features/editors/save-bridge";
+import { useBinaryAutosave } from "@/features/editors/use-binary-autosave";
 import { useObjectUrl } from "@/features/editors/use-file-content";
 import {
   type PaneProps,
@@ -34,17 +35,19 @@ export default function XlsxPane({
   const [host, setHost] = React.useState<HTMLDivElement | null>(null);
   useFocusCellEditor(host, mode === "edit");
 
-  useSaveHandler(registerSave, async () => {
+  const saveNow = async () => {
     if (mode !== "edit" || !bridge.current) return;
     const bytes = await bridge.current();
     if (bytes) await dispatch(saveContent(id, bytes));
-  });
+  };
+  useSaveHandler(registerSave, saveNow);
+  const autosave = useBinaryAutosave(saveNow);
 
   if (!url) return <EmptyBinary name={name} />;
 
   return mode === "edit" ? (
-    <SaveBridgeProvider bridgeRef={bridge}>
-      <div ref={setHost} className="h-full">
+    <SaveBridgeProvider bridgeRef={bridge} onChange={autosave.onChange}>
+      <div ref={setHost} className="h-full" {...autosave.guardProps}>
       <XlsxEditorPreview
         className="h-full"
         src={url}

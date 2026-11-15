@@ -41,11 +41,17 @@ export function useObjectUrl(content: FileContent | null, type: string) {
   return url;
 }
 
+/** Quiet time after the last edit before any editor saves. */
+export const SAVE_DEBOUNCE_MS = 300;
+
 /**
  * Debounced save that also flushes when the editor unmounts (tab switch or
  * close), so the last keystrokes are never lost.
  */
-export function useDebouncedSave(save: (value: string) => void, delay = 500) {
+export function useDebouncedSave(
+  save: (value: string) => void,
+  delay = SAVE_DEBOUNCE_MS,
+) {
   const pending = React.useRef<string | null>(null);
   const timer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
   const saveRef = React.useRef(save);

@@ -14,39 +14,39 @@ import {
 } from "@glideapps/glide-data-grid"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu"
-import { Input } from "@/components/shadcn/input"
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/shadcn/popover"
+} from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Separator } from "@/components/shadcn/separator"
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
+} from "@/components/ui/tooltip"
 import "@glideapps/glide-data-grid/dist/index.css"
 
 import * as React from "react"
 import { ToolbarGroup } from "@/components/ui/toolbar-group"
 import Papa from "papaparse"
-import { IconDots, IconDownload, IconUpload, IconSearch, IconChevronLeft, IconArrowRight, IconCircleMinus, IconCirclePlus, IconLoader2 } from "@tabler/icons-react"
+import { IconDots, IconDownload, IconUpload, IconSearch, IconChevronLeft, IconCircleMinus, IconCirclePlus, IconLoader2, IconChevronRight } from "@tabler/icons-react"
 
 const ZOOM_OPTIONS = [0.75, 1, 1.25, 1.5, 2] as const
 const CSV_SEARCH_BATCH_ROW_COUNT = 500
@@ -479,7 +479,7 @@ function CsvSearchPopover({
                 disabled={isSearching || searchResults.length === 0}
                 onClick={() => goToRelativeResult(1)}
               >
-                <IconArrowRight className="size-4" />
+                <IconChevronRight className="size-4" />
               </Button>
             </div>
           </div>

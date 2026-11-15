@@ -1,0 +1,142 @@
+/* AppStatePane (`app.state`) — BEM block `app-state-pane`.
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. The
+ * d3 tree fills the left (SVG nodes carry these classes, set by d3); details
+ * scroll in the right column. Dot colour = value type. */
+
+@keyframes app-state-pane-flash {
+  0% {
+    stroke-width: 10;
+    stroke-opacity: 0.8;
+  }
+  100% {
+    stroke-width: 1.5;
+    stroke-opacity: 1;
+  }
+}
+
+@layer components {
+  .app-state-pane {
+    @apply bg-app-bg grid h-full min-h-0 grid-rows-[minmax(18rem,1fr)_minmax(0,16rem)] md:grid-cols-[minmax(0,1fr)_20rem] md:grid-rows-1;
+  }
+
+  /* ── Graph ────────────────────────────────────────────────────────── */
+  .app-state-pane__stage {
+    @apply relative min-h-0 overflow-hidden bg-[radial-gradient(var(--app-border)_1px,transparent_1px)] bg-size-[20px_20px];
+  }
+  .app-state-pane__graph {
+    @apply block size-full cursor-grab touch-none select-none active:cursor-grabbing;
+  }
+  .app-state-pane__hint {
+    @apply bg-app-panel/80 border-app-border text-app-dim pointer-events-none absolute bottom-3 left-3 m-0 rounded-md border px-2 py-1 font-mono text-[10px] backdrop-blur-sm;
+  }
+  .app-state-pane__link {
+    @apply stroke-app-border-mid fill-none [stroke-width:1.25];
+  }
+  .app-state-pane__node {
+    @apply cursor-pointer outline-none [&:focus-visible_circle]:stroke-app-accent [&:focus-visible_circle]:[stroke-width:3];
+  }
+  /* Halo in the background colour, so links passing under a label stay
+   * out of the way of the text. */
+  .app-state-pane__text {
+    @apply stroke-app-bg font-mono text-[11px] [paint-order:stroke] [stroke-linejoin:round] [stroke-width:4];
+  }
+  .app-state-pane__label {
+    @apply fill-app-text;
+  }
+  .app-state-pane__label--selected {
+    @apply fill-app-bright font-bold;
+  }
+  .app-state-pane__value {
+    @apply fill-app-dim;
+  }
+  .app-state-pane__value--type-string {
+    @apply fill-app-success;
+  }
+  .app-state-pane__value--type-number {
+    @apply fill-app-warn;
+  }
+  .app-state-pane__value--type-boolean {
+    @apply fill-app-accent-dim;
+  }
+
+  /* Dots: filled by value type; containers ring in the accent. */
+  .app-state-pane__dot {
+    @apply fill-app-panel stroke-app-accent-dim transition-[r] duration-200 [stroke-width:1.5];
+  }
+  .app-state-pane__dot--type-object {
+    @apply fill-app-panel stroke-app-accent;
+  }
+  .app-state-pane__dot--type-array {
+    @apply fill-app-panel stroke-app-warn;
+  }
+  .app-state-pane__dot--type-string {
+    @apply fill-app-success stroke-app-success;
+  }
+  .app-state-pane__dot--type-number {
+    @apply fill-app-warn stroke-app-warn;
+  }
+  .app-state-pane__dot--type-boolean {
+    @apply fill-app-accent-dim stroke-app-accent-dim;
+  }
+  .app-state-pane__dot--type-null {
+    @apply fill-app-border-mid stroke-app-dim;
+  }
+  .app-state-pane__dot--type-undefined {
+    @apply fill-app-border-mid stroke-app-dim;
+  }
+  /* A closed container: solid, so "there is more here" reads at a glance. */
+  .app-state-pane__dot--closed {
+    @apply fill-app-accent-dim;
+  }
+  .app-state-pane__dot--selected {
+    @apply stroke-app-bright [stroke-width:3];
+  }
+  .app-state-pane__dot--changed {
+    @apply stroke-app-error animate-[app-state-pane-flash_900ms_ease-out_both] motion-reduce:animate-none;
+  }
+
+  /* ── Side panel ───────────────────────────────────────────────────── */
+  .app-state-pane__side {
+    @apply border-app-border bg-app-panel divide-app-border flex min-h-0 flex-col divide-y overflow-y-auto border-t md:border-t-0 md:border-l;
+  }
+  .app-state-pane__section {
+    @apply flex flex-col gap-2.5 p-3;
+  }
+  .app-state-pane__section--grow {
+    @apply min-h-40 flex-1;
+  }
+  .app-state-pane__heading {
+    @apply font-title text-app-dim m-0 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  .app-state-pane__counts {
+    @apply m-0 grid grid-cols-2 gap-2;
+  }
+  .app-state-pane__count {
+    @apply border-app-border bg-app-bg flex flex-col gap-0.5 rounded-md border px-2.5 py-2;
+  }
+  .app-state-pane__count-label {
+    @apply font-description text-app-dim text-[11px];
+  }
+  .app-state-pane__count-value {
+    @apply font-display text-app-accent m-0 text-[18px] leading-none font-semibold tabular-nums;
+  }
+  .app-state-pane__meta {
+    @apply text-app-dim m-0 font-mono text-[10px];
+  }
+  .app-state-pane__path {
+    @apply text-app-bright m-0 font-mono text-[11px] break-all;
+  }
+  .app-state-pane__detail {
+    @apply border-app-border bg-app-bg text-app-text m-0 min-h-0 flex-1 overflow-auto rounded-md border p-2 font-mono text-[11px] leading-snug whitespace-pre;
+  }
+  .app-state-pane__legend {
+    @apply m-0 grid list-none grid-cols-3 gap-1.5 p-0;
+  }
+  .app-state-pane__legend-item {
+    @apply font-description text-app-text flex items-center gap-1.5 text-[11px];
+  }
+  .app-state-pane__legend-swatch {
+    @apply size-3 shrink-0;
+  }
+}

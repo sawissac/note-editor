@@ -39,12 +39,12 @@ import { useTheme } from "next-themes"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   Collapsible,
   CollapsibleContent as CollapsiblePanel,
   CollapsibleTrigger,
-} from "@/components/shadcn/collapsible"
+} from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,12 +56,12 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
 import {
   ScrollArea as InlineScrollArea,
   ScrollBar,
-} from "@/components/shadcn/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs"
+} from "@/components/ui/scroll-area"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { IconCircleX, IconNumber123, IconForms, IconLayoutColumns, IconBrackets, IconSourceCode, IconTextCaption, IconPlus, IconGripVertical, IconChevronDown, IconTable, IconTrash } from "@tabler/icons-react"
 import { FileBarSlot } from "@/features/editors/file-bar-slot"
 
@@ -160,11 +160,11 @@ const TABLE_HEAD_ROW =
   "border-b bg-muted/40 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground"
 const TABLE_HEAD_CELL = "h-7 px-2.5 text-left font-semibold"
 const ADD_ROW_BUTTON =
-  "flex h-7 w-full items-center gap-1.5 px-2.5 text-xs text-muted-foreground transition-colors outline-none hover:bg-muted/50 hover:text-foreground focus-visible:bg-muted/50 focus-visible:text-foreground"
+  "h-7 w-full justify-start gap-1.5 rounded-none px-2.5 text-xs font-normal text-app-dim"
 const DRAG_HANDLE =
   "absolute top-1/2 left-0 z-50 grid size-4.5 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded border bg-background text-muted-foreground opacity-0 shadow-xs transition-[opacity,color] outline-none hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
 const ROW_DELETE_BUTTON =
-  "grid size-6 place-items-center rounded text-muted-foreground opacity-0 transition-[opacity,color,background-color] outline-none hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+  "text-app-dim opacity-0 transition-[opacity,color,background-color] hover:bg-app-error/10 hover:text-app-error focus-visible:opacity-100"
 
 const SCALAR_TYPES: SchemaBuilderScalarType[] = [
   "string",
@@ -1356,14 +1356,16 @@ function EnumEditor({
               ))}
               <tr>
                 <td colSpan={3} className="p-0">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     className={ADD_ROW_BUTTON}
                     onClick={() => onChange([...values, createEnumValue()])}
                   >
                     <IconPlus className="size-3.5" />
                     Add value
-                  </button>
+                  </Button>
                 </td>
               </tr>
             </tbody>
@@ -1452,15 +1454,17 @@ const SortableEnumRow = React.memo(function SortableEnumRow({
         />
       </td>
       <td className="p-0 text-center align-middle">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           className={cn(ROW_DELETE_BUTTON, "mx-auto group-hover/enum-row:opacity-100")}
           aria-label={`Remove ${value.value || "empty value"}`}
           title="Remove value"
           onClick={() => onRemove(value.id)}
         >
           <IconTrash className="size-3.5" />
-        </button>
+        </Button>
       </td>
     </tr>
   )
@@ -1664,14 +1668,16 @@ function SchemaBuilderTable({
         <tbody>
           <tr>
             <td colSpan={4} className="p-0">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 className={ADD_ROW_BUTTON}
                 onClick={addProperty}
               >
                 <IconPlus className="size-3.5" />
                 Add property
-              </button>
+              </Button>
             </td>
           </tr>
         </tbody>
@@ -1780,8 +1786,10 @@ const SortablePropertyRows = React.memo(function SortablePropertyRows({
           />
         </td>
         <td className="p-0 text-center align-middle">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             className={cn(
               ROW_DELETE_BUTTON,
               "mx-auto group-hover/property-row:opacity-100"
@@ -1791,7 +1799,7 @@ const SortablePropertyRows = React.memo(function SortablePropertyRows({
             onClick={() => onPropertyRemove(property.id)}
           >
             <IconTrash className="size-3.5" />
-          </button>
+          </Button>
         </td>
       </tr>
       {hasNestedEditor ? (

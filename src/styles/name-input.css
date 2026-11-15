@@ -1,0 +1,66 @@
+/* NameInput — BEM block `name-input`.
+ *
+ * The inline field the explorer shows to create or rename a file / folder,
+ * with its name-suggestion list and validation message.
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. */
+
+@layer components {
+  .name-input {
+    @apply relative min-w-0 flex-1;
+  }
+
+
+  /* ── Suggestions ──────────────────────────────────────────────────── */
+  .name-input__list {
+    @apply border-app-border-mid bg-app-panel absolute top-full right-0 left-0 z-30 mt-0.5 overflow-hidden rounded-md border p-0.5;
+  }
+  .name-input__option {
+    @apply text-app-text flex h-6 cursor-pointer items-center gap-1.5 rounded-sm px-1.5 text-[12px];
+  }
+  .name-input__option--selected {
+    @apply bg-app-selected text-app-bright;
+  }
+  .name-input__option--disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+  .name-input__option-name {
+    @apply min-w-0 truncate;
+  }
+  .name-input__option-ext {
+    @apply text-app-bright font-semibold;
+  }
+  .name-input__option-kind {
+    @apply text-app-dim ml-auto flex shrink-0 items-center gap-0.5 font-mono text-[10px];
+  }
+  .name-input__option-kind-icon {
+    @apply text-app-warn size-3;
+  }
+
+  .name-input__hint {
+    @apply border-app-border text-app-dim mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t px-1.5 pt-1 pb-0.5 font-mono text-[10px];
+  }
+  .name-input__hint-item {
+    @apply flex items-center gap-0.5;
+  }
+  .name-input__hint-icon {
+    @apply size-3;
+  }
+
+  /* ── Validation ───────────────────────────────────────────────────── */
+  .name-input__error {
+    @apply border-app-error/40 bg-app-panel font-description text-app-error absolute top-full right-0 left-0 z-30 mt-0.5 flex items-start gap-1 rounded-sm border px-1.5 py-1 text-[11px] leading-snug;
+  }
+  .name-input__error-icon {
+    @apply mt-px size-3.5 shrink-0;
+  }
+}
+
+/* ── name-input × compacto ─────────────────────────────────────────────
+ * The field is the compacto Input; unlayered so its compact explorer-row
+ * size outranks Input's own utilities (no `!`). */
+.name-input__field {
+  @apply h-6 rounded-sm py-0 pl-1.5 leading-6 focus:ring-2;
+}
+.name-input__field--invalid {
+  @apply border-app-error hover:border-app-error focus:border-app-error focus:ring-app-error/20;
+}

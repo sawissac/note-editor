@@ -7,9 +7,12 @@ import {
   usePublisher,
 } from "@mdxeditor/editor";
 import {
+  IconDeviceFloppy,
   IconLink,
+  IconLoader2,
   IconPhoto,
   IconPhotoOff,
+  IconPhotoPlus,
   IconUpload,
   IconX,
 } from "@tabler/icons-react";
@@ -288,10 +291,18 @@ export function ImageDialog() {
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline">
+                <IconX />
                 Cancel
               </Button>
             </DialogClose>
             <Button type="submit" disabled={!canSave} data-testid="image-dialog-save">
+              {uploading ? (
+                <IconLoader2 className="animate-spin" />
+              ) : editing ? (
+                <IconDeviceFloppy />
+              ) : (
+                <IconPhotoPlus />
+              )}
               {uploading ? "Inserting…" : editing ? "Save" : "Insert"}
             </Button>
           </DialogFooter>
@@ -326,14 +337,17 @@ function PreviewFrame({
         </figcaption>
       ) : null}
       {onRemove ? (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="icon-sm"
           aria-label="Remove image"
+          title="Remove image"
           onClick={onRemove}
-          className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md border border-app-border bg-app-panel text-app-dim transition-colors hover:text-app-error"
+          className="absolute top-2 right-2 size-7 bg-app-panel text-app-dim hover:text-app-error"
         >
           <IconX className="size-4" />
-        </button>
+        </Button>
       ) : null}
     </figure>
   );

@@ -1,0 +1,264 @@
+/* RegexPane (`.regex` files) — BEM block `regex-pane`.
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme.
+ * `regex-pane__mark` is applied by Monaco to matched text in the editor, the
+ * status and bar button are portalled into the file bar; everything else
+ * lives in the right-hand column. */
+
+@layer components {
+  /* ── File bar ─────────────────────────────────────────────────────── */
+  .regex-pane__status {
+    @apply text-app-dim flex shrink-0 items-center gap-1 text-[11px] whitespace-nowrap;
+  }
+  .regex-pane__status--tone-ok {
+    @apply text-app-success;
+  }
+  .regex-pane__status--tone-warn {
+    @apply text-app-warn;
+  }
+  .regex-pane__status--tone-error {
+    @apply text-app-error;
+  }
+  .regex-pane__icon {
+    @apply size-3.5 shrink-0;
+  }
+
+  /* ── Matched text in the editor ───────────────────────────────────── */
+  .regex-pane__mark {
+    @apply bg-app-accent/20 rounded-[2px];
+  }
+  /* Every other match, so neighbours that touch stay distinguishable. */
+  .regex-pane__mark--alt {
+    @apply bg-app-warn/25;
+  }
+
+  /* ── Right column ─────────────────────────────────────────────────── */
+  .regex-pane__side {
+    @apply bg-app-panel flex h-full min-h-0 flex-col;
+  }
+  .regex-pane__heading {
+    @apply font-title text-app-dim m-0 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  .regex-pane__subheading {
+    @apply font-title text-app-dim m-0 text-[10px] font-semibold tracking-[0.1em] uppercase;
+  }
+  /* A message filling an otherwise empty panel. */
+  .regex-pane__empty {
+    @apply font-description text-app-dim m-0 p-3 text-[12px] leading-snug;
+  }
+  /* The same, inside a block that already has padding. */
+  .regex-pane__empty-line {
+    @apply font-description text-app-dim m-0 text-[12px] leading-snug;
+  }
+
+  /* ── Top section: the expression ──────────────────────────────────── */
+  .regex-pane__pattern {
+    @apply flex shrink-0 flex-col gap-2 p-3;
+  }
+  .regex-pane__field {
+    @apply border-app-border-mid bg-app-bg hover:border-app-border-accent focus-within:border-app-accent focus-within:ring-app-accent/30 flex items-stretch overflow-hidden rounded-md border transition-colors duration-200 focus-within:ring-2;
+  }
+  .regex-pane__field--invalid {
+    @apply border-app-error hover:border-app-error focus-within:border-app-error focus-within:ring-app-error/20;
+  }
+  .regex-pane__slash {
+    @apply text-app-dim flex shrink-0 items-center px-2 font-mono text-[13px] select-none;
+  }
+  .regex-pane__input {
+    @apply h-8 min-w-0 flex-1;
+  }
+  .regex-pane__flags {
+    @apply flex flex-wrap gap-1;
+  }
+  .regex-pane__flag-key {
+    @apply font-mono font-semibold;
+  }
+  .regex-pane__note {
+    @apply font-description text-app-dim m-0 flex items-start gap-1.5 text-[11px] leading-snug;
+  }
+  .regex-pane__note--tone-error {
+    @apply text-app-error font-mono;
+  }
+  .regex-pane__key {
+    @apply border-app-border-mid bg-app-bg text-app-bright rounded-sm border px-1 font-mono text-[10px];
+  }
+
+  /* ── Bottom section: two collapsible panels ───────────────────────── */
+  .regex-pane__insight {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+  /* Open panels split the height between them; each scrolls on its own. */
+  .regex-pane__panel {
+    @apply border-app-border flex min-h-0 flex-1 basis-0 flex-col border-t;
+  }
+  .regex-pane__panel--collapsed {
+    @apply flex-none;
+  }
+  .regex-pane__panel-header {
+    @apply border-app-border bg-app-sidebar flex h-9 shrink-0 items-center gap-2 border-b pr-2;
+  }
+  .regex-pane__panel-toggle {
+    @apply text-app-dim hover:text-app-bright focus-visible:bg-app-hover flex h-full min-w-0 flex-1 items-center gap-1.5 border-0 bg-transparent pl-2 text-left outline-none;
+  }
+  .regex-pane__chevron {
+    @apply size-3.5 shrink-0 transition-transform duration-200;
+  }
+  .regex-pane__chevron--closed {
+    @apply -rotate-90;
+  }
+  .regex-pane__panel-icon {
+    @apply text-app-accent size-4 shrink-0;
+  }
+  .regex-pane__panel-title {
+    @apply font-title text-app-bright shrink-0 text-[12px] font-semibold;
+  }
+  .regex-pane__panel-hint {
+    @apply font-description text-app-dim min-w-0 truncate text-[11px];
+  }
+  .regex-pane__panel-body {
+    @apply min-h-0 flex-1 overflow-auto;
+  }
+  .regex-pane__badge {
+    @apply tint-current text-app-accent shrink-0 rounded-full border px-1.5 font-mono text-[10px] leading-4 font-semibold tabular-nums;
+  }
+  .regex-pane__badge--tone-warn {
+    @apply text-app-warn;
+  }
+  .regex-pane__badge--tone-error {
+    @apply text-app-error;
+  }
+  .regex-pane__switch-option {
+    @apply tabular-nums;
+  }
+  /* A padded group inside a panel: a small heading and its content. */
+  .regex-pane__block {
+    @apply flex flex-col gap-2 p-3;
+  }
+
+  /* ── Usage › Explain: part | what it matches ──────────────────────── */
+  .regex-pane__parts-head {
+    @apply border-app-border bg-app-panel font-title text-app-dim sticky top-0 flex gap-3 border-b px-3 py-1 text-[10px] font-semibold tracking-[0.1em] uppercase;
+  }
+  .regex-pane__parts {
+    @apply m-0 list-none p-0;
+  }
+  .regex-pane__part {
+    @apply border-app-border hover:bg-app-hover focus-visible:bg-app-selected flex w-full items-baseline gap-3 border-0 border-b bg-transparent px-3 py-1.5 text-left outline-none;
+  }
+  /* The first column — same width in the header and in every row. */
+  .regex-pane__part-key {
+    @apply w-[38%] shrink-0;
+  }
+  .regex-pane__part-code {
+    @apply border-app-border bg-app-bg text-app-text inline-block max-w-full rounded-sm border px-1.5 py-px font-mono text-[12px] break-all whitespace-pre-wrap;
+  }
+  .regex-pane__part-code--kind-set {
+    @apply text-app-accent font-semibold;
+  }
+  .regex-pane__part-code--kind-class {
+    @apply text-app-warn;
+  }
+  .regex-pane__part-code--kind-quantifier {
+    @apply text-app-warn font-semibold;
+  }
+  .regex-pane__part-code--kind-anchor {
+    @apply text-app-error;
+  }
+  .regex-pane__part-code--kind-group {
+    @apply text-app-bright font-semibold;
+  }
+  .regex-pane__part-text {
+    @apply font-description text-app-text min-w-0 flex-1 text-[12px] leading-snug;
+  }
+  .regex-pane__part-text--muted {
+    @apply text-app-dim;
+  }
+
+  /* ── Usage › Matches ──────────────────────────────────────────────── */
+  .regex-pane__matches {
+    @apply m-0 list-none p-0;
+  }
+  .regex-pane__match-item {
+    @apply border-app-border border-b;
+  }
+  .regex-pane__match {
+    @apply hover:bg-app-hover focus-visible:bg-app-selected flex w-full items-baseline gap-2 border-0 bg-transparent px-3 py-1.5 text-left outline-none;
+  }
+  .regex-pane__match-index {
+    @apply tint-current text-app-accent min-w-5 shrink-0 rounded-sm border px-1 text-center font-mono text-[10px] tabular-nums;
+  }
+  .regex-pane__match-text {
+    @apply text-app-bright min-w-0 flex-1 font-mono text-[12px] break-all whitespace-pre-wrap;
+  }
+  .regex-pane__match-text--empty {
+    @apply font-description text-app-dim italic;
+  }
+  .regex-pane__match-pos {
+    @apply text-app-dim shrink-0 font-mono text-[10px] tabular-nums;
+  }
+  .regex-pane__groups {
+    @apply m-0 flex flex-col gap-0.5 pr-3 pb-2 pl-10;
+  }
+  .regex-pane__group {
+    @apply flex items-baseline gap-2;
+  }
+  .regex-pane__group-name {
+    @apply text-app-dim w-16 shrink-0 truncate font-mono text-[11px];
+  }
+  .regex-pane__group-value {
+    @apply text-app-text m-0 min-w-0 font-mono text-[11px] break-all whitespace-pre-wrap;
+  }
+  .regex-pane__group-value--unset {
+    @apply font-description text-app-dim italic;
+  }
+
+  /* ── Suggestions › hints ──────────────────────────────────────────── */
+  .regex-pane__tips {
+    @apply m-0 flex list-none flex-col gap-2 p-0;
+  }
+  /* The tone colours the left edge and the icon; the text stays neutral. */
+  .regex-pane__tip {
+    @apply border-app-border bg-app-bg text-app-accent flex items-start gap-2 rounded-md border border-l-2 border-l-current p-2.5;
+  }
+  .regex-pane__tip--tone-warn {
+    @apply text-app-warn;
+  }
+  .regex-pane__tip--tone-error {
+    @apply text-app-error;
+  }
+  .regex-pane__tip-icon {
+    @apply mt-px size-4 shrink-0;
+  }
+  .regex-pane__tip-body {
+    @apply flex min-w-0 flex-1 flex-col items-start gap-1;
+  }
+  .regex-pane__tip-title {
+    @apply font-title text-app-bright m-0 text-[12px] leading-snug font-semibold;
+  }
+  .regex-pane__tip-text {
+    @apply font-description text-app-text m-0 text-[12px] leading-snug break-words;
+  }
+  .regex-pane__tip-code {
+    @apply border-app-border bg-app-panel text-app-bright max-w-full rounded-sm border px-1.5 py-0.5 font-mono text-[12px] break-all;
+  }
+  .regex-pane__tip-action {
+    @apply mt-1;
+  }
+  .regex-pane__clear {
+    @apply font-description text-app-success m-0 flex items-center gap-1.5 text-[12px];
+  }
+
+  /* ── Suggestions › ready-made patterns ────────────────────────────── */
+  .regex-pane__recipes {
+    @apply border-app-border divide-app-border m-0 flex list-none flex-col divide-y overflow-hidden rounded-md border p-0;
+  }
+  .regex-pane__recipe {
+    @apply hover:bg-app-accent-faint focus-visible:bg-app-selected flex w-full flex-col gap-0.5 border-0 bg-transparent px-2.5 py-1.5 text-left transition-colors duration-200 outline-none;
+  }
+  .regex-pane__recipe-name {
+    @apply font-title text-app-bright text-[12px] font-semibold;
+  }
+  .regex-pane__recipe-code {
+    @apply text-app-dim w-full truncate font-mono text-[11px];
+  }
+}

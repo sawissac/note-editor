@@ -1,7 +1,6 @@
 import type { PdfDocumentObject, PdfEngine } from "@embedpdf/models"
-
-const PDFIUM_VERSION = "2.15.0"
-const PDFIUM_WASM_URL = `https://cdn.jsdelivr.net/npm/@embedpdf/pdfium@${PDFIUM_VERSION}/dist/pdfium.wasm`
+// Bundled (not CDN) so the service worker precaches it and PDFs open offline.
+import PDFIUM_WASM_URL from "@embedpdf/pdfium/pdfium.wasm?url"
 
 let sharedEnginePromise: Promise<PdfEngine> | null = null
 const pdfDocumentCache = new Map<string, Promise<PdfDocumentObject>>()
@@ -18,7 +17,11 @@ export function getPdfSourceUrl(src: string) {
 
 export function loadSharedPdfEngine() {
   sharedEnginePromise ??= import("@embedpdf/engines/pdfium-worker-engine").then(
-    ({ createPdfiumEngine }) => createPdfiumEngine(PDFIUM_WASM_URL, {})
+    // The engine fetches the wasm from inside a blob: worker, where a
+    // root-relative path ("/assets/pdfium-….wasm") cannot resolve and the
+    // first document open hangs forever. Hand it an absolute URL.
+    ({ createPdfiumEngine }) =>
+      createPdfiumEngine(new URL(PDFIUM_WASM_URL, window.location.href).href, {})
   )
 
   return sharedEnginePromise

@@ -1,0 +1,321 @@
+/* ChatPane (`.chat` files) — BEM blocks `chat-pane` (the conversation) and
+ * `chat-markdown` (a reply rendered from Markdown).
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme.
+ * Provider, key and model pickers are portalled into the file bar. */
+
+@layer components {
+  /* ── chat-picker: provider / key / model triggers in the file bar ── */
+  .chat-picker {
+    @apply max-w-32 min-w-0 shrink;
+  }
+  .chat-picker--wide {
+    @apply max-w-44;
+  }
+  .chat-picker__icon {
+    @apply text-app-dim size-3 shrink-0;
+  }
+  /* Named for screen readers and the tooltip; the icon says it visually. */
+  .chat-picker__label {
+    @apply sr-only;
+  }
+  .chat-picker__value {
+    @apply text-app-bright min-w-0 truncate font-medium;
+  }
+  .chat-picker__value--mono {
+    @apply font-mono text-[10.5px];
+  }
+  .chat-picker__chevron {
+    @apply text-app-dim size-2.5 shrink-0;
+  }
+  .chat-picker__menu {
+    @apply w-52 max-w-[calc(100vw-1rem)];
+  }
+  .chat-picker__option-text {
+    @apply flex min-w-0 flex-1 items-baseline gap-1.5;
+  }
+  .chat-picker__option-title {
+    @apply text-app-bright shrink-0 truncate text-[12px];
+  }
+  .chat-picker__option-sub {
+    @apply text-app-dim min-w-0 truncate font-mono text-[10px];
+  }
+  .chat-picker__option-mono {
+    @apply min-w-0 flex-1 truncate font-mono text-[11px];
+  }
+  .chat-picker__option-icon {
+    @apply text-app-dim size-3 shrink-0;
+  }
+  .chat-picker__check {
+    @apply text-app-accent size-3 shrink-0;
+  }
+  .chat-picker__divider {
+    @apply bg-app-border -mx-1 my-1 h-px;
+  }
+  .chat-picker__list {
+    @apply max-h-64;
+  }
+  .chat-picker__empty {
+    @apply font-description text-app-dim px-3 py-4 text-center text-[11px];
+  }
+  .chat-picker__footer {
+    @apply border-app-border font-description text-app-dim m-0 border-t px-2.5 py-1 text-[10px];
+  }
+
+  /* ── chat-pane: layout ────────────────────────────────────────────── */
+  .chat-pane {
+    @apply bg-app-bg flex h-full min-h-0 flex-col;
+  }
+  .chat-pane__settings {
+    @apply border-app-border bg-app-panel grid shrink-0 gap-3 border-b p-3 md:grid-cols-[minmax(0,1fr)_14rem];
+  }
+  .chat-pane__scroll {
+    @apply min-h-0 flex-1 overflow-y-auto;
+  }
+  .chat-pane__messages {
+    @apply mx-auto flex max-w-3xl flex-col gap-4 px-4 py-5;
+  }
+  .chat-pane__notice {
+    @apply font-description text-app-dim m-0 flex items-start gap-1.5 text-[12px] leading-snug;
+  }
+  .chat-pane__notice--error {
+    @apply text-app-error;
+  }
+
+  /* ── chat-pane: empty states ──────────────────────────────────────── */
+  .chat-pane__empty {
+    @apply flex flex-col items-center gap-3 py-12 text-center;
+  }
+  .chat-pane__empty-icon {
+    @apply text-app-accent size-8;
+  }
+  .chat-pane__empty-text {
+    @apply font-description text-app-dim m-0 max-w-md text-[12px] leading-relaxed;
+  }
+
+  /* ── chat-pane: messages ──────────────────────────────────────────── */
+  .chat-pane__message {
+    @apply flex min-w-0 items-start gap-2.5;
+  }
+  .chat-pane__message--user {
+    @apply flex-row-reverse;
+  }
+  .chat-pane__avatar {
+    @apply border-app-border bg-app-panel text-app-accent flex size-7 shrink-0 items-center justify-center rounded-full border;
+  }
+  .chat-pane__message--user .chat-pane__avatar {
+    @apply text-app-dim;
+  }
+  .chat-pane__message--error .chat-pane__avatar {
+    @apply text-app-error;
+  }
+  .chat-pane__avatar-icon {
+    @apply size-4;
+  }
+  .chat-pane__bubble {
+    @apply flex max-w-[85%] min-w-0 flex-col gap-1;
+  }
+  .chat-pane__message--user .chat-pane__bubble {
+    @apply bg-app-accent-faint border-app-border-accent items-end rounded-lg border px-3 py-2;
+  }
+  .chat-pane__message--error .chat-pane__bubble {
+    @apply border-app-error/40 bg-app-error/5 rounded-lg border px-3 py-2;
+  }
+  .chat-pane__plain {
+    @apply font-description text-app-bright m-0 text-[13px] leading-relaxed break-words whitespace-pre-wrap;
+  }
+  .chat-pane__message--error .chat-pane__plain {
+    @apply text-app-error font-mono text-[12px];
+  }
+  .chat-pane__tools {
+    @apply flex items-center gap-0.5;
+  }
+  .chat-pane__meta {
+    @apply text-app-dim mr-1 font-mono text-[10px];
+  }
+  .chat-pane__tool-icon {
+    @apply size-3.5;
+  }
+  /* Waiting for the first words of a reply. */
+  .chat-pane__pending {
+    @apply border-app-border bg-app-panel flex h-8 items-center gap-1 self-start rounded-full border px-3;
+  }
+  .chat-pane__dot {
+    @apply bg-app-accent size-1.5 animate-bounce rounded-full;
+  }
+  .chat-pane__dot--second {
+    @apply [animation-delay:150ms];
+  }
+  .chat-pane__dot--third {
+    @apply [animation-delay:300ms];
+  }
+  .chat-pane__pending-label {
+    @apply font-description text-app-dim ml-1.5 text-[11px] tabular-nums;
+  }
+
+  /* ── chat-pane: composer ──────────────────────────────────────────── */
+  .chat-pane__composer {
+    @apply border-app-border bg-app-panel mx-auto flex w-full max-w-3xl shrink-0 items-end gap-2 border-t p-3 md:rounded-t-lg md:border-x;
+  }
+  /* A banner sits on top: square the top corners so the two read as one. */
+  .chat-pane__composer--attached {
+    @apply md:rounded-t-none;
+  }
+
+  /* ── chat-pane: status banner docked above the composer ───────────── */
+  .chat-pane__banner {
+    @apply border-app-border-accent bg-app-accent-faint mx-auto flex w-full max-w-3xl shrink-0 items-center justify-between gap-2 border-t px-3 py-1.5 md:rounded-t-lg md:border-x;
+  }
+  .chat-pane__banner-text {
+    @apply font-description text-app-bright flex min-w-0 items-center gap-1.5 truncate text-[12px] font-medium;
+  }
+  .chat-pane__banner-icon {
+    @apply text-app-accent size-3.5 shrink-0;
+  }
+
+  /* ── chat-composer: the rich-text message box ─────────────────────── */
+  .chat-composer {
+    @apply border-app-border-mid bg-app-bg hover:border-app-border-accent focus-within:border-app-accent focus-within:ring-app-accent/30 relative min-w-0 flex-1 overflow-hidden rounded-md border transition-colors duration-150 focus-within:ring-2;
+  }
+  .chat-composer--disabled {
+    @apply pointer-events-none opacity-50;
+  }
+  .chat-composer__group {
+    @apply flex items-center gap-0.5;
+  }
+  .chat-composer__placeholder {
+    @apply font-description text-app-dim pointer-events-none absolute top-0 left-0 truncate px-3 py-2 text-[13px] leading-normal select-none;
+  }
+
+  /* ── chat-markdown ────────────────────────────────────────────────── */
+  .chat-markdown {
+    @apply font-description text-app-text flex min-w-0 flex-col gap-2.5 text-[13px] leading-relaxed break-words;
+  }
+  .chat-markdown__paragraph {
+    @apply m-0;
+  }
+  .chat-markdown__heading {
+    @apply font-title text-app-bright m-0 mt-1 text-[14px] font-semibold;
+  }
+  .chat-markdown__list {
+    @apply m-0 flex list-disc flex-col gap-1 pl-5;
+  }
+  .chat-markdown__list--ordered {
+    @apply list-decimal;
+  }
+  .chat-markdown__item {
+    @apply pl-0.5;
+  }
+  .chat-markdown__link {
+    @apply text-app-accent underline underline-offset-2;
+  }
+  .chat-markdown__strong {
+    @apply text-app-bright font-semibold;
+  }
+  .chat-markdown__quote {
+    @apply border-app-border-mid text-app-dim m-0 border-l-2 pl-3;
+  }
+  .chat-markdown__code {
+    @apply bg-app-hover text-app-bright rounded-sm px-1 py-px font-mono text-[12px];
+  }
+  .chat-markdown__code--block {
+    @apply block bg-transparent p-0 leading-snug;
+  }
+  .chat-markdown__code-frame {
+    @apply border-app-border bg-app-panel relative rounded-md border;
+  }
+  /* Right padding keeps short code clear of the copy button. */
+  .chat-markdown__pre {
+    @apply m-0 overflow-x-auto py-3 pr-11 pl-3;
+  }
+  .chat-markdown__copy {
+    @apply absolute top-1.5 right-1.5;
+  }
+  .chat-markdown__copy-icon {
+    @apply size-3.5;
+  }
+  .chat-markdown__table-frame {
+    @apply border-app-border overflow-x-auto rounded-md border;
+  }
+  .chat-markdown__table {
+    @apply w-full border-collapse text-[12px];
+  }
+  .chat-markdown__th {
+    @apply bg-app-sidebar font-title text-app-dim border-app-border border-b px-2.5 py-1.5 text-left text-[11px] font-semibold;
+  }
+  .chat-markdown__td {
+    @apply border-app-border border-t px-2.5 py-1.5 align-top;
+  }
+  .chat-markdown__rule {
+    @apply border-app-border my-1 border-0 border-t;
+  }
+}
+
+/* ── chat-composer × MDXEditor ─────────────────────────────────────────
+ * MDXEditor's stylesheet is unlayered, so it beats anything inside
+ * `@layer components`. These overrides are unlayered too, and scoped with
+ * the block modifier `chat-composer--rich` (BEM's one allowed nesting) to
+ * outrank the library's single-class rules. */
+.chat-composer--rich .chat-composer__editor {
+  --baseBase: var(--app-bg);
+  --baseBgSubtle: var(--app-sidebar);
+  --baseBg: var(--app-hover);
+  --baseBgHover: var(--app-hover);
+  --baseBgActive: var(--app-selected);
+  --baseLine: var(--app-border);
+  --baseBorder: var(--app-border-mid);
+  --baseBorderHover: var(--app-border-accent);
+  --baseSolid: var(--app-dim);
+  --baseSolidHover: var(--app-text);
+  --baseText: var(--app-text);
+  --baseTextContrast: var(--app-bright);
+  --basePageBg: var(--app-bg);
+  --accentBg: var(--app-accent-faint);
+  --accentBgHover: var(--app-selected);
+  --accentBgActive: var(--app-selected);
+  --accentBorder: var(--app-border-accent);
+  --accentSolid: var(--app-accent);
+  --accentText: var(--app-accent);
+  --accentTextContrast: var(--app-bright);
+  --font-body: var(--font-description);
+  /* Toolbar is the first child; show it under the text, like a chat app. */
+  display: flex;
+  flex-direction: column-reverse;
+  background: transparent;
+}
+.chat-composer--rich .chat-composer__toolbar {
+  position: static;
+  border-radius: 0;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-panel);
+  padding: 2px 6px;
+  gap: 6px;
+}
+.chat-composer--rich .chat-composer__content {
+  min-height: 36px;
+  max-height: 12rem;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-family: var(--font-description);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--app-bright);
+}
+
+/* ── chat-picker × compacto menus ──────────────────────────────────────
+ * The compacto DropdownMenu / Popover / Command primitives size their rows
+ * and panels with Tailwind utilities, which outrank `@layer components`.
+ * The compact sizes below are unlayered so they win, without `!`. */
+.chat-picker__option {
+  @apply min-h-6 gap-1.5 px-1.5 py-1 text-[12px];
+}
+.chat-picker__popover {
+  @apply w-72 p-0;
+}
+.chat-picker__group {
+  @apply p-1;
+}
+
+.chat-pane__tool {
+  @apply text-app-dim hover:text-app-bright;
+}

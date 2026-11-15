@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils"
 import {
   ResizableHandle,
   ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/shadcn/resizable"
+  ResizableGroup,
+} from "@/components/ui/resizable"
 
 function PanelBorder({ side }: { side: "left" | "right" }) {
   return (
@@ -74,7 +74,7 @@ export function PdfEditorWorkspace({
   )
   return (
     <div className="relative h-full min-h-0 w-full flex-1 overflow-hidden">
-      <ResizablePanelGroup
+      <ResizableGroup
         orientation="horizontal"
         onLayoutChanged={rememberSizes}
       >
@@ -89,13 +89,13 @@ export function PdfEditorWorkspace({
         </ResizablePanel>
         {right && rightInline ? <PanelBorder side="right" /> : null}
         {right && rightInline ? sidebar("right", right) : null}
-      </ResizablePanelGroup>
+      </ResizableGroup>
       {(["left", "right"] as const).map((side) => {
         const content = side === "left" ? left : right
         const inline = side === "left" ? leftInline : rightInline
         if (!content || inline) return null
         return (
-          <ResizablePanelGroup
+          <ResizableGroup
             key={side}
             orientation="horizontal"
             onLayoutChanged={rememberSizes}
@@ -113,7 +113,7 @@ export function PdfEditorWorkspace({
             {side === "left" ? (
               <ResizablePanel id={`${id}-left-space`} minSize="1rem" />
             ) : null}
-          </ResizablePanelGroup>
+          </ResizableGroup>
         )
       })}
     </div>

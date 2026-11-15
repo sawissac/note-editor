@@ -1,15 +1,21 @@
 import {
+  IconArrowBarToRight,
+  IconClearAll,
+  IconFolderSearch,
   IconLayoutSidebarLeftExpand,
   IconPoint,
+  IconSquareX,
   IconX,
 } from "@tabler/icons-react";
 import * as React from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/cn";
@@ -83,15 +89,17 @@ export function TabBar() {
       className="flex h-9 shrink-0 items-stretch border-b border-app-border bg-app-sidebar"
     >
       {!sidebarOpen ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           aria-label="Show sidebar"
           title="Show sidebar"
           onClick={() => dispatch(uiActions.sidebarSet(true))}
-          className={cn(ui.iconBtn, "my-0.5 ml-1 size-8")}
+          className="text-app-dim hover:text-app-accent my-0.5 ml-1"
         >
           <IconLayoutSidebarLeftExpand className="size-4" />
-        </button>
+        </Button>
       ) : null}
       <div className="relative min-w-0 flex-1">
         <div
@@ -197,17 +205,20 @@ function Tab({ id, index, active }: { id: string; index: number; active: boolean
         >
           <FileIcon name={node.name} />
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             tabIndex={-1}
             aria-label={`Close ${node.name}`}
+            title={saveState === "saving" ? "Saving… — click to close" : "Close (middle-click)"}
             data-testid={`tab-close-button-${id}`}
             onClick={(e) => {
               e.stopPropagation();
               dispatch(tabsActions.closed(id));
             }}
             className={cn(
-              "flex size-5 shrink-0 items-center justify-center rounded-sm text-app-dim transition-colors hover:bg-app-hover hover:text-app-bright",
+              "text-app-dim size-5 rounded-sm",
               !active && "opacity-0 group-hover:opacity-100",
               saveState === "saving" && "opacity-100",
             )}
@@ -218,26 +229,31 @@ function Tab({ id, index, active }: { id: string; index: number; active: boolean
             <IconX
               className={cn("size-3.5", saveState === "saving" && "hidden group-hover:block")}
             />
-          </button>
+          </Button>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
         <ContextMenuItem onSelect={() => dispatch(tabsActions.closed(id))}>
+          <IconX />
           Close
+          <ContextMenuShortcut>Middle-click</ContextMenuShortcut>
         </ContextMenuItem>
         <ContextMenuItem
           disabled={openCount < 2}
           onSelect={() => dispatch(tabsActions.closedOthers(id))}
         >
+          <IconSquareX />
           Close others
         </ContextMenuItem>
         <ContextMenuItem
           disabled={index === openCount - 1}
           onSelect={() => dispatch(tabsActions.closedToRight(id))}
         >
+          <IconArrowBarToRight />
           Close to the right
         </ContextMenuItem>
         <ContextMenuItem onSelect={() => dispatch(tabsActions.closedAll())}>
+          <IconClearAll />
           Close all
         </ContextMenuItem>
         <ContextMenuSeparator />
@@ -247,6 +263,7 @@ function Tab({ id, index, active }: { id: string; index: number; active: boolean
             dispatch(openFile(id));
           }}
         >
+          <IconFolderSearch />
           Reveal in explorer
         </ContextMenuItem>
       </ContextMenuContent>

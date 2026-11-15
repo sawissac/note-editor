@@ -1,0 +1,61 @@
+/* AppInfoPane (`app.info`) — BEM block `app-info-pane`.
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme.
+ * Minimal layout: header, then borderless tiles. The
+ * file-type icon carries the colour — the glyph sits on a soft tile tinted
+ * from its own `currentColor` (the tone `FileIcon` gives it), so each type
+ * reads at a glance. Tiles rise in one by one; each delay comes from the
+ * tile's `--app-info-pane-i` index. */
+
+@keyframes app-info-pane-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer components {
+  .app-info-pane {
+    @apply bg-app-bg h-full min-h-0 overflow-y-auto;
+  }
+  .app-info-pane__inner {
+    @apply mx-auto flex max-w-4xl flex-col gap-8 px-4 pt-10 pb-14 md:px-8;
+  }
+
+  /* ── Header ───────────────────────────────────────────────────────── */
+  .app-info-pane__header {
+    @apply flex flex-col gap-1.5;
+  }
+  .app-info-pane__title {
+    @apply font-display text-app-bright m-0 text-[20px] font-semibold tracking-[-0.01em];
+  }
+  .app-info-pane__lead {
+    @apply font-description text-app-dim m-0 text-[12px] leading-snug;
+  }
+  .app-info-pane__code {
+    @apply bg-app-hover text-app-text rounded px-1 font-mono text-[11px];
+  }
+
+  /* ── Grid: borderless tiles, the icon is the hero ─────────────────── */
+  .app-info-pane__grid {
+    @apply m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-x-2 gap-y-4 p-0;
+  }
+  .app-info-pane__card {
+    @apply hover:bg-app-hover flex animate-[app-info-pane-rise_360ms_cubic-bezier(0.2,0.8,0.2,1)_both] flex-col items-center gap-2 rounded-xl px-2 py-3 text-center transition-colors duration-150 [animation-delay:calc(var(--app-info-pane-i)*18ms)] motion-reduce:animate-none hover:[&_svg]:-translate-y-0.5 hover:[&_svg]:scale-105;
+  }
+  /* The svg gets the tile: its own tone (currentColor) tints the fill and
+   * the glow, so every type keeps its colour without per-kind rules. */
+  .app-info-pane__card-icon {
+    @apply flex [&_svg]:size-12 [&_svg]:rounded-2xl [&_svg]:bg-current/12 [&_svg]:p-3 [&_svg]:shadow-[0_6px_18px_-8px_currentColor] [&_svg]:ring-1 [&_svg]:ring-current/15 [&_svg]:transition-transform [&_svg]:duration-200 motion-reduce:[&_svg]:transition-none;
+  }
+  .app-info-pane__card-ext {
+    @apply text-app-bright font-mono text-[13px] font-semibold;
+  }
+  .app-info-pane__card-kind {
+    @apply font-description text-app-dim -mt-1.5 text-[11px];
+  }
+}

@@ -17,18 +17,31 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   IconAlertTriangle,
+  IconAlignLeft,
+  IconArrowBackUp,
   IconArrowLeft,
+  IconChecks,
   IconChevronDown,
+  IconChevronUp,
+  IconCircleCheck,
+  IconCode,
   IconDownload,
   IconEye,
-  IconChevronUp,
   IconFileExport,
+  IconFilePlus,
+  IconFiles,
   IconGripVertical,
   IconLoader2,
+  IconPhoto,
+  IconSettings,
+  IconSquareOff,
+  IconTable,
+  IconUpload,
+  IconX,
+  type Icon,
 } from "@tabler/icons-react";
 import * as React from "react";
 
-import { ButtonGroup } from "@/components/ui/button-group";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,7 +52,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/cn";
 import { FileIcon } from "@/lib/file-icons";
 import { type FileKind, KIND_LABEL, kindOf } from "@/lib/file-types";
@@ -51,7 +66,7 @@ import type {
   ExportResult,
 } from "@/lib/unified-export/pdf";
 import { useAppDispatch, useAppSelector } from "@/store";
-import type { FsNode } from "@/store/fs-slice";
+import { fsActions, type FsNode } from "@/store/fs-slice";
 import { getPath, selectChildrenMap } from "@/store/selectors";
 import { uiActions } from "@/store/ui-slice";
 import { saveOpenEditors } from "@/features/editors/pane-context";
@@ -80,7 +95,21 @@ const EXPORTABLE: ReadonlySet<FileKind> = new Set([
   "xlsx",
   "schema",
   "mermaid",
+  "calendar",
+  "kanban",
+  "json",
+  "yaml",
+  "toml",
+  "sql",
+  "env",
+  "apikeys",
+  "regex",
+  "diff",
+  "qr",
+  "timer",
+  "chat",
   "pdf",
+  "image",
 ]);
 
 /** How each kind lands in the PDF — shown beside the file. */
@@ -92,8 +121,61 @@ const RESULT_LABEL: Record<FileKind, string> = {
   xlsx: "Tables",
   schema: "Table",
   mermaid: "Image",
+  calendar: "Table",
+  kanban: "Table",
+  json: "Code",
+  yaml: "Code",
+  toml: "Code",
+  sql: "Code",
+  env: "Code (masked)",
+  apikeys: "Code (masked)",
+  regex: "Code",
+  diff: "Code",
+  qr: "Image",
+  timer: "Table",
+  chat: "Text",
+  appinfo: "Not exported",
+  appstate: "Not exported",
   pdf: "Pages",
+  image: "Image",
 };
+
+/** Coarse result buckets for the summary and the empty-state legend. */
+const RESULT_GROUPS = ["Text", "Table", "Image", "Code", "Pages"] as const;
+type ResultGroup = (typeof RESULT_GROUPS)[number];
+
+const GROUP_ICON: Record<ResultGroup, Icon> = {
+  Text: IconAlignLeft,
+  Table: IconTable,
+  Image: IconPhoto,
+  Code: IconCode,
+  Pages: IconFiles,
+};
+
+function resultGroup(kind: FileKind): ResultGroup {
+  const label = RESULT_LABEL[kind];
+  if (label.startsWith("Table")) return "Table";
+  if (label.startsWith("Code")) return "Code";
+  if (label === "Image" || label === "Pages") return label;
+  return "Text";
+}
+
+const EXPORTABLE_KINDS = [...EXPORTABLE];
+
+const PAGE_SIZES: Array<{
+  id: ExportOptions["pageSize"];
+  label: string;
+  dims: string;
+  title: string;
+}> = [
+  { id: "a4", label: "A4", dims: "210 × 297 mm", title: "A4 — 210 × 297 mm" },
+  {
+    id: "letter",
+    label: "Letter",
+    dims: "8.5 × 11 in",
+    title: "US Letter — 8.5 × 11 in",
+  },
+];
 
 type Row = { node: FsNode; kind: FileKind; path: string };
 
@@ -248,7 +330,13 @@ export function UnifiedExportDialog() {
           path: r.path,
           kind: r.kind,
         })),
-        { pageSize, contents, title: fileTitle },
+        {
+          pageSize,
+          contents,
+          title: fileTitle,
+          pathOf: (id) =>
+            nodes[id] ? getPath(nodes, id).join("/") : undefined,
+        },
         (progress) => setStatus({ state: "running", progress }),
       );
       const next: Built = {
@@ -300,6 +388,35 @@ export function UnifiedExportDialog() {
     setStatus({ state: "idle" });
   };
 
+  /** What the ticked files turn into, e.g. 2 Text · 1 Table. */
+  const outcome = React.useMemo(() => {
+    const counts = new Map<ResultGroup, number>();
+    for (const r of selected) {
+      const g = resultGroup(r.kind);
+      counts.set(g, (counts.get(g) ?? 0) + 1);
+    }
+    return RESULT_GROUPS.filter((g) => counts.has(g)).map((g) => ({
+      group: g,
+      count: counts.get(g) ?? 0,
+    }));
+  }, [selected]);
+
+  const startNote = () => {
+    close();
+    dispatch(uiActions.sidebarSet(true));
+    dispatch(
+      fsActions.draftStarted({
+        mode: "create",
+        nodeType: "file",
+        parentId: null,
+      }),
+    );
+  };
+  const startImport = () => {
+    close();
+    dispatch(uiActions.importOpened(null));
+  };
+
   return (
     <Dialog
       open={open}
@@ -314,16 +431,28 @@ export function UnifiedExportDialog() {
           "flex flex-col",
           view === "preview"
             ? "h-[min(960px,92vh)] w-[min(1100px,96vw)]"
-            : "max-h-[min(720px,90vh)] w-[min(640px,94vw)]",
+            : "max-h-[min(780px,92vh)] w-[min(680px,94vw)]",
         )}
         data-testid="unified-export-dialog"
       >
         <DialogHeader>
-          <DialogTitle>
-            {view === "preview" && built
-              ? `Preview · ${built.fileName}`
-              : "Unified export"}
-          </DialogTitle>
+          <div className="unified-export__heading">
+            <span className="unified-export__heading-icon" aria-hidden>
+              {view === "preview" ? <IconEye /> : <IconFileExport />}
+            </span>
+            <span className="unified-export__heading-text">
+              <DialogTitle>
+                {view === "preview" && built
+                  ? `Preview · ${built.fileName}`
+                  : "Unified export"}
+              </DialogTitle>
+              {view === "pick" ? (
+                <DialogDescription className="unified-export__subtitle">
+                  Merge files into one PDF — each starts on a new page.
+                </DialogDescription>
+              ) : null}
+            </span>
+          </div>
         </DialogHeader>
         {view === "preview" && built ? (
           <>
@@ -331,10 +460,14 @@ export function UnifiedExportDialog() {
               {built.failures.length ? (
                 <ul
                   data-testid="unified-export-dialog-failure-list"
-                  className="border-app-border font-description text-app-warn flex flex-col gap-0.5 border-b px-3 py-2 text-[11px]"
+                  className="unified-export__failures unified-export__failures--banner"
                 >
                   {built.failures.map((f) => (
-                    <li key={f.name}>
+                    <li key={f.name} className="unified-export__failure">
+                      <IconAlertTriangle
+                        aria-hidden
+                        className="unified-export__failure-icon"
+                      />
                       {f.name}: {f.error} — a note was added in its place.
                     </li>
                   ))}
@@ -371,173 +504,332 @@ export function UnifiedExportDialog() {
                 <IconArrowLeft className="size-3.5" />
                 Back
               </Button>
-              <button
-                type="button"
+              <Button
                 data-testid="unified-export-dialog-download-button"
-                className={ui.solidBtn}
                 onClick={() => download(built)}
               >
                 <IconDownload className="size-3.5" />
                 Download PDF
-              </button>
+              </Button>
             </DialogFooter>
           </>
         ) : (
           <>
-            <DialogBody className="flex min-h-0 flex-col gap-3">
-              <DialogDescription className={ui.help}>
-                Tick the files to include and drag them into order. They are
-                joined into one PDF, each starting on a new page: Markdown, Word
-                and text share one font and size, with their pictures kept; CSV,
-                Excel and JSON Schema become tables; Mermaid diagrams become
-                images; PDFs are appended as they are.
-              </DialogDescription>
+            <DialogBody className="unified-export">
+              {/* ── Settings (hidden until there is something to export) ── */}
+              {rows.length ? (
+                <section
+                  className="unified-export__card"
+                  aria-labelledby="unified-export-settings-heading"
+                >
+                  <h3
+                    id="unified-export-settings-heading"
+                    className="unified-export__section-title"
+                  >
+                    <IconSettings
+                      aria-hidden
+                      className="unified-export__section-icon"
+                    />
+                    Document
+                  </h3>
+                  <div className="unified-export__settings">
+                    <label className="unified-export__field unified-export__field--wide">
+                      <span className={ui.fieldLabel}>Title</span>
+                      <Input
+                        data-testid="unified-export-dialog-title-input"
+                        value={title}
+                        disabled={running}
+                        placeholder="Unified export"
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                      <span className="unified-export__hint">
+                        Saved as{" "}
+                        <span className="unified-export__file-name">
+                          {fileTitle.replace(/[\\/:*?"<>|]+/g, "-")}.pdf
+                        </span>
+                      </span>
+                    </label>
 
-              <div className="flex flex-wrap items-end gap-3">
-                <label className="flex min-w-48 flex-1 flex-col gap-1">
-                  <span className={ui.fieldLabel}>Title</span>
-                  <input
-                    data-testid="unified-export-dialog-title-input"
-                    className={ui.input}
-                    value={title}
-                    disabled={running}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </label>
-                <div className="flex flex-col gap-1">
-                  <span className={ui.fieldLabel}>Page size</span>
-                  <ButtonGroup role="radiogroup" aria-label="Page size">
-                    {(["a4", "letter"] as const).map((size) => (
+                    <div className="unified-export__field">
+                      <span
+                        className={ui.fieldLabel}
+                        id="unified-export-page-size"
+                      >
+                        Page size
+                      </span>
+                      <div
+                        role="radiogroup"
+                        aria-labelledby="unified-export-page-size"
+                        className="unified-export__pages"
+                      >
+                        {PAGE_SIZES.map((size) => (
+                          <button
+                            key={size.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={pageSize === size.id}
+                            data-testid={`unified-export-dialog-page-size-${size.id}-button`}
+                            disabled={running}
+                            title={size.title}
+                            onClick={() => setPageSize(size.id)}
+                            className={cn(
+                              "unified-export__page",
+                              pageSize === size.id &&
+                                "unified-export__page--selected",
+                            )}
+                          >
+                            <span
+                              aria-hidden
+                              className={cn(
+                                "unified-export__page-glyph",
+                                `unified-export__page-glyph--${size.id}`,
+                                pageSize === size.id &&
+                                  "unified-export__page-glyph--selected",
+                              )}
+                            />
+                            <span className="unified-export__page-text">
+                              <span className="unified-export__page-name">
+                                {size.label}
+                              </span>
+                              <span className="unified-export__page-dims">
+                                {size.dims}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <label className="unified-export__field unified-export__toggle">
+                      <span className="unified-export__toggle-text">
+                        <span className={ui.fieldLabel}>Contents page</span>
+                        <span className="unified-export__hint">
+                          A linked list of files up front
+                        </span>
+                      </span>
+                      <Switch
+                        size="sm"
+                        data-testid="unified-export-dialog-contents-checkbox"
+                        checked={contents}
+                        disabled={running}
+                        onCheckedChange={setContents}
+                      />
+                    </label>
+                  </div>
+                </section>
+              ) : null}
+
+              {/* ── Files ────────────────────────────────────────────── */}
+              <section
+                className="unified-export__files"
+                aria-labelledby="unified-export-files-heading"
+              >
+                <div className="unified-export__files-bar">
+                  <h3
+                    id="unified-export-files-heading"
+                    className="unified-export__section-title"
+                  >
+                    <IconFiles
+                      aria-hidden
+                      className="unified-export__section-icon"
+                    />
+                    Files
+                    {rows.length ? (
+                      <span
+                        className="unified-export__count"
+                        data-testid="unified-export-dialog-count-message"
+                      >
+                        {selected.length} of {rows.length} selected
+                      </span>
+                    ) : null}
+                  </h3>
+                  {rows.length ? (
+                    <div className="unified-export__files-actions">
+                      {customOrder ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          data-testid="unified-export-dialog-reset-order-button"
+                          className={cn(ui.ghostBtn, "h-7")}
+                          disabled={running}
+                          title="Back to the explorer's order"
+                          onClick={() => setCustomOrder(false)}
+                        >
+                          <IconArrowBackUp className="size-3.5" />
+                          Reset order
+                        </Button>
+                      ) : null}
                       <Button
-                        key={size}
                         variant="outline"
                         size="sm"
-                        role="radio"
-                        aria-checked={pageSize === size}
-                        data-active={pageSize === size || undefined}
-                        data-testid={`unified-export-dialog-page-size-${size}-button`}
-                        disabled={running}
-                        onClick={() => setPageSize(size)}
-                        className={cn(ui.paneToolbarBtn, "h-8")}
+                        data-testid="unified-export-dialog-select-all-button"
+                        className={cn(ui.ghostBtn, "h-7")}
+                        disabled={running || selected.length === rows.length}
+                        title="Include every file in the PDF"
+                        onClick={() =>
+                          setChecked(new Set(rows.map((r) => r.node.id)))
+                        }
                       >
-                        {size === "a4" ? "A4" : "Letter"}
+                        <IconChecks className="size-3.5" />
+                        All
                       </Button>
-                    ))}
-                  </ButtonGroup>
-                </div>
-                <label className="font-description text-app-text flex h-8 items-center gap-2 text-[12px]">
-                  <input
-                    type="checkbox"
-                    data-testid="unified-export-dialog-contents-checkbox"
-                    className="size-3.5 accent-(--app-accent)"
-                    checked={contents}
-                    disabled={running}
-                    onChange={(e) => setContents(e.target.checked)}
-                  />
-                  Contents page
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  className={ui.meta}
-                  data-testid="unified-export-dialog-count-message"
-                >
-                  {selected.length} of {rows.length} selected
-                </span>
-                <div className="flex gap-1.5">
-                  {customOrder ? (
-                    <button
-                      type="button"
-                      data-testid="unified-export-dialog-reset-order-button"
-                      className={cn(ui.ghostBtn, "h-7")}
-                      disabled={running}
-                      title="Back to the explorer's order"
-                      onClick={() => setCustomOrder(false)}
-                    >
-                      Reset order
-                    </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-testid="unified-export-dialog-clear-button"
+                        className={cn(ui.ghostBtn, "h-7")}
+                        disabled={running || !checked.size}
+                        title="Untick every file"
+                        onClick={() => setChecked(new Set())}
+                      >
+                        <IconSquareOff className="size-3.5" />
+                        None
+                      </Button>
+                    </div>
                   ) : null}
-                  <button
-                    type="button"
-                    data-testid="unified-export-dialog-select-all-button"
-                    className={cn(ui.ghostBtn, "h-7")}
-                    disabled={running || !rows.length}
-                    onClick={() =>
-                      setChecked(new Set(rows.map((r) => r.node.id)))
-                    }
-                  >
-                    Select all
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="unified-export-dialog-clear-button"
-                    className={cn(ui.ghostBtn, "h-7")}
-                    disabled={running || !checked.size}
-                    onClick={() => setChecked(new Set())}
-                  >
-                    Clear
-                  </button>
                 </div>
-              </div>
 
-              {rows.length ? (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={onDragEnd}
-                >
-                  <SortableContext
-                    items={order}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <ol
-                      data-testid="unified-export-dialog-list"
-                      aria-label="Files to export, in order"
-                      className="divide-app-border border-app-border min-h-0 flex-1 divide-y overflow-y-auto rounded-md border"
+                {rows.length ? (
+                  <>
+                    <p className="unified-export__hint">
+                      Tick files to include · drag the handle or use the arrows
+                      to set the page order.
+                    </p>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={onDragEnd}
                     >
-                      {rows.map((row, index) => (
-                        <UnifiedExportRow
-                          key={row.node.id}
-                          row={row}
-                          checked={checked.has(row.node.id)}
-                          position={
-                            checked.has(row.node.id)
-                              ? selected.indexOf(row) + 1
-                              : null
-                          }
-                          disabled={running}
-                          isFirst={index === 0}
-                          isLast={index === rows.length - 1}
-                          onToggle={() => toggle(row.node.id)}
-                          onMove={(delta) => move(row.node.id, delta)}
-                        />
-                      ))}
-                    </ol>
-                  </SortableContext>
-                </DndContext>
-              ) : (
-                <p
-                  data-testid="unified-export-dialog-empty-message"
-                  className={cn(
-                    ui.help,
-                    "border-app-border rounded-md border border-dashed p-6 text-center",
-                  )}
-                >
-                  No exportable files yet — create or import Markdown, text,
-                  Word, CSV, Excel, JSON Schema, Mermaid or PDF files.
-                </p>
-              )}
+                      <SortableContext
+                        items={order}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <ol
+                          data-testid="unified-export-dialog-list"
+                          aria-label="Files to export, in order"
+                          className="unified-export__list"
+                        >
+                          {rows.map((row, index) => (
+                            <UnifiedExportRow
+                              key={row.node.id}
+                              row={row}
+                              checked={checked.has(row.node.id)}
+                              position={
+                                checked.has(row.node.id)
+                                  ? selected.indexOf(row) + 1
+                                  : null
+                              }
+                              disabled={running}
+                              isFirst={index === 0}
+                              isLast={index === rows.length - 1}
+                              onToggle={() => toggle(row.node.id)}
+                              onMove={(delta) => move(row.node.id, delta)}
+                            />
+                          ))}
+                        </ol>
+                      </SortableContext>
+                    </DndContext>
+                  </>
+                ) : (
+                  <div
+                    data-testid="unified-export-dialog-empty-message"
+                    className="unified-export__empty"
+                  >
+                    <span className="unified-export__empty-icon" aria-hidden>
+                      <IconFileExport />
+                    </span>
+                    <p className="unified-export__empty-title">
+                      Nothing to export yet
+                    </p>
+                    <p className="unified-export__empty-text">
+                      Create or import a file — these types can go into the PDF:
+                    </p>
+                    <ul className="unified-export__groups">
+                      {RESULT_GROUPS.map((group) => {
+                        const Glyph = GROUP_ICON[group];
+                        return (
+                          <li key={group} className="unified-export__group">
+                            <span className="unified-export__group-name">
+                              <Glyph
+                                aria-hidden
+                                className="unified-export__group-icon"
+                              />
+                              {group}
+                            </span>
+                            <span className="unified-export__group-kinds">
+                              {EXPORTABLE_KINDS.filter(
+                                (k) => resultGroup(k) === group,
+                              )
+                                .map((k) => KIND_LABEL[k])
+                                .join(", ")}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div className="unified-export__empty-actions">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className={ui.solidBtn}
+                        data-testid="unified-export-dialog-new-note-button"
+                        onClick={startNote}
+                      >
+                        <IconFilePlus className="size-3.5" />
+                        New note
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={ui.ghostBtn}
+                        data-testid="unified-export-dialog-import-button"
+                        onClick={startImport}
+                      >
+                        <IconUpload className="size-3.5" />
+                        Import files
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </section>
 
               <ExportStatus status={status} />
             </DialogBody>
             <DialogFooter>
+              <p
+                className="unified-export__summary"
+                data-testid="unified-export-dialog-summary-message"
+              >
+                {outcome.length ? (
+                  outcome.map(({ group, count }) => {
+                    const Glyph = GROUP_ICON[group];
+                    return (
+                      <span
+                        key={group}
+                        className="unified-export__summary-item"
+                      >
+                        <Glyph
+                          aria-hidden
+                          className="unified-export__summary-icon"
+                        />
+                        {count} {group}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <span className="unified-export__summary-item">
+                    No files ticked
+                  </span>
+                )}
+              </p>
               <Button
                 variant="outline"
                 data-testid="unified-export-dialog-cancel-button"
                 disabled={running}
                 onClick={close}
               >
+                <IconX />
                 Close
               </Button>
               <Button
@@ -549,13 +841,8 @@ export function UnifiedExportDialog() {
                 <IconEye className="size-3.5" />
                 Preview
               </Button>
-              <button
-                type="button"
+              <Button
                 data-testid="unified-export-dialog-export-button"
-                className={cn(
-                  ui.solidBtn,
-                  "disabled:pointer-events-none disabled:opacity-50",
-                )}
                 disabled={running || !selected.length}
                 onClick={() => void runExport()}
               >
@@ -565,7 +852,7 @@ export function UnifiedExportDialog() {
                   <IconFileExport className="size-3.5" />
                 )}
                 Export PDF
-              </button>
+              </Button>
             </DialogFooter>
           </>
         )}
@@ -596,9 +883,12 @@ function ExportStatus({ status }: { status: Status }) {
       <p
         role="alert"
         data-testid="unified-export-dialog-error-message"
-        className="font-description text-app-error flex items-center gap-1.5 text-[12px]"
+        className="unified-export__notice unified-export__notice--error"
       >
-        <IconAlertTriangle className="size-3.5 shrink-0" />
+        <IconAlertTriangle
+          aria-hidden
+          className="unified-export__notice-icon"
+        />
         Export failed: {status.error}
       </p>
     );
@@ -607,15 +897,23 @@ function ExportStatus({ status }: { status: Status }) {
     return (
       <div
         data-testid="unified-export-dialog-result-message"
-        className="flex flex-col gap-1"
+        className="unified-export__result"
       >
-        <p className="font-description text-app-success text-[12px]">
+        <p className="unified-export__notice unified-export__notice--success">
+          <IconCircleCheck
+            aria-hidden
+            className="unified-export__notice-icon"
+          />
           Downloaded {status.fileName}.
         </p>
         {status.failures.length ? (
-          <ul className="font-description text-app-warn flex flex-col gap-0.5 text-[11px]">
+          <ul className="unified-export__failures">
             {status.failures.map((f) => (
-              <li key={f.name}>
+              <li key={f.name} className="unified-export__failure">
+                <IconAlertTriangle
+                  aria-hidden
+                  className="unified-export__failure-icon"
+                />
                 {f.name}: {f.error} — a note was added in its place.
               </li>
             ))}
@@ -657,6 +955,8 @@ function UnifiedExportRow({
     transition,
     isDragging,
   } = useSortable({ id, disabled });
+  const group = resultGroup(row.kind);
+  const Glyph = GROUP_ICON[group];
 
   return (
     <li
@@ -664,9 +964,9 @@ function UnifiedExportRow({
       data-testid={`unified-export-row-${id}`}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
-        "group bg-app-panel flex items-center gap-2 px-2 py-1.5",
-        isDragging && "ring-app-border-accent relative z-10 shadow-sm ring-1",
-        !checked && "bg-app-bg",
+        "unified-export-row",
+        checked && "unified-export-row--checked",
+        isDragging && "unified-export-row--dragging",
       )}
     >
       <button
@@ -674,65 +974,68 @@ function UnifiedExportRow({
         ref={setActivatorNodeRef}
         data-testid={`unified-export-row-drag-handle-${id}`}
         aria-label={`Reorder ${row.node.name}`}
-        className="text-app-dim hover:text-app-bright flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded active:cursor-grabbing"
+        title="Drag to change the page order"
+        className="unified-export-row__handle"
         {...attributes}
         {...listeners}
       >
-        <IconGripVertical className="size-3.5" />
+        <IconGripVertical aria-hidden className="unified-export-row__glyph" />
       </button>
-      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+      <span
+        aria-hidden
+        className={cn(
+          "unified-export-row__position",
+          checked && "unified-export-row__position--checked",
+        )}
+      >
+        {position ?? ""}
+      </span>
+      <label className="unified-export-row__main">
         <input
           type="checkbox"
           data-testid={`unified-export-row-checkbox-${id}`}
-          className="size-3.5 shrink-0 accent-(--app-accent)"
+          className="unified-export-row__checkbox"
           checked={checked}
           disabled={disabled}
           onChange={onToggle}
         />
-        <FileIcon name={row.node.name} />
-        <span className={cn("flex min-w-0 flex-col", !checked && "opacity-60")}>
-          <span className="font-description text-app-bright truncate text-[12px]">
-            {row.node.name}
-          </span>
-          <span className="text-app-dim truncate font-mono text-[10px]">
-            {row.path}
-          </span>
+        <span className="unified-export-row__icon" aria-hidden>
+          <FileIcon name={row.node.name} />
+        </span>
+        <span className="unified-export-row__text">
+          <span className="unified-export-row__name">{row.node.name}</span>
+          <span className="unified-export-row__path">{row.path}</span>
         </span>
       </label>
       <span
-        className={cn(
-          "border-app-border text-app-dim shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px]",
-          !checked && "opacity-60",
-        )}
+        className="unified-export-row__result"
         title={`${KIND_LABEL[row.kind]} → ${RESULT_LABEL[row.kind]}`}
       >
+        <Glyph aria-hidden className="unified-export-row__glyph" />
         {RESULT_LABEL[row.kind]}
       </span>
-      <span className="text-app-accent w-6 shrink-0 text-right font-mono text-[10px]">
-        {position ?? ""}
-      </span>
-      <div className="flex shrink-0">
+      <span className="unified-export-row__moves">
         <button
           type="button"
           data-testid={`unified-export-row-move-up-button-${id}`}
           aria-label={`Move ${row.node.name} up`}
-          className={cn(ui.iconBtn, "size-6")}
+          className="unified-export-row__move"
           disabled={disabled || isFirst}
           onClick={() => onMove(-1)}
         >
-          <IconChevronUp className="size-3.5" />
+          <IconChevronUp aria-hidden className="unified-export-row__glyph" />
         </button>
         <button
           type="button"
           data-testid={`unified-export-row-move-down-button-${id}`}
           aria-label={`Move ${row.node.name} down`}
-          className={cn(ui.iconBtn, "size-6")}
+          className="unified-export-row__move"
           disabled={disabled || isLast}
           onClick={() => onMove(1)}
         >
-          <IconChevronDown className="size-3.5" />
+          <IconChevronDown aria-hidden className="unified-export-row__glyph" />
         </button>
-      </div>
+      </span>
     </li>
   );
 }

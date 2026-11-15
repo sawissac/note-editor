@@ -1,26 +1,45 @@
 import {
+  IconArrowsMove,
   IconCheck,
+  IconCode,
   IconDeviceFloppy,
   IconDownload,
   IconEdit,
   IconEye,
   IconFilePlus,
   IconFolderPlus,
+  IconHierarchy2,
   IconLoader2,
   IconNotebook,
   IconAlertTriangle,
+  IconPencil,
+  IconSearch,
+  IconSelectAll,
+  IconTable,
+  IconTrash,
   IconUpload,
 } from "@tabler/icons-react";
 import * as React from "react";
 
+import { Kbd } from "@/components/ui/kbd";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
 import { APP_THEME } from "@/lib/color-themes";
 import { FileIcon } from "@/lib/file-icons";
-import { type FileKind, KIND_LABEL, kindOf, mimeOf } from "@/lib/file-types";
+import {
+  downloadTarget,
+  type FileKind,
+  KIND_LABEL,
+  kindOf,
+} from "@/lib/file-types";
 import { downloadFile, storage } from "@/lib/storage";
 import * as ui from "@/lib/ui-styles";
 import { saveContent } from "@/store/actions";
@@ -31,7 +50,6 @@ import { type TabMode, tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
 import { FileBarSlotProvider } from "@/features/editors/file-bar-slot";
 import { LazyCodeEditor } from "@/features/editors/LazyCodeEditor";
-import { MarkdownEditor } from "@/features/editors/MarkdownEditor";
 import type { PaneProps } from "@/features/editors/pane-context";
 import {
   useOpenEditorSave,
@@ -42,12 +60,37 @@ import {
   useFileContent,
 } from "@/features/editors/use-file-content";
 
+// MDXEditor is the heaviest editor — keep it out of the entry chunk so the
+// app shell paints first (LCP); it loads under the pane's Suspense.
+const MarkdownEditor = React.lazy(() =>
+  import("@/features/editors/MarkdownEditor").then((m) => ({
+    default: m.MarkdownEditor,
+  })),
+);
 const PdfPane = React.lazy(() => import("@/features/editors/PdfPane"));
 const DocxPane = React.lazy(() => import("@/features/editors/DocxPane"));
 const XlsxPane = React.lazy(() => import("@/features/editors/XlsxPane"));
 const CsvPane = React.lazy(() => import("@/features/editors/CsvPane"));
 const SchemaPane = React.lazy(() => import("@/features/editors/SchemaPane"));
 const MermaidPane = React.lazy(() => import("@/features/editors/MermaidPane"));
+const CalendarPane = React.lazy(
+  () => import("@/features/editors/CalendarPane"),
+);
+const KanbanPane = React.lazy(() => import("@/features/editors/KanbanPane"));
+const DataPane = React.lazy(() => import("@/features/editors/DataPane"));
+const SqlPane = React.lazy(() => import("@/features/editors/SqlPane"));
+const EnvPane = React.lazy(() => import("@/features/editors/EnvPane"));
+const RegexPane = React.lazy(() => import("@/features/editors/RegexPane"));
+const DiffPane = React.lazy(() => import("@/features/editors/DiffPane"));
+const QrPane = React.lazy(() => import("@/features/editors/QrPane"));
+const TimerPane = React.lazy(() => import("@/features/editors/TimerPane"));
+const ChatPane = React.lazy(() => import("@/features/editors/ChatPane"));
+const ImagePane = React.lazy(() => import("@/features/editors/ImagePane"));
+// d3 only loads with the app.info / app.state panes.
+const AppInfoPane = React.lazy(() => import("@/features/editors/AppInfoPane"));
+const AppStatePane = React.lazy(
+  () => import("@/features/editors/AppStatePane"),
+);
 
 /** Kinds with both an editor and a viewer. */
 const HAS_MODES: ReadonlySet<FileKind> = new Set([
@@ -57,12 +100,23 @@ const HAS_MODES: ReadonlySet<FileKind> = new Set([
   "csv",
   "schema",
   "mermaid",
+  "json",
+  "yaml",
+  "toml",
+  "env",
+  "apikeys",
 ]);
-/** Kinds saved explicitly (bytes come from the editor on demand). */
-const MANUAL_SAVE: ReadonlySet<FileKind> = new Set(["pdf", "docx", "xlsx"]);
+/**
+ * Kinds whose bytes come from the editor on demand (autosaved through
+ * `useBinaryAutosave`). They remount per mode and re-read the stored bytes.
+ */
+const BINARY_EDITORS: ReadonlySet<FileKind> = new Set(["pdf", "docx", "xlsx"]);
 
 function defaultMode(kind: FileKind): TabMode {
-  return kind === "csv" || kind === "schema" || kind === "mermaid"
+  return kind === "csv" ||
+    kind === "schema" ||
+    kind === "mermaid" ||
+    kind === "env"
     ? "view"
     : "edit";
 }
@@ -83,7 +137,7 @@ function FilePane({ id, name }: { id: string; name: string }) {
   const mode = useAppSelector((s) => s.tabs.modes[id]) ?? defaultMode(kind);
   // Binary editors save explicitly, so switching edit ⇄ view re-reads the
   // stored bytes to pick up what was just saved.
-  const state = useFileContent(id, MANUAL_SAVE.has(kind) ? mode : undefined);
+  const state = useFileContent(id, BINARY_EDITORS.has(kind) ? mode : undefined);
   const focusRequested = useAppSelector((s) => s.ui.focusRequestId === id);
   // Latched at mount: lazy panes (Mermaid, CSV, Schema) render their first
   // frame only after their chunk loads — after the request is consumed below.
@@ -127,7 +181,8 @@ function FilePane({ id, name }: { id: string; name: string }) {
     // Save first so the download carries the latest edits.
     await save();
     const content = await storage.getContent(id);
-    downloadFile(name, content ?? "", mimeOf(name));
+    const target = downloadTarget(name, content);
+    downloadFile(target.name, content ?? "", target.mime);
   };
 
   let body: React.ReactNode;
@@ -173,6 +228,51 @@ function FilePane({ id, name }: { id: string; name: string }) {
       case "mermaid":
         body = <MermaidPane {...props} mode={mode} />;
         break;
+      case "calendar":
+        body = <CalendarPane {...props} />;
+        break;
+      case "kanban":
+        body = <KanbanPane {...props} />;
+        break;
+      case "json":
+      case "yaml":
+      case "toml":
+        body = <DataPane {...props} mode={mode} kind={kind} />;
+        break;
+      case "sql":
+        body = <SqlPane {...props} />;
+        break;
+      case "env":
+        body = <EnvPane {...props} mode={mode} />;
+        break;
+      case "apikeys":
+        // `.gemini` / `.openrouter`: plain JSON — `{ "name": "api-key" }`.
+        body = <DataPane {...props} mode={mode} kind="json" />;
+        break;
+      case "regex":
+        body = <RegexPane {...props} />;
+        break;
+      case "diff":
+        body = <DiffPane {...props} />;
+        break;
+      case "qr":
+        body = <QrPane {...props} />;
+        break;
+      case "timer":
+        body = <TimerPane {...props} />;
+        break;
+      case "chat":
+        body = <ChatPane {...props} />;
+        break;
+      case "appinfo":
+        body = <AppInfoPane {...props} />;
+        break;
+      case "appstate":
+        body = <AppStatePane {...props} />;
+        break;
+      case "image":
+        body = <ImagePane {...props} />;
+        break;
     }
   }
 
@@ -187,8 +287,13 @@ function FilePane({ id, name }: { id: string; name: string }) {
         name={name}
         kind={kind}
         mode={mode}
-        onMode={(next) => dispatch(tabsActions.modeSet({ id, mode: next }))}
-        onSave={MANUAL_SAVE.has(kind) && mode === "edit" ? save : undefined}
+        onMode={async (next) => {
+          // Store the latest edits before the other mode re-reads the bytes.
+          if (BINARY_EDITORS.has(kind) && mode === "edit") {
+            await Promise.resolve(save()).catch(() => undefined);
+          }
+          dispatch(tabsActions.modeSet({ id, mode: next }));
+        }}
         onDownload={download}
         slotRef={setBarSlot}
       />
@@ -199,7 +304,7 @@ function FilePane({ id, name }: { id: string; name: string }) {
       <div className="bg-app-bg relative min-h-0 flex-1 overflow-x-clip">
         {/* Binary panes remount per mode (they re-read the saved bytes);
             CSV keeps its in-memory text across Raw ⇄ Table. */}
-        <ErrorBoundary key={MANUAL_SAVE.has(kind) ? `${id}:${mode}` : id}>
+        <ErrorBoundary key={BINARY_EDITORS.has(kind) ? `${id}:${mode}` : id}>
           <FileBarSlotProvider slot={barSlot}>
             <React.Suspense fallback={<PaneSkeleton />}>{body}</React.Suspense>
           </FileBarSlotProvider>
@@ -222,7 +327,6 @@ function MarkdownPane({
   const [focusOnMount] = React.useState(autoFocus);
   const save = useDebouncedSave(
     (value) => void dispatch(saveContent(id, value)),
-    400,
   );
   useSaveHandler(registerSave, () => dispatch(saveContent(id, latest.current)));
 
@@ -273,7 +377,6 @@ function PaneToolbar({
   kind,
   mode,
   onMode,
-  onSave,
   onDownload,
   slotRef,
 }: {
@@ -282,7 +385,6 @@ function PaneToolbar({
   kind: FileKind;
   mode: TabMode;
   onMode: (mode: TabMode) => void;
-  onSave?: () => Promise<void>;
   onDownload: () => void;
   slotRef: (el: HTMLDivElement | null) => void;
 }) {
@@ -310,6 +412,8 @@ function PaneToolbar({
               ) : (
                 <button
                   type="button"
+                  title={`Show “${part}” in the explorer`}
+                  aria-label={`Show folder ${part} in the explorer`}
                   className="text-app-dim hover:text-app-accent truncate"
                   onClick={() => {
                     // Reveal the folder in the explorer.
@@ -338,45 +442,63 @@ function PaneToolbar({
         className="flex min-w-0 flex-1 [scrollbar-width:none] items-center justify-end overflow-x-auto"
       />
 
-      <SaveIndicator state={saveState} manual={Boolean(onSave)} />
+      <SaveIndicator state={saveState} />
 
       {HAS_MODES.has(kind) ? (
         <ButtonGroup role="radiogroup" aria-label="Mode">
-          <ModeButton active={mode === "edit"} onClick={() => onMode("edit")}>
-            <IconEdit />
+          <ModeButton
+            active={mode === "edit"}
+            hint={
+              kind === "csv" || kind === "schema"
+                ? "Edit the raw text source"
+                : "Edit this file"
+            }
+            onClick={() => onMode("edit")}
+          >
+            {kind === "csv" || kind === "schema" ? <IconCode /> : <IconEdit />}
             {kind === "csv" || kind === "schema" ? "Raw" : "Edit"}
           </ModeButton>
-          <ModeButton active={mode === "view"} onClick={() => onMode("view")}>
-            <IconEye />
+          <ModeButton
+            active={mode === "view"}
+            hint={
+              kind === "csv"
+                ? "Show as a sortable table"
+                : kind === "schema"
+                  ? "Edit visually with the schema builder"
+                  : "Read-only preview"
+            }
+            onClick={() => onMode("view")}
+          >
+            {kind === "csv" ? (
+              <IconTable />
+            ) : kind === "schema" ? (
+              <IconHierarchy2 />
+            ) : (
+              <IconEye />
+            )}
             {kind === "csv" ? "Table" : kind === "schema" ? "Builder" : "View"}
           </ModeButton>
         </ButtonGroup>
       ) : null}
 
       <ButtonGroup aria-label="File">
-        {onSave ? (
-          <Button
-            variant="outline"
-            size="sm"
-            data-testid="pane-save-button"
-            className={TOOLBAR_BTN}
-            onClick={() => void onSave()}
-            title="Save (⌘/Ctrl+S)"
-          >
-            <IconDeviceFloppy />
-            Save
-          </Button>
-        ) : null}
-        <Button
-          variant="outline"
-          size="sm"
-          aria-label={`Download ${KIND_LABEL[kind]} file`}
-          title="Download"
-          className={cn(TOOLBAR_BTN, "w-7 px-0")}
-          onClick={onDownload}
-        >
-          <IconDownload />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="pane-download-button"
+              aria-label={`Download ${KIND_LABEL[kind]} file`}
+              className={cn(TOOLBAR_BTN, "w-7 px-0")}
+              onClick={onDownload}
+            >
+              <IconDownload />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Download {name} to your computer
+          </TooltipContent>
+        </Tooltip>
       </ButtonGroup>
     </div>
   );
@@ -386,15 +508,19 @@ const TOOLBAR_BTN = ui.paneToolbarBtn;
 
 function ModeButton({
   active,
+  hint,
   onClick,
   children,
 }: {
   active: boolean;
+  /** Tooltip explaining what this mode shows. */
+  hint: string;
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <Button
+      title={hint}
       variant="outline"
       size="sm"
       role="radio"
@@ -411,13 +537,7 @@ function ModeButton({
   );
 }
 
-function SaveIndicator({
-  state,
-  manual,
-}: {
-  state: string | undefined;
-  manual: boolean;
-}) {
+function SaveIndicator({ state }: { state: string | undefined }) {
   if (state === "saving") {
     return (
       <span className={cn(ui.meta, "flex items-center gap-1")}>
@@ -439,7 +559,7 @@ function SaveIndicator({
       </span>
     );
   }
-  return manual ? <span className={ui.meta}>⌘S to save</span> : null;
+  return null;
 }
 
 function PaneSkeleton() {
@@ -478,16 +598,18 @@ function StartScreen() {
   const selectedId = useAppSelector((s) => s.fs.selectedId);
   const isMac = navigator.platform.toLowerCase().includes("mac");
   const mod = isMac ? "⌘" : "Ctrl";
-  const shortcuts: Array<[string[], string]> = [
-    [[mod, "P"], "Quick open a file"],
-    [[mod, "S"], "Save the active editor"],
+  const shortcuts: Array<[string[], string, typeof IconSearch]> = [
+    [[mod, "P"], "Quick open a file", IconSearch],
+    [[mod, "S"], "Save the active editor", IconDeviceFloppy],
     [
       isMac ? ["⌃", "S"] : ["Ctrl", "Space"],
       "Show autocomplete in code editors",
+      IconCode,
     ],
-    [["F2"], "Rename the selected item"],
-    [["Del"], "Delete the selected item"],
-    [["↑", "↓", "←", "→"], "Move around the explorer"],
+    [["Enter"], "Rename the selected item (or F2)", IconPencil],
+    [[isMac ? "⌘" : "Ctrl", "Click"], "Select several items — Shift-click for a range", IconSelectAll],
+    [["Del"], "Delete the selected items", IconTrash],
+    [["↑", "↓", "←", "→"], "Move around the explorer", IconArrowsMove],
   ];
   const create = (nodeType: "file" | "folder") => {
     dispatch(uiActions.sidebarSet(true));
@@ -522,24 +644,29 @@ function StartScreen() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <button
+          <Button
             type="button"
+            size="sm"
             className={ui.solidBtn}
             onClick={() => create("file")}
           >
             <IconFilePlus className="size-3.5" />
             New note
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             className={ui.ghostBtn}
             onClick={() => create("folder")}
           >
             <IconFolderPlus className="size-3.5" />
             New folder
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             className={ui.ghostBtn}
             onClick={() =>
               dispatch(
@@ -549,26 +676,27 @@ function StartScreen() {
           >
             <IconUpload className="size-3.5" />
             Import
-          </button>
+          </Button>
         </div>
 
         <dl className="divide-app-border border-app-border bg-app-panel w-full divide-y overflow-hidden rounded-lg border text-left">
-          {shortcuts.map(([keys, label]) => (
+          {shortcuts.map(([keys, label, Icon]) => (
             <div
               key={label}
               className="flex items-center justify-between gap-4 px-3 py-2"
             >
-              <dt className="font-description text-app-text text-[12px]">
+              <dt className="font-description text-app-text flex items-center gap-2 text-[12px]">
+                <Icon aria-hidden className="text-app-dim size-3.5 shrink-0" />
                 {label}
               </dt>
               <dd className="flex shrink-0 items-center gap-1">
                 {keys.map((key) => (
-                  <kbd
+                  <Kbd
                     key={key}
                     className="border-app-border-mid bg-app-bg text-app-bright inline-flex h-5 min-w-5 items-center justify-center rounded-sm border px-1.5 font-mono text-[10px]"
                   >
                     {key}
-                  </kbd>
+                  </Kbd>
                 ))}
               </dd>
             </div>

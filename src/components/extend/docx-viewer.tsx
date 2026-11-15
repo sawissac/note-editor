@@ -19,7 +19,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -27,26 +27,26 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu"
-import { Input } from "@/components/shadcn/input"
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   ScrollArea as InlineScrollArea,
   ScrollBar,
-} from "@/components/shadcn/scroll-area"
+} from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Separator } from "@/components/shadcn/separator"
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
+} from "@/components/ui/tooltip"
 import {
   DocumentViewerThumbnailSidebar,
   useElementWidth,
@@ -57,7 +57,18 @@ import {
   createDocxTrackedChangeCardRenderer,
 } from "@/components/extend/docx-annotation-card"
 import { FileThumbnail } from "@/components/extend/file-thumbnail"
-import { IconDots, IconMoon, IconMessage, IconFileDiff, IconDownload, IconUpload, IconLayoutSidebar, IconCircleMinus, IconCirclePlus, IconLoader2 } from "@tabler/icons-react"
+import {
+  IconDots,
+  IconMoon,
+  IconMessage,
+  IconFileDiff,
+  IconDownload,
+  IconUpload,
+  IconLayoutSidebar,
+  IconCircleMinus,
+  IconCirclePlus,
+  IconLoader2,
+} from "@tabler/icons-react"
 
 const DOCX_MIME_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -412,37 +423,36 @@ function DocxPageNumberControl({
     [onPageChange, pageCount]
   )
   return (
-    <div className="flex items-center gap-1.5 px-2 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+    <div className="text-muted-foreground flex items-center gap-1.5 px-2 text-xs whitespace-nowrap tabular-nums">
       <span>Page</span>
       {isEditing ? (
-        <Input
-          ref={inputRef}
-          aria-label="Page number"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={draftPage}
-          onBlur={() => setIsEditing(false)}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            const nextValue = event.target.value
-            setDraftPage(nextValue)
-            applyPageDraft(nextValue)
-          }}
-          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-            if (event.key === "Enter" || event.key === "Escape") {
-              event.currentTarget.blur()
-            }
-          }}
-          className={cn(
-            "h-6 w-12 min-w-12 rounded-md px-1.5 text-xs",
-            "[&_[data-slot=input]]:text-center"
-          )}
-        />
+        <div className="w-12 shrink-0">
+          <Input
+            ref={inputRef}
+            aria-label="Page number"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={draftPage}
+            onBlur={() => setIsEditing(false)}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              const nextValue = event.target.value
+              setDraftPage(nextValue)
+              applyPageDraft(nextValue)
+            }}
+            onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+              if (event.key === "Enter" || event.key === "Escape") {
+                event.currentTarget.blur()
+              }
+            }}
+            className="h-6 rounded-md px-1.5 py-0 text-center text-xs"
+          />
+        </div>
       ) : (
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="h-6 min-w-7 rounded-md px-1.5 text-xs font-medium text-foreground"
+          className="text-foreground h-6 min-w-7 rounded-md px-1.5 text-xs font-medium"
           aria-label={`Current page ${displayPage}. Edit page number`}
           disabled={controlsDisabled || !pageCount}
           onClick={() => {
@@ -513,7 +523,7 @@ function DocxToolbar({
     ? ZOOM_OPTIONS
     : [...ZOOM_OPTIONS, roundedZoom].sort((left, right) => left - right)
   return (
-    <div className="flex min-h-12 flex-wrap items-center justify-between gap-2 border-b bg-background px-3 py-2">
+    <div className="bg-background flex min-h-12 flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
       <TooltipProvider>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ToolbarTooltip label="Toggle thumbnails">
@@ -537,89 +547,96 @@ function DocxToolbar({
         </div>
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
           <ToolbarGroups separators={[Separator]}>
-          <div className="flex flex-none items-center gap-1">
-            <ToolbarTooltip label="Zoom out">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={controlsDisabled || !canZoomOut}
-                aria-label="Zoom out"
-                onClick={() => onZoomChange(getNextZoomScale(resolvedZoom, -1))}
+            <div className="flex flex-none items-center gap-1">
+              <ToolbarTooltip label="Zoom out">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={controlsDisabled || !canZoomOut}
+                  aria-label="Zoom out"
+                  onClick={() =>
+                    onZoomChange(getNextZoomScale(resolvedZoom, -1))
+                  }
+                >
+                  <IconCircleMinus className="size-4" />
+                </Button>
+              </ToolbarTooltip>
+              <Select
+                value={selectValue}
+                onValueChange={(value) => {
+                  if (value === null) return
+                  onZoomChange(isZoomMode(value) ? value : Number(value))
+                }}
+                disabled={controlsDisabled}
               >
-                <IconCircleMinus className="size-4" />
-              </Button>
-            </ToolbarTooltip>
-            <Select
-              value={selectValue}
-              onValueChange={(value) => {
-                if (value === null) return
-                onZoomChange(isZoomMode(value) ? value : Number(value))
-              }}
-              disabled={controlsDisabled}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-[96px] min-w-[96px]"
-                aria-label="Zoom level"
-              >
-                <SelectValue>{Math.round(resolvedZoom)}%</SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="end"
-                position={false ? "item-aligned" : "popper"}
-              >
-                {Object.entries(ZOOM_MODE_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-                {zoomOptions.map((value) => (
-                  <SelectItem key={value} value={value.toString()}>
-                    {value}%
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <ToolbarTooltip label="Zoom in">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={controlsDisabled || !canZoomIn}
-                aria-label="Zoom in"
-                onClick={() => onZoomChange(getNextZoomScale(resolvedZoom, 1))}
-              >
-                <IconCirclePlus className="size-4" />
-              </Button>
-            </ToolbarTooltip>
-          </div>
-          {toolbarActions ? (
-            <>
-              <Separator
-                orientation="vertical"
-                className="mx-1 h-4 self-center"
-              />
-              {toolbarActions}
-            </>
-          ) : null}
-          <Separator orientation="vertical" className="mx-1 h-4 self-center" />
-          <DocxFileActionsMenu
-            controlsDisabled={controlsDisabled}
-            downloadDisabled={controlsDisabled || isPreparingDownload}
-            isPreparingDownload={isPreparingDownload}
-            isDark={isDark}
-            onDownload={onDownload}
-            onIsDarkChange={onIsDarkChange}
-            onShowCommentsChange={onShowCommentsChange}
-            onShowTrackedChangesChange={onShowTrackedChangesChange}
-            onUploadClick={onUploadClick}
-            showComments={showComments}
-            showDownloadButton={showDownloadButton}
-            showNightRenderToggle={showNightRenderToggle}
-            showTrackedChanges={showTrackedChanges}
-            showUploadButton={showUploadButton}
-          />
+                <SelectTrigger
+                  size="sm"
+                  className="w-[96px] min-w-[96px]"
+                  aria-label="Zoom level"
+                >
+                  <SelectValue>{Math.round(resolvedZoom)}%</SelectValue>
+                </SelectTrigger>
+                <SelectContent
+                  align="end"
+                  position={false ? "item-aligned" : "popper"}
+                >
+                  {Object.entries(ZOOM_MODE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                  {zoomOptions.map((value) => (
+                    <SelectItem key={value} value={value.toString()}>
+                      {value}%
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <ToolbarTooltip label="Zoom in">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={controlsDisabled || !canZoomIn}
+                  aria-label="Zoom in"
+                  onClick={() =>
+                    onZoomChange(getNextZoomScale(resolvedZoom, 1))
+                  }
+                >
+                  <IconCirclePlus className="size-4" />
+                </Button>
+              </ToolbarTooltip>
+            </div>
+            {toolbarActions ? (
+              <>
+                <Separator
+                  orientation="vertical"
+                  className="mx-1 h-4 self-center"
+                />
+                {toolbarActions}
+              </>
+            ) : null}
+            <Separator
+              orientation="vertical"
+              className="mx-1 h-4 self-center"
+            />
+            <DocxFileActionsMenu
+              controlsDisabled={controlsDisabled}
+              downloadDisabled={controlsDisabled || isPreparingDownload}
+              isPreparingDownload={isPreparingDownload}
+              isDark={isDark}
+              onDownload={onDownload}
+              onIsDarkChange={onIsDarkChange}
+              onShowCommentsChange={onShowCommentsChange}
+              onShowTrackedChangesChange={onShowTrackedChangesChange}
+              onUploadClick={onUploadClick}
+              showComments={showComments}
+              showDownloadButton={showDownloadButton}
+              showNightRenderToggle={showNightRenderToggle}
+              showTrackedChanges={showTrackedChanges}
+              showUploadButton={showUploadButton}
+            />
           </ToolbarGroups>
         </div>
       </TooltipProvider>
@@ -807,10 +824,10 @@ function DocxThumbnailSidebarList({
     >
       {isLoadingDocument ? (
         <div className="p-4">
-          <div className="mx-auto h-28 w-20 overflow-hidden rounded-md bg-background shadow-xs">
-            <div className="h-full animate-pulse bg-muted" />
+          <div className="bg-background mx-auto h-28 w-20 overflow-hidden rounded-md shadow-xs">
+            <div className="bg-muted h-full animate-pulse" />
           </div>
-          <div className="mx-auto mt-3 h-3 w-10 rounded-full bg-muted" />
+          <div className="bg-muted mx-auto mt-3 h-3 w-10 rounded-full" />
         </div>
       ) : visibleThumbnails.length ? (
         <div
@@ -848,7 +865,7 @@ function DocxThumbnailSidebarList({
                   aria-setsize={pageCount}
                   data-docx-viewer-thumbnail-option={thumbnail.pageNumber}
                   className={cn(
-                    "flex h-auto w-full cursor-default flex-col items-center gap-2 rounded-md p-2 text-xs transition-shadow outline-none select-none hover:bg-sidebar-accent",
+                    "hover:bg-sidebar-accent flex h-auto w-full cursor-default flex-col items-center gap-2 rounded-md p-2 text-xs transition-shadow outline-none select-none",
                     thumbnail.pageNumber === activePage &&
                       "bg-sidebar-accent text-foreground",
                     thumbnail.pageNumber !== activePage &&
@@ -1339,7 +1356,7 @@ function DocxViewerContent({
   const content = (
     <div
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden bg-background",
+        "bg-background flex h-full min-h-0 flex-col overflow-hidden",
         className
       )}
     >
@@ -1377,7 +1394,7 @@ function DocxViewerContent({
       ) : null}
       <div
         ref={viewerShellRef}
-        className="relative flex min-h-0 flex-1 overflow-hidden bg-muted/30"
+        className="bg-muted/30 relative flex min-h-0 flex-1 overflow-hidden"
       >
         <DocumentViewerThumbnailSidebar
           inline={sidebarInline}
@@ -1410,15 +1427,15 @@ function DocxViewerContent({
         >
           {!url && !activeUploadedDocxFile ? (
             <div className="grid h-full min-h-96 place-items-center p-6 text-center">
-              <div className="max-w-md rounded-lg border bg-background p-4 text-sm shadow-xs">
+              <div className="bg-background max-w-md rounded-lg border p-4 text-sm shadow-xs">
                 <div className="font-medium">
                   Upload a Word document to preview
                 </div>
-                <div className="mt-1 text-muted-foreground">
+                <div className="text-muted-foreground mt-1">
                   Pass a DOCX URL with the <code>src</code> prop or upload a
                   file.
                 </div>
-                <div className="mt-1 text-muted-foreground">
+                <div className="text-muted-foreground mt-1">
                   Legacy <code>.doc</code> support is limited and experimental;
                   convert to DOCX for best fidelity.
                 </div>
@@ -1436,9 +1453,9 @@ function DocxViewerContent({
             </div>
           ) : loadError ? (
             <div className="grid h-full min-h-96 place-items-center p-6 text-center">
-              <div className="max-w-md rounded-lg border bg-background p-4 text-sm text-destructive shadow-xs">
+              <div className="bg-background text-destructive max-w-md rounded-lg border p-4 text-sm shadow-xs">
                 <div className="font-medium">Unable to display DOCX</div>
-                <div className="mt-1 text-muted-foreground">{loadError}</div>
+                <div className="text-muted-foreground mt-1">{loadError}</div>
               </div>
             </div>
           ) : isLoadingDocument ? (
@@ -1577,7 +1594,7 @@ function InlineScrollArea2({
         ref={composedViewportRef}
         data-slot="scroll-area-viewport"
         className={cn(
-          "h-full w-full rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "focus-visible:ring-ring h-full w-full rounded-[inherit] outline-none focus-visible:ring-2",
           scrollFade &&
             "mask-t-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-start)))] mask-r-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-end)))] mask-b-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-end)))] mask-l-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-start)))] [--fade-size:1.5rem]",
           scrollbarGutter && orientation !== "vertical" && "pb-3.5",
@@ -1620,7 +1637,12 @@ function InlineComposeRefs<T>(...refs: Array<React.Ref<T> | undefined>) {
 }
 function InlineSpinner({ className, ...props }: InlineRegistryIconProps) {
   return (
-    <IconLoader2 role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+    <IconLoader2
+      role="status"
+      aria-label="Loading"
+      className={cn("size-4 animate-spin", className)}
+      {...props}
+    />
   )
 }
 type InlineRegistryIconProps = Omit<

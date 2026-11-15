@@ -31,7 +31,12 @@ export async function createAppStore() {
     reducer: rootReducer,
     preloadedState: saved
       ? {
-          fs: { ...initialFsState, ...saved.fs },
+          fs: {
+            ...initialFsState,
+            ...saved.fs,
+            selectedIds: saved.fs.selectedId ? [saved.fs.selectedId] : [],
+            anchorId: saved.fs.selectedId,
+          },
           tabs: { ...initialTabsState, ...saved.tabs },
           ui: { ...initialUiState, sidebarOpen: saved.sidebarOpen },
         }

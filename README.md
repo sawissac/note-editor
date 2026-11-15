@@ -1,6 +1,6 @@
-# note-editor
+# Bento
 
-A local-first note editor: Markdown as the main editor, plus PDF, Word, Excel
+Bento is a local-first note editor: Markdown as the main editor, plus PDF, Word, Excel
 and CSV editors/viewers, a tree-view explorer and scrollable tabs. Everything
 is stored in the browser (IndexedDB via localforage).
 
@@ -33,6 +33,7 @@ pnpm build
 | Delete | Delete key or right-click → Delete; a dialog confirms and lists how many items a folder contains |
 | Move | Drag a row onto a folder (or empty space for the root) |
 | Import | Explorer header → Import, or drop files from your OS onto the tree |
+| Backup | Explorer header → Export workspace, or ⌘/Ctrl + P → `>Export workspace`. Downloads one `bento-backup-<date>.json` with the tree, tabs, every file's content (binaries as base64) and the app's localStorage (timers, PDF signatures). API-key files are included unmasked |
 | Tabs | Mouse wheel scrolls horizontally, middle-click closes, drag to reorder, right-click for close others / to the right / all |
 | Quick open | ⌘/Ctrl + P |
 | Save | Markdown, CSV and text autosave. PDF, Word and Excel save with ⌘/Ctrl + S or the Save button |

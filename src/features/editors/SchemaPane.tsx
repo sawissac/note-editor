@@ -1,9 +1,13 @@
+import {
+  IconTool,
+} from "@tabler/icons-react";
 import * as React from "react";
 
 import {
   type SchemaBuilderSchema,
   SchemaBuilderPanel,
 } from "@/components/extend/schema-builder";
+import { Button } from "@/components/ui/button";
 import { type ParsedSchema, parseSchemaText, stringifySchema } from "@/lib/json-schema";
 import * as ui from "@/lib/ui-styles";
 import { saveContent } from "@/store/actions";
@@ -61,14 +65,17 @@ export default function SchemaPane({
           >
             {current.result.error}
           </p>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             data-testid="schema-pane-raw-button"
             className={ui.ghostBtn}
             onClick={() => dispatch(tabsActions.modeSet({ id, mode: "edit" }))}
           >
+            <IconTool className="size-3.5" />
             Fix in raw editor
-          </button>
+          </Button>
         </div>
       );
     }

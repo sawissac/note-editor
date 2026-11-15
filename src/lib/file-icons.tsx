@@ -1,4 +1,19 @@
 import {
+  IconBinaryTree,
+  IconBraces,
+  IconInfoHexagon,
+  IconCalendarEvent,
+  IconDatabase,
+  IconFileCode,
+  IconKey,
+  IconLockAccess,
+  IconLayoutKanban,
+  IconAlarm,
+  IconMessageChatbot,
+  IconPhoto,
+  IconQrcode,
+  IconRegex,
+  IconSettings,
   IconFileSpreadsheet,
   IconFileText,
   IconFileTypeCsv,
@@ -6,6 +21,7 @@ import {
   IconFileTypePdf,
   IconFolder,
   IconFolderOpen,
+  IconGitCompare,
   IconMarkdown,
   IconSchema,
   IconSitemap,
@@ -22,6 +38,22 @@ const KIND_ICON: Record<FileKind, Icon> = {
   xlsx: IconFileSpreadsheet,
   schema: IconSchema,
   mermaid: IconSitemap,
+  calendar: IconCalendarEvent,
+  kanban: IconLayoutKanban,
+  json: IconBraces,
+  yaml: IconFileCode,
+  toml: IconSettings,
+  sql: IconDatabase,
+  env: IconKey,
+  apikeys: IconLockAccess,
+  regex: IconRegex,
+  diff: IconGitCompare,
+  qr: IconQrcode,
+  timer: IconAlarm,
+  chat: IconMessageChatbot,
+  appinfo: IconInfoHexagon,
+  appstate: IconBinaryTree,
+  image: IconPhoto,
   text: IconFileText,
 };
 
@@ -39,27 +71,46 @@ const KIND_TONE: Record<FileKind, string> = {
   xlsx: "text-green-600",
   schema: "text-amber-600",
   mermaid: "text-fuchsia-600",
+  calendar: "text-red-500",
+  kanban: "text-violet-600",
+  json: "text-yellow-600",
+  yaml: "text-rose-600",
+  toml: "text-orange-600",
+  sql: "text-cyan-600",
+  env: "text-lime-600",
+  apikeys: "text-indigo-600",
+  regex: "text-violet-600",
+  diff: "text-emerald-600",
+  qr: "text-zinc-700",
+  timer: "text-orange-500",
+  chat: "text-purple-600",
+  appinfo: "text-sky-700",
+  appstate: "text-emerald-700",
+  image: "text-pink-600",
   text: "text-slate-500",
 };
 
 export function FileIcon({
   name,
   className,
+  unsized = false,
 }: {
   name: string;
   className?: string;
+  /** Skip the default `size-4`, so the caller's CSS sets the size. */
+  unsized?: boolean;
 }) {
   const kind = kindOf(name);
   const Glyph = KIND_ICON[kind];
   return (
     <Glyph
       aria-hidden
-      className={`size-4 shrink-0 ${KIND_TONE[kind]} ${className ?? ""}`}
+      className={`${unsized ? "" : "size-4 "}shrink-0 ${KIND_TONE[kind]} ${className ?? ""}`}
     />
   );
 }
 
 export function FolderIcon({ open }: { open: boolean }) {
   const Glyph = open ? IconFolderOpen : IconFolder;
-  return <Glyph aria-hidden className="size-4 shrink-0 text-app-warn" />;
+  return <Glyph aria-hidden className="text-app-warn size-4 shrink-0" />;
 }

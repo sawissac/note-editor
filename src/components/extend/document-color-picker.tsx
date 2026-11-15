@@ -27,23 +27,23 @@ import {
   type RgbColor,
 } from "@/lib/color-picker-utils"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   PopoverContent as InlinePopoverContent,
   Popover,
   PopoverTrigger,
-} from "@/components/shadcn/popover"
+} from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@/components/shadcn/select"
+} from "@/components/ui/select"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
+} from "@/components/ui/tooltip"
 import { IconCheck, IconCopy, IconColorPicker, IconSelector } from "@tabler/icons-react"
 
 const cossInputKeyboardFocusRing =

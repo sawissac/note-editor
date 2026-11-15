@@ -8,6 +8,7 @@ import { PDFViewer } from "@/components/extend/pdf-viewer";
 import { saveContent } from "@/store/actions";
 import { useAppDispatch } from "@/store";
 import type { TabMode } from "@/store/tabs-slice";
+import { useBinaryAutosave } from "@/features/editors/use-binary-autosave";
 import { useObjectUrl } from "@/features/editors/use-file-content";
 import { type PaneProps, useSaveHandler } from "@/features/editors/pane-context";
 
@@ -27,23 +28,28 @@ export default function PdfPane({
     [content],
   );
 
-  useSaveHandler(registerSave, async () => {
+  const saveNow = async () => {
     if (mode !== "edit" || !editorRef.current) return;
     const buffer = await editorRef.current.getDocumentBuffer();
     await dispatch(saveContent(id, buffer));
-  });
+  };
+  useSaveHandler(registerSave, saveNow);
+  const autosave = useBinaryAutosave(saveNow);
 
   if (!bytes || !url) return <EmptyBinary name={name} />;
 
   return mode === "edit" ? (
-    <PDFEditor
-      ref={editorRef}
-      className="h-full"
-      src={bytes}
-      fileName={name}
-      showUpload={false}
-      showDownload={false}
-    />
+    <div className="h-full" {...autosave.guardProps}>
+      <PDFEditor
+        ref={editorRef}
+        className="h-full"
+        src={bytes}
+        fileName={name}
+        showUpload={false}
+        showDownload={false}
+        onDocumentChange={autosave.onChange}
+      />
+    </div>
   ) : (
     <PDFViewer
       className="h-full"

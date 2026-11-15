@@ -65,41 +65,53 @@ import { flushSync } from "react-dom"
 
 import { getPdfSourceUrl, loadSharedPdfEngine } from "@/lib/pdf-thumbnail-utils"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu"
-import { Input } from "@/components/shadcn/input"
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/shadcn/popover"
-import { ScrollArea } from "@/components/shadcn/scroll-area"
+} from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Separator } from "@/components/shadcn/separator"
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
+} from "@/components/ui/tooltip"
 import {
   DocumentViewerSidebarSkeleton,
   DocumentViewerThumbnailSidebar,
   useElementWidth,
   useInlineThumbnailSidebar,
 } from "@/components/extend/document-viewer-sidebar"
-import { IconSearch, IconDots, IconDownload, IconUpload, IconChevronLeft, IconArrowRight, IconLayoutSidebar, IconRotateClockwise, IconCircleMinus, IconCirclePlus, IconLoader2 } from "@tabler/icons-react"
+import {
+  IconSearch,
+  IconDots,
+  IconDownload,
+  IconUpload,
+  IconChevronLeft,
+  IconLayoutSidebar,
+  IconRotateClockwise,
+  IconCircleMinus,
+  IconCirclePlus,
+  IconLoader2,
+  IconChevronRight,
+} from "@tabler/icons-react"
 
 export type PDFViewerPageOverlayProps = {
   pageNumber: number
@@ -437,7 +449,7 @@ function PDFViewerLoadingSkeleton({
   sidebarInline: boolean
 }) {
   return (
-    <div className="absolute inset-0 z-20 flex bg-muted/30">
+    <div className="bg-muted/30 absolute inset-0 z-20 flex">
       {sidebarOpen ? (
         <DocumentViewerSidebarSkeleton
           className={THUMBNAIL_SIDEBAR_WIDTH_CLASS}
@@ -481,7 +493,7 @@ function PDFViewerFallbackShell({
     <div
       data-slot="pdf-viewer"
       className={cn(
-        "flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-background",
+        "bg-background flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden",
         className
       )}
     >
@@ -519,19 +531,19 @@ function PDFViewerFallbackShell({
           onZoomChange={() => undefined}
         />
       ) : null}
-      <div className="relative flex min-h-0 flex-1 overflow-hidden bg-muted/30">
+      <div className="bg-muted/30 relative flex min-h-0 flex-1 overflow-hidden">
         {state === "loading" ? (
           <PDFViewerLoadingSkeleton sidebarInline sidebarOpen={sidebarOpen} />
         ) : null}
         {state === "error" ? (
-          <div className="absolute inset-0 z-20 grid place-items-center bg-background p-6 text-sm text-muted-foreground">
+          <div className="bg-background text-muted-foreground absolute inset-0 z-20 grid place-items-center p-6 text-sm">
             {errorMessage}
           </div>
         ) : null}
         {state === "empty" ? (
-          <div className="absolute inset-0 z-20 grid place-items-center bg-background p-6 text-center text-sm text-muted-foreground">
+          <div className="bg-background text-muted-foreground absolute inset-0 z-20 grid place-items-center p-6 text-center text-sm">
             <div className="max-w-sm space-y-3">
-              <div className="font-medium text-foreground">
+              <div className="text-foreground font-medium">
                 Upload a PDF to preview
               </div>
               <div>
@@ -660,37 +672,36 @@ function PDFViewerPageNumberControl({
     [numPages, onPageChange]
   )
   return (
-    <div className="flex items-center gap-1.5 px-2 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+    <div className="text-muted-foreground flex items-center gap-1.5 px-2 text-xs whitespace-nowrap tabular-nums">
       <span>Page</span>
       {isEditing ? (
-        <Input
-          ref={inputRef}
-          aria-label="Page number"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={draftPage}
-          onBlur={() => setIsEditing(false)}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            const nextValue = event.target.value
-            setDraftPage(nextValue)
-            applyPageDraft(nextValue)
-          }}
-          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-            if (event.key === "Enter" || event.key === "Escape") {
-              event.currentTarget.blur()
-            }
-          }}
-          className={cn(
-            "h-6 w-12 min-w-12 rounded-md px-1.5 text-xs",
-            "[&_[data-slot=input]]:text-center"
-          )}
-        />
+        <div className="w-12 shrink-0">
+          <Input
+            ref={inputRef}
+            aria-label="Page number"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={draftPage}
+            onBlur={() => setIsEditing(false)}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              const nextValue = event.target.value
+              setDraftPage(nextValue)
+              applyPageDraft(nextValue)
+            }}
+            onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+              if (event.key === "Enter" || event.key === "Escape") {
+                event.currentTarget.blur()
+              }
+            }}
+            className="h-6 rounded-md px-1.5 py-0 text-center text-xs"
+          />
+        </div>
       ) : (
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="h-6 min-w-7 rounded-md px-1.5 text-xs font-medium text-foreground"
+          className="text-foreground h-6 min-w-7 rounded-md px-1.5 text-xs font-medium"
           aria-label={`Current page ${displayPage}. Edit page number`}
           disabled={controlsDisabled || !numPages}
           onClick={() => {
@@ -872,7 +883,7 @@ function PDFViewerSearchControl({
             }}
           />
           <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 text-xs text-muted-foreground">
+            <div className="text-muted-foreground min-w-0 text-xs">
               <div className="truncate">
                 {state.total ? (
                   <>
@@ -905,7 +916,7 @@ function PDFViewerSearchControl({
                 disabled={isSearching || state.total === 0}
                 onClick={() => navigate(1)}
               >
-                <IconArrowRight className="size-4" />
+                <IconChevronRight className="size-4" />
               </Button>
             </div>
           </div>
@@ -974,7 +985,7 @@ function PDFViewerToolbar({
         (left, right) => left - right
       )
   return (
-    <div className="flex min-h-12 flex-wrap items-center justify-between gap-2 border-b bg-background px-3 py-2">
+    <div className="bg-background flex min-h-12 flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <TooltipProvider>
           <ToolbarTooltip label="Pages sidebar">
@@ -987,7 +998,7 @@ function PDFViewerToolbar({
               data-active={sidebarOpen ? "" : undefined}
               className={cn(
                 sidebarOpen &&
-                  "bg-accent text-accent-foreground ring-1 ring-ring/40 ring-inset"
+                  "bg-accent text-accent-foreground ring-ring/40 ring-1 ring-inset"
               )}
               disabled={controlsDisabled}
               onClick={onToggleSidebar}
@@ -1006,140 +1017,143 @@ function PDFViewerToolbar({
       <TooltipProvider>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
           <ToolbarGroups separators={[Separator]}>
-          {showRotateControls ? (
-            <>
-              <div className="flex flex-none items-center gap-1">
-                <ToolbarTooltip label="Rotate counterclockwise">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Rotate counterclockwise"
-                    disabled={controlsDisabled}
-                    onClick={() => onRotate(-1)}
-                  >
-                    <IconRotateClockwise className="size-4" />
-                  </Button>
-                </ToolbarTooltip>
-                <ToolbarTooltip label="Rotate clockwise">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Rotate clockwise"
-                    disabled={controlsDisabled}
-                    onClick={() => onRotate(1)}
-                  >
-                    <IconRotateClockwise className="size-4 -scale-x-100" />
-                  </Button>
-                </ToolbarTooltip>
-              </div>
-              <Separator
-                orientation="vertical"
-                className="mx-1 h-4 self-center"
-              />
-            </>
-          ) : null}
-          <div className="flex flex-none items-center gap-1">
-            <ToolbarTooltip label="Zoom out">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Zoom out"
-                disabled={
-                  controlsDisabled || currentZoomLevel <= ZOOM_OPTIONS[0]
-                }
-                onClick={() => {
-                  const nextZoom = [...ZOOM_OPTIONS]
-                    .reverse()
-                    .find((option) => option < currentZoomLevel)
-                  onZoomChange(nextZoom ?? ZOOM_OPTIONS[0])
+            {showRotateControls ? (
+              <>
+                <div className="flex flex-none items-center gap-1">
+                  <ToolbarTooltip label="Rotate counterclockwise">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Rotate counterclockwise"
+                      disabled={controlsDisabled}
+                      onClick={() => onRotate(-1)}
+                    >
+                      <IconRotateClockwise className="size-4" />
+                    </Button>
+                  </ToolbarTooltip>
+                  <ToolbarTooltip label="Rotate clockwise">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Rotate clockwise"
+                      disabled={controlsDisabled}
+                      onClick={() => onRotate(1)}
+                    >
+                      <IconRotateClockwise className="size-4 -scale-x-100" />
+                    </Button>
+                  </ToolbarTooltip>
+                </div>
+                <Separator
+                  orientation="vertical"
+                  className="mx-1 h-4 self-center"
+                />
+              </>
+            ) : null}
+            <div className="flex flex-none items-center gap-1">
+              <ToolbarTooltip label="Zoom out">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Zoom out"
+                  disabled={
+                    controlsDisabled || currentZoomLevel <= ZOOM_OPTIONS[0]
+                  }
+                  onClick={() => {
+                    const nextZoom = [...ZOOM_OPTIONS]
+                      .reverse()
+                      .find((option) => option < currentZoomLevel)
+                    onZoomChange(nextZoom ?? ZOOM_OPTIONS[0])
+                  }}
+                >
+                  <IconCircleMinus className="size-4" />
+                </Button>
+              </ToolbarTooltip>
+              <Select
+                value={selectValue}
+                onValueChange={(value) => {
+                  const next = String(value)
+                  onZoomChange(isZoomMode(next) ? next : Number(next))
                 }}
+                disabled={controlsDisabled}
               >
-                <IconCircleMinus className="size-4" />
-              </Button>
-            </ToolbarTooltip>
-            <Select
-              value={selectValue}
-              onValueChange={(value) => {
-                const next = String(value)
-                onZoomChange(isZoomMode(next) ? next : Number(next))
-              }}
-              disabled={controlsDisabled}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-[96px] min-w-[96px]"
-                aria-label="Zoom level"
-              >
-                <SelectValue placeholder="Zoom">
-                  {Math.round(currentZoomLevel * 100)}%
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent position={false ? "item-aligned" : "popper"}>
-                {(Object.keys(ZOOM_MODE_LABELS) as ZoomMode[]).map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {ZOOM_MODE_LABELS[mode]}
-                  </SelectItem>
-                ))}
-                {zoomOptions.map((option) => (
-                  <SelectItem key={option} value={String(option)}>
-                    {Math.round(option * 100)}%
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <ToolbarTooltip label="Zoom in">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Zoom in"
-                disabled={
-                  controlsDisabled ||
-                  currentZoomLevel >= ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
-                }
-                onClick={() => {
-                  const nextZoom = ZOOM_OPTIONS.find(
-                    (option) => option > currentZoomLevel
-                  )
-                  onZoomChange(
-                    nextZoom ?? ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
-                  )
-                }}
-              >
-                <IconCirclePlus className="size-4" />
-              </Button>
-            </ToolbarTooltip>
-          </div>
-          <Separator orientation="vertical" className="mx-1 h-4 self-center" />
-          {searchControl}
-          {toolbarActions ? (
-            <>
-              <Separator
-                orientation="vertical"
-                className="mx-1 h-4 self-center"
-              />
-              {toolbarActions}
-            </>
-          ) : null}
-          {showDownload || showUpload ? (
-            <>
-              <Separator
-                orientation="vertical"
-                className="mx-1 h-4 self-center"
-              />
-              <PDFViewerFileActionsMenu
-                downloadDisabled={downloadDisabled}
-                isPreparingDownload={isPreparingDownload}
-                onDownload={onDownload}
-                onUploadFile={onUploadFile}
-                showDownload={showDownload}
-                showUpload={showUpload}
-              />
-            </>
-          ) : null}
+                <SelectTrigger
+                  size="sm"
+                  className="w-[96px] min-w-[96px]"
+                  aria-label="Zoom level"
+                >
+                  <SelectValue placeholder="Zoom">
+                    {Math.round(currentZoomLevel * 100)}%
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent position={false ? "item-aligned" : "popper"}>
+                  {(Object.keys(ZOOM_MODE_LABELS) as ZoomMode[]).map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {ZOOM_MODE_LABELS[mode]}
+                    </SelectItem>
+                  ))}
+                  {zoomOptions.map((option) => (
+                    <SelectItem key={option} value={String(option)}>
+                      {Math.round(option * 100)}%
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <ToolbarTooltip label="Zoom in">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Zoom in"
+                  disabled={
+                    controlsDisabled ||
+                    currentZoomLevel >= ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
+                  }
+                  onClick={() => {
+                    const nextZoom = ZOOM_OPTIONS.find(
+                      (option) => option > currentZoomLevel
+                    )
+                    onZoomChange(
+                      nextZoom ?? ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
+                    )
+                  }}
+                >
+                  <IconCirclePlus className="size-4" />
+                </Button>
+              </ToolbarTooltip>
+            </div>
+            <Separator
+              orientation="vertical"
+              className="mx-1 h-4 self-center"
+            />
+            {searchControl}
+            {toolbarActions ? (
+              <>
+                <Separator
+                  orientation="vertical"
+                  className="mx-1 h-4 self-center"
+                />
+                {toolbarActions}
+              </>
+            ) : null}
+            {showDownload || showUpload ? (
+              <>
+                <Separator
+                  orientation="vertical"
+                  className="mx-1 h-4 self-center"
+                />
+                <PDFViewerFileActionsMenu
+                  downloadDisabled={downloadDisabled}
+                  isPreparingDownload={isPreparingDownload}
+                  onDownload={onDownload}
+                  onUploadFile={onUploadFile}
+                  showDownload={showDownload}
+                  showUpload={showUpload}
+                />
+              </>
+            ) : null}
           </ToolbarGroups>
         </div>
       </TooltipProvider>
@@ -1311,7 +1325,7 @@ function PDFViewerThumbnails({
               aria-setsize={pageCount}
               data-selected={isSelected ? "" : undefined}
               className={cn(
-                "flex h-full w-full cursor-default flex-col items-center justify-between rounded-md px-2 py-0 text-xs transition-shadow outline-none select-none hover:bg-sidebar-accent",
+                "hover:bg-sidebar-accent flex h-full w-full cursor-default flex-col items-center justify-between rounded-md px-2 py-0 text-xs transition-shadow outline-none select-none",
                 isActive || isSelected
                   ? "bg-sidebar-accent text-foreground"
                   : "text-muted-foreground",
@@ -2365,7 +2379,7 @@ function PDFViewerInner({
     <div
       data-slot="pdf-viewer"
       className={cn(
-        "flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-background",
+        "bg-background flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden",
         className
       )}
     >
@@ -2400,7 +2414,7 @@ function PDFViewerInner({
       ) : null}
       <div
         ref={viewerShellRef}
-        className="relative flex min-h-0 flex-1 overflow-hidden bg-muted/30"
+        className="bg-muted/30 relative flex min-h-0 flex-1 overflow-hidden"
       >
         {isLoading ? (
           <PDFViewerLoadingSkeleton
@@ -2689,7 +2703,12 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
 )
 function InlineSpinner({ className, ...props }: InlineRegistryIconProps) {
   return (
-    <IconLoader2 role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+    <IconLoader2
+      role="status"
+      aria-label="Loading"
+      className={cn("size-4 animate-spin", className)}
+      {...props}
+    />
   )
 }
 type InlineRegistryIconProps = Omit<

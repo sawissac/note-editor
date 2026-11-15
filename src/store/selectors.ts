@@ -8,9 +8,28 @@ const collator = new Intl.Collator(undefined, {
   sensitivity: "base",
 });
 
+/**
+ * Folders first, then manual `order` (set by drag-to-reorder), then name.
+ * Rows that were never reordered sort after the ordered ones.
+ */
 export function compareNodes(a: FsNode, b: FsNode) {
   if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+  if (a.order !== undefined || b.order !== undefined) {
+    if (a.order === undefined) return 1;
+    if (b.order === undefined) return -1;
+    if (a.order !== b.order) return a.order - b.order;
+  }
   return collator.compare(a.name, b.name);
+}
+
+/** Children of `parentId` (null = root) in tree order. */
+export function getSortedChildren(
+  nodes: Record<string, FsNode>,
+  parentId: string | null,
+) {
+  return Object.values(nodes)
+    .filter((n) => n.parentId === parentId)
+    .sort(compareNodes);
 }
 
 export const selectNodes = (state: RootState) => state.fs.nodes;

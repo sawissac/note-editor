@@ -1,5 +1,8 @@
 import {
+  IconAlertTriangle,
   IconDragDrop,
+  IconFiles,
+  IconX,
   IconFilePlus,
   IconFolderPlus,
   IconFoldUp,
@@ -8,6 +11,7 @@ import {
   IconNotebook,
   IconUpload,
   IconFileExport,
+  IconDatabaseExport,
 } from "@tabler/icons-react";
 import * as React from "react";
 
@@ -30,17 +34,24 @@ import * as ui from "@/lib/ui-styles";
 import {
   collapseAll,
   commitCreate,
+  type DropPosition,
   expandAll,
+  exportWorkspace,
   importFiles,
-  moveNode,
+  moveNodes,
   openFile,
+  shiftNode,
   validateName,
 } from "@/store/actions";
 import { fsActions, type NodeType } from "@/store/fs-slice";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/store";
 import { getTargetFolderId } from "@/store/selectors";
 import { uiActions } from "@/store/ui-slice";
-import { hasFilePayload, hasNodePayload, NODE_MIME } from "@/features/explorer/dnd";
+import {
+  getNodePayload,
+  hasFilePayload,
+  hasNodePayload,
+} from "@/features/explorer/dnd";
 import { NameInput } from "@/features/explorer/NameInput";
 import {
   IndentGuides,
@@ -64,11 +75,28 @@ export function Explorer() {
   const nodes = useAppSelector((s) => s.fs.nodes);
   const selectedId = useAppSelector((s) => s.fs.selectedId);
   const draft = useAppSelector((s) => s.fs.draft);
+  const selectionCount = useAppSelector((s) => s.fs.selectedIds.length);
   const treeRef = React.useRef<HTMLDivElement>(null);
   // undefined = no drop in progress, null = root, string = folder id.
-  const [dropTarget, setDropTarget] = React.useState<string | null | undefined>();
-  const [notice, setNotice] = React.useState<string | null>(null);
-  const fileCount = Object.values(nodes).filter((n) => n.type === "file").length;
+  const [dropTarget, setDropTarget] = React.useState<
+    string | null | undefined
+  >();
+  // Row + edge where a reorder drop would land (insertion line).
+  const [dropLine, setDropLineState] = React.useState<
+    { id: string; position: DropPosition } | undefined
+  >();
+  const setDropLine = React.useCallback(
+    (next: { id: string; position: DropPosition } | undefined) =>
+      setDropLineState((prev) =>
+        prev?.id === next?.id && prev?.position === next?.position
+          ? prev
+          : next,
+      ),
+    [],
+  );
+  const notice = useAppSelector((s) => s.ui.explorerNotice);
+  const setNotice = (text: string | null) =>
+    dispatch(uiActions.explorerNoticeSet(text));
   const isEmpty = rows.length === 0;
 
   // Keep the selected row in view as the selection moves.
@@ -83,7 +111,11 @@ export function Explorer() {
   const hadDraft = React.useRef(false);
   React.useEffect(() => {
     // Only when focus fell to <body> — a new file's editor may have claimed it.
-    if (hadDraft.current && !draft && document.activeElement === document.body) {
+    if (
+      hadDraft.current &&
+      !draft &&
+      document.activeElement === document.body
+    ) {
       treeRef.current?.focus({ preventScroll: true });
     }
     hadDraft.current = Boolean(draft);
@@ -107,24 +139,90 @@ export function Explorer() {
     );
   };
 
+  const visibleIds = React.useMemo(
+    () => rows.flatMap((r) => (r.kind === "node" ? [r.node.id] : [])),
+    [rows],
+  );
+
+  /** Selects every visible row from the anchor to `id` (Shift). */
+  const selectRangeTo = (id: string) => {
+    const { anchorId } = store.getState().fs;
+    const a = anchorId ? visibleIds.indexOf(anchorId) : -1;
+    const b = visibleIds.indexOf(id);
+    if (a < 0 || b < 0) {
+      dispatch(fsActions.selected(id));
+      return;
+    }
+    const [lo, hi] = a < b ? [a, b] : [b, a];
+    dispatch(
+      fsActions.selectionSet({
+        ids: visibleIds.slice(lo, hi + 1),
+        focusId: id,
+      }),
+    );
+  };
+
+  const onSelectClick = (e: React.MouseEvent, id: string) => {
+    if (e.shiftKey) {
+      selectRangeTo(id);
+      return true;
+    }
+    if (e.metaKey || e.ctrlKey) {
+      dispatch(fsActions.selectionToggled(id));
+      return true;
+    }
+    return false;
+  };
+
+  /** A drag from a selected row carries the whole selection, in tree order. */
+  const getDragIds = (id: string) => {
+    const { selectedIds } = store.getState().fs;
+    if (!selectedIds.includes(id)) return [id];
+    const picked = new Set(selectedIds);
+    return visibleIds.filter((v) => picked.has(v));
+  };
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (draft) return;
     const nodeRows = rows.filter((r) => r.kind === "node");
     const index = nodeRows.findIndex((r) => r.node.id === selectedId);
     const current = index >= 0 ? nodeRows[index].node : undefined;
-    const select = (i: number) => {
+    const { selectedIds } = store.getState().fs;
+    const select = (i: number, extend = false) => {
       const row = nodeRows[Math.max(0, Math.min(nodeRows.length - 1, i))];
-      if (row) dispatch(fsActions.selected(row.node.id));
+      if (!row) return;
+      if (extend) selectRangeTo(row.node.id);
+      else dispatch(fsActions.selected(row.node.id));
     };
+
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      if (visibleIds.length) {
+        dispatch(
+          fsActions.selectionSet({
+            ids: visibleIds,
+            focusId: selectedId ?? visibleIds[0],
+          }),
+        );
+      }
+      return;
+    }
+
+    // Alt+↑ / Alt+↓ moves the focused row among its siblings.
+    if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      e.preventDefault();
+      if (current) dispatch(shiftNode(current.id, e.key === "ArrowUp" ? -1 : 1));
+      return;
+    }
 
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        select(index + 1);
+        select(index + 1, e.shiftKey);
         break;
       case "ArrowUp":
         e.preventDefault();
-        select(index < 0 ? nodeRows.length - 1 : index - 1);
+        select(index < 0 ? nodeRows.length - 1 : index - 1, e.shiftKey);
         break;
       case "Home":
         e.preventDefault();
@@ -146,35 +244,47 @@ export function Explorer() {
       case "ArrowLeft":
         if (!current) break;
         e.preventDefault();
-        if (current.type === "folder" && store.getState().fs.expanded[current.id]) {
+        if (
+          current.type === "folder" &&
+          store.getState().fs.expanded[current.id]
+        ) {
           dispatch(fsActions.expandedSet({ id: current.id, open: false }));
         } else if (current.parentId) {
           dispatch(fsActions.selected(current.parentId));
         }
         break;
-      case "Enter":
       case " ":
         if (!current) break;
         e.preventDefault();
-        if (current.type === "folder") dispatch(fsActions.expandedToggled(current.id));
+        if (current.type === "folder")
+          dispatch(fsActions.expandedToggled(current.id));
         else dispatch(openFile(current.id));
         break;
+      // Enter renames the one selected item (Finder-style); F2 too.
+      case "Enter":
       case "F2":
-        if (!current) break;
+        if (!current || selectedIds.length > 1) break;
         e.preventDefault();
         dispatch(fsActions.draftStarted({ mode: "rename", id: current.id }));
         break;
       case "Delete":
       case "Backspace":
-        if (!current || (e.key === "Backspace" && !(e.metaKey || e.ctrlKey))) break;
+        if (!current || (e.key === "Backspace" && !(e.metaKey || e.ctrlKey)))
+          break;
         e.preventDefault();
-        dispatch(uiActions.deleteRequested(current.id));
+        dispatch(
+          uiActions.deleteRequested(
+            selectedIds.length > 1 ? getDragIds(current.id) : current.id,
+          ),
+        );
         break;
       case "*":
         e.preventDefault();
         dispatch(
           expandAll(
-            current?.type === "folder" ? current.id : (current?.parentId ?? null),
+            current?.type === "folder"
+              ? current.id
+              : (current?.parentId ?? null),
           ),
         );
         break;
@@ -187,16 +297,19 @@ export function Explorer() {
   return (
     <Sidebar data-testid="explorer" texture="none" className="h-full">
       <SidebarHeader className="h-9 gap-1 pr-1.5 pl-3">
-        <SidebarTitle className={ui.label}>Explorer</SidebarTitle>
+        <SidebarTitle className={ui.label}>Bento</SidebarTitle>
         <ButtonGroup aria-label="Create">
           <HeaderAction label="New file" onClick={() => startCreate("file")}>
             <IconFilePlus />
           </HeaderAction>
-          <HeaderAction label="New folder" onClick={() => startCreate("folder")}>
+          <HeaderAction
+            label="New folder"
+            onClick={() => startCreate("folder")}
+          >
             <IconFolderPlus />
           </HeaderAction>
           <HeaderAction
-            label="Import files"
+            label="Import files from your computer"
             onClick={() =>
               dispatch(
                 uiActions.importOpened(
@@ -208,14 +321,23 @@ export function Explorer() {
             <IconUpload />
           </HeaderAction>
           <HeaderAction
-            label="Unified export (PDF)"
+            label="Export files as one PDF"
             onClick={() => dispatch(uiActions.unifiedExportSet(true))}
           >
             <IconFileExport />
           </HeaderAction>
+          <HeaderAction
+            label="Export workspace backup (all files and state)"
+            onClick={() => void dispatch(exportWorkspace())}
+          >
+            <IconDatabaseExport />
+          </HeaderAction>
         </ButtonGroup>
         <ButtonGroup aria-label="Folders">
-          <HeaderAction label="Expand all folders" onClick={() => dispatch(expandAll())}>
+          <HeaderAction
+            label="Expand all folders"
+            onClick={() => dispatch(expandAll())}
+          >
             <IconFoldDown />
           </HeaderAction>
           <HeaderAction
@@ -236,9 +358,12 @@ export function Explorer() {
       <SidebarContent
         ref={treeRef}
         role="tree"
+        aria-multiselectable
         aria-label="Files"
         tabIndex={0}
-        aria-activedescendant={selectedId ? `tree-row-${selectedId}` : undefined}
+        aria-activedescendant={
+          selectedId ? `tree-row-${selectedId}` : undefined
+        }
         onKeyDown={onKeyDown}
         onClick={(e) => {
           if (e.target === e.currentTarget) dispatch(fsActions.selected(null));
@@ -247,21 +372,26 @@ export function Explorer() {
           if (!hasNodePayload(e) && !hasFilePayload(e)) return;
           e.preventDefault();
           setDropTarget(null);
+          setDropLine(undefined);
         }}
         onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(undefined);
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setDropTarget(undefined);
+            setDropLine(undefined);
+          }
         }}
         onDrop={(e) => {
           e.preventDefault();
           setDropTarget(undefined);
-          const id = e.dataTransfer.getData(NODE_MIME);
-          if (id) dispatch(moveNode(id, null));
+          setDropLine(undefined);
+          const ids = getNodePayload(e);
+          if (ids.length) dispatch(moveNodes(ids, null));
           else if (e.dataTransfer.files.length) {
             void handleExternalDrop(Array.from(e.dataTransfer.files), null);
           }
         }}
         className={cn(
-          "py-1 outline-none focus-visible:ring-1 focus-visible:ring-app-border-accent focus-visible:ring-inset",
+          "focus-visible:ring-app-border-accent py-1 outline-none focus-visible:ring-1 focus-visible:ring-inset",
           dropTarget === null && "bg-app-accent-faint",
         )}
       >
@@ -273,9 +403,15 @@ export function Explorer() {
               depth={row.depth}
               dropTargetId={dropTarget}
               onDropTarget={setDropTarget}
+              dropLine={
+                dropLine?.id === row.node.id ? dropLine.position : undefined
+              }
+              onDropLine={setDropLine}
               onExternalDrop={(files, parentId) =>
                 void handleExternalDrop(files, parentId)
               }
+              onSelectClick={onSelectClick}
+              getDragIds={getDragIds}
             />
           ) : (
             <DraftRow key="draft" parentId={row.parentId} depth={row.depth} />
@@ -297,29 +433,52 @@ export function Explorer() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="justify-between">
-        <span className={ui.meta}>
-          {fileCount} {fileCount === 1 ? "file" : "files"}
-        </span>
-        {notice ? (
-          <button
-            type="button"
-            onClick={() => setNotice(null)}
-            className="truncate font-description text-[11px] text-app-warn"
-            title={notice}
-          >
-            {notice}
-          </button>
-        ) : (
-          <span className={ui.meta}>Saved locally</span>
-        )}
-      </SidebarFooter>
-
+      {/* Shown only while there is something to say: a multi-selection or
+          an import notice. */}
+      {selectionCount > 1 || notice ? (
+        <SidebarFooter className="justify-between">
+          {selectionCount > 1 ? (
+            <span
+              className="explorer-footer__item"
+              data-testid="explorer-selection-count"
+              title="⌘/Ctrl-click to add or remove · Shift-click for a range · Esc to clear"
+            >
+              <IconFiles aria-hidden className="explorer-footer__icon" />
+              {selectionCount} selected
+            </span>
+          ) : (
+            <span />
+          )}
+          {notice ? (
+            <button
+              type="button"
+              data-testid="explorer-notice-dismiss-button"
+              onClick={() => setNotice(null)}
+              className="explorer-footer__notice"
+              title={`${notice} — click to dismiss`}
+              aria-label={`${notice}. Dismiss`}
+            >
+              <IconAlertTriangle
+                aria-hidden
+                className="explorer-footer__icon"
+              />
+              <span className="explorer-footer__notice-text">{notice}</span>
+              <IconX aria-hidden className="explorer-footer__icon" />
+            </button>
+          ) : null}
+        </SidebarFooter>
+      ) : null}
     </Sidebar>
   );
 }
 
-function DraftRow({ parentId, depth }: { parentId: string | null; depth: number }) {
+function DraftRow({
+  parentId,
+  depth,
+}: {
+  parentId: string | null;
+  depth: number;
+}) {
   const dispatch = useAppDispatch();
   const nodes = useAppSelector((s) => s.fs.nodes);
   const draft = useAppSelector((s) => s.fs.draft);
@@ -337,7 +496,7 @@ function DraftRow({ parentId, depth }: { parentId: string | null; depth: number 
       aria-level={depth + 1}
       aria-selected
       data-testid="tree-draft-row"
-      className="relative flex items-center gap-1.5 bg-app-selected pr-1"
+      className="bg-app-selected relative flex items-center gap-1.5 pr-1"
       style={{ paddingLeft: rowPadding(depth), height: ROW_HEIGHT }}
     >
       <IndentGuides depth={depth} />
@@ -372,7 +531,7 @@ function HeaderAction({
           size="icon-sm"
           aria-label={label}
           onClick={onClick}
-          className="size-6 bg-transparent text-app-dim hover:text-app-accent [&_svg:not([class*='size-'])]:size-3.5"
+          className="text-app-dim hover:text-app-accent size-6 bg-transparent [&_svg:not([class*='size-'])]:size-3.5"
         >
           {children}
         </Button>
@@ -420,11 +579,11 @@ function EmptyState({
       <div className="flex flex-col items-center gap-1.5 text-center">
         <span
           aria-hidden
-          className="mb-1 flex size-10 items-center justify-center rounded-lg border tint-current text-app-accent"
+          className="tint-current text-app-accent mb-1 flex size-10 items-center justify-center rounded-lg border"
         >
           <IconNotebook className="size-5" />
         </span>
-        <p className="font-title text-[12px] font-semibold text-app-bright">
+        <p className="font-title text-app-bright text-[12px] font-semibold">
           Your workspace is empty
         </p>
         <p className={ui.help}>
@@ -433,7 +592,7 @@ function EmptyState({
         </p>
       </div>
 
-      <div className="flex flex-col divide-y divide-app-border overflow-hidden rounded-md border border-app-border">
+      <div className="divide-app-border border-app-border flex flex-col divide-y overflow-hidden rounded-md border">
         {actions.map(({ label, sub, tone, Icon, onClick }) => (
           <button
             key={label}
@@ -453,7 +612,7 @@ function EmptyState({
         ))}
       </div>
 
-      <div className="flex items-center justify-center gap-1.5 rounded-md border border-dashed border-app-border-mid px-3 py-3 font-description text-[11px] text-app-dim">
+      <div className="border-app-border-mid font-description text-app-dim flex items-center justify-center gap-1.5 rounded-md border border-dashed px-3 py-3 text-[11px]">
         <IconDragDrop aria-hidden className="size-4 shrink-0" />
         Or drop files anywhere in this panel
       </div>

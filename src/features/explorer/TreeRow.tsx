@@ -9,12 +9,32 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
 import { FileIcon, FolderIcon } from "@/lib/file-icons";
-import { commitRename, moveNode, openFile, validateName } from "@/store/actions";
+import { kindOf, suggestRenameNames } from "@/lib/file-types";
+import {
+  commitRename,
+  type DropPosition,
+  moveNodes,
+  openFile,
+  reorderNodes,
+  validateName,
+} from "@/store/actions";
 import { type FsNode, fsActions } from "@/store/fs-slice";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { hasFilePayload, hasNodePayload, NODE_MIME } from "@/features/explorer/dnd";
+import {
+  dropZone,
+  getNodePayload,
+  hasFilePayload,
+  hasNodePayload,
+  setMultiDragImage,
+  setNodePayload,
+} from "@/features/explorer/dnd";
 import { NameInput } from "@/features/explorer/NameInput";
 import { NodeMenu } from "@/features/explorer/NodeMenu";
 
@@ -58,23 +78,43 @@ export function rowPadding(depth: number) {
  * One explorer row: chevron, icon, name (or the rename field), and hover
  * actions. Folders accept dropped rows and OS files; files forward a drop to
  * their parent folder.
+ *
+ * - Click opens a file / toggles a folder. ⌘/Ctrl-click and Shift-click
+ *   (handled by `onSelectClick`) build a multi-selection instead.
+ * - Dragging a selected row drags the whole selection.
+ * - Dropping rows on the top / bottom edge of a row reorders them before /
+ *   after it (insertion line: BEM block `tree-drop-line`,
+ *   `src/styles/explorer.css`); a folder's middle still means "move inside".
  */
 export function TreeRow({
   node,
   depth,
   dropTargetId,
   onDropTarget,
+  dropLine,
+  onDropLine,
   onExternalDrop,
+  onSelectClick,
+  getDragIds,
 }: {
   node: FsNode;
   depth: number;
   dropTargetId: string | null | undefined;
   onDropTarget: (id: string | null | undefined) => void;
+  /** Insertion line drawn on this row while a reorder drop hovers it. */
+  dropLine: DropPosition | undefined;
+  onDropLine: (hint: { id: string; position: DropPosition } | undefined) => void;
   onExternalDrop: (files: File[], parentId: string | null) => void;
+  /** Applies ⌘/Ctrl / Shift selection; true when the click was consumed. */
+  onSelectClick: (e: React.MouseEvent, id: string) => boolean;
+  /** Ids a drag starting on `id` carries (the selection, in tree order). */
+  getDragIds: (id: string) => string[];
 }) {
   const dispatch = useAppDispatch();
   const nodes = useAppSelector((s) => s.fs.nodes);
-  const selected = useAppSelector((s) => s.fs.selectedId === node.id);
+  const selected = useAppSelector((s) => s.fs.selectedIds.includes(node.id));
+  const focused = useAppSelector((s) => s.fs.selectedId === node.id);
+  const multi = useAppSelector((s) => s.fs.selectedIds.length > 1);
   const active = useAppSelector((s) => s.tabs.activeId === node.id);
   const open = useAppSelector((s) => Boolean(s.fs.expanded[node.id]));
   const renaming = useAppSelector(
@@ -107,7 +147,9 @@ export function TreeRow({
           aria-expanded={isFolder ? open : undefined}
           data-selected={selected || undefined}
           draggable={!renaming}
-          onClick={activate}
+          onClick={(e) => {
+            if (!onSelectClick(e, node.id)) activate();
+          }}
           onDoubleClick={(e) => {
             // Folders toggle on click, so a double-click would only flicker
             // them; renaming a folder is F2 or the menu.
@@ -115,26 +157,46 @@ export function TreeRow({
             e.preventDefault();
             dispatch(fsActions.draftStarted({ mode: "rename", id: node.id }));
           }}
-          onContextMenu={() => dispatch(fsActions.selected(node.id))}
-          onDragStart={(e) => {
-            e.dataTransfer.setData(NODE_MIME, node.id);
-            e.dataTransfer.effectAllowed = "move";
+          onContextMenu={() => {
+            // Right-clicking inside a multi-selection keeps it for the menu.
+            if (!selected) dispatch(fsActions.selected(node.id));
           }}
-          onDragEnd={() => onDropTarget(undefined)}
+          onDragStart={(e) => {
+            const ids = getDragIds(node.id);
+            setNodePayload(e, ids);
+            if (ids.length > 1) setMultiDragImage(e, `${ids.length} items`);
+          }}
+          onDragEnd={() => {
+            onDropTarget(undefined);
+            onDropLine(undefined);
+          }}
           onDragOver={(e) => {
-            if (!hasNodePayload(e) && !hasFilePayload(e)) return;
+            const isNode = hasNodePayload(e);
+            if (!isNode && !hasFilePayload(e)) return;
             e.preventDefault();
             e.stopPropagation();
-            e.dataTransfer.dropEffect = hasNodePayload(e) ? "move" : "copy";
-            onDropTarget(dropFolderId);
+            e.dataTransfer.dropEffect = isNode ? "move" : "copy";
+            // OS files always import into the folder; only rows reorder.
+            const zone = isNode ? dropZone(e, isFolder, open) : "into";
+            if (zone === "into") {
+              onDropLine(undefined);
+              onDropTarget(dropFolderId);
+            } else {
+              onDropTarget(undefined);
+              onDropLine({ id: node.id, position: zone });
+            }
           }}
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onDropTarget(undefined);
-            const id = e.dataTransfer.getData(NODE_MIME);
-            if (id) dispatch(moveNode(id, dropFolderId));
-            else if (e.dataTransfer.files.length) {
+            onDropLine(undefined);
+            const ids = getNodePayload(e);
+            if (ids.length) {
+              const zone = dropZone(e, isFolder, open);
+              if (zone === "into") dispatch(moveNodes(ids, dropFolderId));
+              else dispatch(reorderNodes(ids, node.id, zone));
+            } else if (e.dataTransfer.files.length) {
               onExternalDrop(Array.from(e.dataTransfer.files), dropFolderId);
             }
           }}
@@ -144,11 +206,20 @@ export function TreeRow({
             "transition-colors duration-(--motion-duration-fast) hover:bg-app-hover",
             active && "text-app-bright",
             selected && "bg-app-selected text-app-bright",
+            focused && multi && "ring-1 ring-app-border-mid ring-inset",
             (isDropTarget || menuOpen) &&
               "bg-app-accent-faint ring-1 ring-app-border-accent ring-inset",
           )}
         >
           <IndentGuides depth={depth} />
+          {dropLine ? (
+            <span
+              aria-hidden
+              data-testid={`tree-drop-line-${node.id}`}
+              className={`tree-drop-line tree-drop-line--${dropLine}`}
+              style={{ left: rowPadding(depth) }}
+            />
+          ) : null}
           <span className="flex size-4 shrink-0 items-center justify-center">
             {isFolder ? (
               <IconChevronRight
@@ -162,15 +233,7 @@ export function TreeRow({
           </span>
           {isFolder ? <FolderIcon open={open} /> : <FileIcon name={node.name} />}
           {renaming ? (
-            <NameInput
-              data-testid={`tree-rename-input-${node.id}`}
-              initialValue={node.name}
-              validate={(v) =>
-                validateName(nodes, node.parentId, v, node.type, node.id)
-              }
-              onCommit={(v) => dispatch(commitRename(v))}
-              onCancel={() => dispatch(fsActions.draftCancelled())}
-            />
+            <RenameInput node={node} nodes={nodes} />
           ) : (
             <>
               <span
@@ -234,6 +297,44 @@ export function TreeRow({
   );
 }
 
+/**
+ * Inline rename with the same name completion as "new file": clearing the
+ * extension of `notes.md` and typing `report` offers `report.md` first, then
+ * the other types this file may switch to.
+ */
+function RenameInput({
+  node,
+  nodes,
+}: {
+  node: FsNode;
+  nodes: Record<string, FsNode>;
+}) {
+  const dispatch = useAppDispatch();
+  const isFolder = node.type === "folder";
+  const validate = React.useCallback(
+    (v: string) => validateName(nodes, node.parentId, v, node.type, node.id),
+    [nodes, node.parentId, node.type, node.id],
+  );
+  const suggest = React.useMemo(
+    () => (isFolder ? undefined : suggestRenameNames(node.name)),
+    [isFolder, node.name],
+  );
+
+  return (
+    <NameInput
+      data-testid={`tree-rename-input-${node.id}`}
+      action="rename"
+      initialValue={node.name}
+      placeholder={isFolder ? "New folder name" : "New file name"}
+      currentKind={isFolder ? undefined : kindOf(node.name)}
+      validate={validate}
+      suggest={suggest}
+      onCommit={(v) => dispatch(commitRename(v))}
+      onCancel={() => dispatch(fsActions.draftCancelled())}
+    />
+  );
+}
+
 function RowAction({
   label,
   onClick,
@@ -244,20 +345,24 @@ function RowAction({
   children: React.ReactNode;
 }) {
   return (
-    <Button
-      variant="outline"
-      size="icon-xs"
-      tabIndex={-1}
-      aria-label={label}
-      title={label}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick(e);
-      }}
-      onDoubleClick={(e) => e.stopPropagation()}
-      className="size-5 rounded-sm bg-app-bg text-app-dim hover:text-app-accent [&_svg:not([class*='size-'])]:size-3"
-    >
-      {children}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon-xs"
+          tabIndex={-1}
+          aria-label={label}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick(e);
+          }}
+          onDoubleClick={(e) => e.stopPropagation()}
+          className="size-5 rounded-sm bg-app-bg text-app-dim hover:text-app-accent [&_svg:not([class*='size-'])]:size-3"
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
   );
 }

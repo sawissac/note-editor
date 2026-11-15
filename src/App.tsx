@@ -11,10 +11,26 @@ import { UnifiedExportDialog } from "@/features/export/UnifiedExportDialog";
 import { TabBar } from "@/features/tabs/TabBar";
 import { QuickOpen } from "@/features/workspace/QuickOpen";
 import { StatusBar } from "@/features/workspace/StatusBar";
+import { TimerDock } from "@/features/workspace/TimerDock";
+import { useEffect } from "react";
+
 import { useAppSelector } from "@/store";
+
+const BASE_TITLE = document.title;
+
+/** "<file> · Bento" while a file is open, the SEO title from index.html otherwise. */
+function useDocumentTitle() {
+  const activeName = useAppSelector((s) =>
+    s.tabs.activeId ? s.fs.nodes[s.tabs.activeId]?.name : undefined,
+  );
+  useEffect(() => {
+    document.title = activeName ? `${activeName} · Bento` : BASE_TITLE;
+  }, [activeName]);
+}
 
 export default function App() {
   const sidebarOpen = useAppSelector((s) => s.ui.sidebarOpen);
+  useDocumentTitle();
 
   return (
     <div className="flex h-full flex-col">
@@ -39,6 +55,7 @@ export default function App() {
       <DeleteDialog />
       <ImportDialog />
       <UnifiedExportDialog />
+      <TimerDock />
     </div>
   );
 }

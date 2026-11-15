@@ -1,0 +1,197 @@
+/* DiffPane (`.diff` files) — BEM blocks `diff-pane` (the diff view) and
+ * `diff-picker` (choosing the two files to compare).
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme.
+ * Stats, the layout switch and the tool buttons are portalled into the
+ * file bar. */
+
+@layer components {
+  /* ── diff-pane: file bar ──────────────────────────────────────────── */
+  .diff-pane__stats {
+    @apply flex shrink-0 items-center gap-1.5 pr-1;
+  }
+  .diff-pane__count {
+    @apply font-mono text-[11px] font-semibold tabular-nums;
+  }
+  .diff-pane__count--added {
+    @apply text-app-success;
+  }
+  .diff-pane__count--deleted {
+    @apply text-app-error;
+  }
+  /* A segmented row of icon buttons sharing one border. */
+  .diff-pane__icon {
+    @apply size-3.5 shrink-0;
+  }
+  .diff-pane__icon--done {
+    @apply text-app-success;
+  }
+
+  /* ── diff-pane: body ──────────────────────────────────────────────── */
+  .diff-pane {
+    @apply bg-app-bg flex h-full min-h-0 flex-col;
+  }
+  /* Original | Changed, like the two column headings of a GitHub split diff. */
+  .diff-pane__heads {
+    @apply border-app-border bg-app-sidebar divide-app-border grid shrink-0 grid-cols-2 divide-x border-b;
+  }
+  .diff-pane__head {
+    @apply flex h-8 min-w-0 items-center gap-2 px-3;
+  }
+  .diff-pane__head-label {
+    @apply font-title shrink-0 rounded-sm px-1 text-[9px] leading-4 font-semibold tracking-[0.1em] uppercase;
+  }
+  .diff-pane__head-label--original {
+    @apply bg-app-error/10 text-app-error;
+  }
+  .diff-pane__head-label--changed {
+    @apply bg-app-success/10 text-app-success;
+  }
+  .diff-pane__head-file {
+    @apply font-title text-app-bright hover:text-app-accent focus-visible:ring-app-accent flex min-w-0 items-center gap-1.5 rounded-sm border-0 bg-transparent p-0 text-[12px] font-semibold outline-none focus-visible:ring-2;
+  }
+  .diff-pane__head-icon {
+    @apply size-3.5;
+  }
+  .diff-pane__head-path {
+    @apply truncate;
+  }
+  .diff-pane__body {
+    @apply min-h-0 flex-1 overflow-auto;
+  }
+  .diff-pane__diff {
+    @apply block min-w-full;
+  }
+  /* Several files from one patch, separated like GitHub's file cards. */
+  .diff-pane__diff--stacked {
+    @apply border-app-border border-b;
+  }
+  .diff-pane__message {
+    @apply font-description text-app-dim m-0 flex h-full items-center justify-center p-8 text-center text-[12px];
+  }
+  .diff-pane__message--tone-error {
+    @apply text-app-error;
+  }
+
+  /* ── diff-picker ──────────────────────────────────────────────────── */
+  .diff-picker {
+    @apply bg-app-bg flex h-full min-h-0 items-start justify-center overflow-auto px-4 py-10;
+  }
+  /* Everything in one card: slots, filter, list, actions. */
+  .diff-picker__card {
+    @apply border-app-border bg-app-panel flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-lg border shadow-sm;
+  }
+  .diff-picker__head {
+    @apply flex h-10 shrink-0 items-center gap-2 px-3;
+  }
+  .diff-picker__head-icon {
+    @apply text-app-accent size-4 shrink-0;
+  }
+  .diff-picker__title {
+    @apply font-title text-app-bright m-0 text-[13px] font-semibold;
+  }
+  .diff-picker__filter {
+    @apply tint-current text-app-accent ml-auto rounded-full border px-1.5 font-mono text-[10px] leading-4;
+  }
+  .diff-picker__notice {
+    @apply font-description bg-app-warn/10 text-app-warn m-0 px-3 py-1.5 text-[11px];
+  }
+
+  /* Original ⇄ Changed. */
+  .diff-picker__slots {
+    @apply flex shrink-0 items-stretch gap-1.5 px-3 pb-2;
+  }
+  .diff-picker__slot {
+    @apply border-app-border-mid bg-app-bg flex min-w-0 flex-1 items-center rounded-md border transition-colors duration-150;
+  }
+  .diff-picker__slot--active {
+    @apply border-app-accent ring-app-accent/20 ring-2;
+  }
+  .diff-picker__slot-main {
+    @apply flex min-w-0 flex-1 flex-col items-start gap-0.5 border-0 bg-transparent px-2 py-1.5 text-left outline-none;
+  }
+  .diff-picker__slot-label {
+    @apply font-title text-[9px] leading-3 font-semibold tracking-[0.1em] uppercase;
+  }
+  .diff-picker__slot-label--original {
+    @apply text-app-error;
+  }
+  .diff-picker__slot-label--changed {
+    @apply text-app-success;
+  }
+  .diff-picker__slot-file {
+    @apply text-app-bright flex max-w-full min-w-0 items-center gap-1.5;
+  }
+  .diff-picker__slot-name {
+    @apply font-description truncate text-[12px] font-semibold;
+  }
+  .diff-picker__slot-empty {
+    @apply font-description text-app-dim text-[12px] italic;
+  }
+  .diff-picker__slot-clear {
+    @apply text-app-dim mr-1;
+  }
+  .diff-picker__swap {
+    @apply text-app-dim self-center;
+  }
+  .diff-picker__icon {
+    @apply size-3.5 shrink-0;
+  }
+
+  /* Filter + one shared file list. */
+  .diff-picker__search {
+    @apply border-app-border shrink-0 border-t px-3 py-2;
+  }
+  .diff-picker__list {
+    @apply border-app-border m-0 max-h-80 min-h-24 list-none overflow-auto border-t p-1;
+  }
+  .diff-picker__option {
+    @apply text-app-text hover:bg-app-hover focus-visible:bg-app-hover flex h-8 w-full items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left outline-none;
+  }
+  .diff-picker__option--picked {
+    @apply bg-app-selected text-app-bright hover:bg-app-selected;
+  }
+  .diff-picker__option-path {
+    @apply font-description min-w-0 flex-1 truncate text-[12px];
+  }
+  .diff-picker__option-counts {
+    @apply flex shrink-0 gap-1.5;
+  }
+  .diff-picker__option-count {
+    @apply font-mono text-[10px] font-semibold tabular-nums;
+  }
+  .diff-picker__option-count--added {
+    @apply text-app-success;
+  }
+  .diff-picker__option-count--removed {
+    @apply text-app-error;
+  }
+  .diff-picker__option-same {
+    @apply text-app-dim shrink-0 font-mono text-[10px];
+  }
+  .diff-picker__option-tag {
+    @apply font-title shrink-0 rounded-sm px-1 text-[9px] leading-4 font-semibold tracking-[0.1em] uppercase;
+  }
+  .diff-picker__option-tag--original {
+    @apply bg-app-error/10 text-app-error;
+  }
+  .diff-picker__option-tag--changed {
+    @apply bg-app-success/10 text-app-success;
+  }
+  .diff-picker__empty {
+    @apply font-description text-app-dim p-3 text-center text-[12px];
+  }
+
+  .diff-picker__foot {
+    @apply border-app-border bg-app-sidebar flex h-11 shrink-0 items-center gap-2 border-t px-3;
+  }
+  .diff-picker__hint {
+    @apply font-description text-app-dim mr-auto min-w-0 truncate text-[11px];
+  }
+}
+
+/* ── diff × compacto ───────────────────────────────────────────────────
+ * Unlayered so it outranks the compacto Button's own hover colour. */
+.diff-picker__slot-clear {
+  @apply hover:text-app-error;
+}

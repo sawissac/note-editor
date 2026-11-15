@@ -1,7 +1,10 @@
 import * as React from "react"
 import { FileBarSlot } from "@/features/editors/file-bar-slot"
 import { ToolbarGroups } from "@/components/ui/toolbar-group"
-import { useRegisterDocumentBytes } from "@/features/editors/save-bridge"
+import {
+  useRegisterDocumentBytes,
+  useReportDocumentChange,
+} from "@/features/editors/save-bridge"
 import {
   useXlsxViewer,
   useXlsxViewerController,
@@ -19,12 +22,12 @@ import {
 } from "@extend-ai/react-xlsx"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   ButtonGroup as Group,
   ButtonGroupSeparator as GroupSeparator,
   ButtonGroupText as GroupText,
-} from "@/components/shadcn/button-group"
+} from "@/components/ui/button-group"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,23 +38,23 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu"
-import { Input } from "@/components/shadcn/input"
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Separator } from "@/components/shadcn/separator"
-import { ToggleGroup, ToggleGroupItem } from "@/components/shadcn/toggle-group"
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
+} from "@/components/ui/tooltip"
 import {
   ColorPicker,
   ColorPickerPanel,
@@ -2234,6 +2237,7 @@ function XlsxWorkbookLoadedEditor({
     )
   )
   useRegisterDocumentBytes(controller.getXlsxBytes)
+  useReportDocumentChange(controller.revision)
   return (
     <XlsxViewerProvider controller={controller} isDark={isDark}>
       <XlsxEditorSurface

@@ -34,6 +34,9 @@ export type ExportOptions = {
   /** Add a contents page listing every file with its start page. */
   contents: boolean;
   title: string;
+  /** Workspace path of a file id — `.diff` comparisons name and read their
+   *  two files through it. */
+  pathOf?: (id: string) => string | undefined;
 };
 
 export type ExportProgress = { index: number; total: number; name: string };
@@ -656,7 +659,11 @@ export async function buildUnifiedPdf(
 
     let blocks: Block[];
     try {
-      blocks = await toBlocks(item.kind, await storage.getContent(item.id));
+      blocks = await toBlocks(
+        item.kind,
+        await storage.getContent(item.id),
+        options.pathOf,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push({ name: item.name, error: message });
@@ -696,8 +703,8 @@ export async function buildUnifiedPdf(
   drawFooters(composer, items, contentsPages);
 
   composer.doc.setTitle(options.title);
-  composer.doc.setCreator("Note Editor");
-  composer.doc.setProducer("Note Editor unified export");
+  composer.doc.setCreator("Bento");
+  composer.doc.setProducer("Bento unified export");
   return { bytes: await composer.doc.save(), failures };
 }
 

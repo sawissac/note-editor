@@ -6,8 +6,16 @@
  */
 import Papa from "papaparse";
 
-import type { FileContent } from "@/lib/storage";
+import { type FileContent, storage } from "@/lib/storage";
 import type { FileKind } from "@/lib/file-types";
+import { formatTime, parseCalendar, parseLocal } from "@/lib/calendar";
+import { maskApiKeys } from "@/lib/api-keys";
+import { maskEnv } from "@/lib/data-formats";
+import { comparisonPatch, parseDiffFile } from "@/lib/diff-doc";
+import { parseKanban } from "@/lib/kanban";
+import { parseChat } from "@/lib/chat-doc";
+import { parseQr, qrData, renderQrPng } from "@/lib/qr-doc";
+import { formatDuration, parseTimers } from "@/lib/timer-doc";
 import { renderMermaidPng } from "@/lib/mermaid-render";
 import {
   type BakedImage,
@@ -16,6 +24,7 @@ import {
   mimeFromName,
 } from "@/lib/unified-export/images";
 import { readZip } from "@/lib/unified-export/zip";
+import { IMAGE_FORMATS, sniffImageFormat } from "@/lib/image-formats";
 
 export type Block =
   /** Reflowed text. `indent` in points. */
@@ -86,6 +95,7 @@ function missingImage(label: string, error: unknown): Block {
 export async function toBlocks(
   kind: FileKind,
   content: FileContent | null,
+  pathOf?: (id: string) => string | undefined,
 ): Promise<Block[]> {
   const text = typeof content === "string" ? content : "";
   const bytes = typeof content === "string" || content == null ? null : content;
@@ -100,6 +110,33 @@ export async function toBlocks(
       return schemaBlocks(text);
     case "mermaid":
       return mermaidBlocks(text);
+    case "calendar":
+      return calendarBlocks(text);
+    case "kanban":
+      return kanbanBlocks(text);
+    case "qr":
+      return qrBlocks(text);
+    case "timer":
+      return timerBlocks(text);
+    case "chat":
+      return chatBlocks(text);
+    case "json":
+    case "yaml":
+    case "toml":
+    case "sql":
+    case "regex":
+      return codeFileBlocks(text, kind);
+    case "diff":
+      return diffBlocks(text, pathOf);
+    case "env":
+      // Secrets stay out of shareable PDFs.
+      return codeFileBlocks(maskEnv(text), "env");
+    case "apikeys":
+      return codeFileBlocks(maskApiKeys(text), "json");
+    case "appinfo":
+    case "appstate":
+      // Not offered by the export dialog; the saved snapshot is plain JSON.
+      return text.trim() ? codeFileBlocks(text, "json") : [emptyNote()];
     case "docx":
       return bytes ? docxBlocks(bytes) : [emptyNote()];
     case "xlsx":
@@ -108,10 +145,26 @@ export async function toBlocks(
       return bytes && bytes.byteLength
         ? [{ type: "pdf", bytes }]
         : [emptyNote()];
+    case "image":
+      return bytes && bytes.byteLength ? imageFileBlocks(bytes) : [emptyNote()];
   }
 }
 
 const emptyNote = (): Block => ({ type: "note", text: "This file is empty." });
+
+/** An image file: one picture at its natural size (fitted by the layout). */
+async function imageFileBlocks(bytes: ArrayBuffer): Promise<Block[]> {
+  try {
+    const format = sniffImageFormat(bytes);
+    const image = await bakeImage(
+      new Uint8Array(bytes),
+      format ? IMAGE_FORMATS[format].mime : undefined,
+    );
+    return [imageBlock(image, image.width * PX_TO_PT, image.height * PX_TO_PT)];
+  } catch (error) {
+    return [missingImage("", error)];
+  }
+}
 
 /* ───────────────────────────── Plain text ───────────────────────────── */
 
@@ -486,6 +539,197 @@ function schemaBlocks(text: string): Block[] {
     rows,
   });
   return blocks;
+}
+
+/* ───────────────────────────── Code files ───────────────────────────── */
+
+function codeFileBlocks(text: string, language: string): Block[] {
+  if (!text.trim()) return [emptyNote()];
+  const lines = text.replace(/\r\n?/g, "\n").replace(/\n$/, "").split("\n");
+  return [{ type: "code", lines, language }];
+}
+
+/* ───────────────────────────── Diff ───────────────────────────── */
+
+/** A patch prints as-is; a comparison prints as the patch between its two
+ *  files, read now so the PDF shows their current content. */
+async function diffBlocks(
+  text: string,
+  pathOf?: (id: string) => string | undefined,
+): Promise<Block[]> {
+  const file = parseDiffFile(text);
+  if (file.type === "patch") return codeFileBlocks(file.patch, "diff");
+  const { left, right, ignoreWhitespace } = file.doc;
+  const leftPath = left ? pathOf?.(left) : undefined;
+  const rightPath = right ? pathOf?.(right) : undefined;
+  if (!left || !right || !leftPath || !rightPath) {
+    return [{ type: "note", text: "This comparison has no files picked." }];
+  }
+  const [a, b] = await Promise.all([
+    storage.getContent(left),
+    storage.getContent(right),
+  ]);
+  const patch = comparisonPatch(
+    leftPath,
+    rightPath,
+    typeof a === "string" ? a : "",
+    typeof b === "string" ? b : "",
+    ignoreWhitespace,
+  );
+  return /^@@/m.test(patch)
+    ? codeFileBlocks(patch, "diff")
+    : [{ type: "note", text: `${leftPath} and ${rightPath} are identical.` }];
+}
+
+/* ───────────────────────────── Kanban ───────────────────────────── */
+
+/* ───────────────────────── QR / timer / chat ───────────────────────── */
+
+async function qrBlocks(text: string): Promise<Block[]> {
+  let doc;
+  try {
+    doc = parseQr(text);
+  } catch (error) {
+    return [{ type: "note", text: `Not a valid QR design (${(error as Error).message}).` }];
+  }
+  const data = qrData(doc.content);
+  if (!data) return [{ type: "note", text: "This QR code encodes nothing yet." }];
+  try {
+    const png = await renderQrPng(doc, 600);
+    return [
+      { type: "image", data: png, format: "png", width: 180, height: 180 },
+      { type: "line", text: data },
+    ];
+  } catch (error) {
+    return [missingImage(" (QR code)", error), { type: "line", text: data }];
+  }
+}
+
+function timerBlocks(text: string): Block[] {
+  let doc;
+  try {
+    doc = parseTimers(text);
+  } catch (error) {
+    return [{ type: "note", text: `Not a valid timer list (${(error as Error).message}).` }];
+  }
+  if (!doc.timers.length) return [{ type: "note", text: "No timers." }];
+  return [
+    {
+      type: "table",
+      header: ["#", "Timer", "Duration"],
+      rows: doc.timers.map((t, i) => [
+        String(i + 1),
+        t.label || "Untitled",
+        formatDuration(t.durationMs),
+      ]),
+    },
+  ];
+}
+
+async function chatBlocks(text: string): Promise<Block[]> {
+  let doc;
+  try {
+    doc = parseChat(text);
+  } catch (error) {
+    return [{ type: "note", text: `Not a valid chat (${(error as Error).message}).` }];
+  }
+  const messages = doc.messages.filter((m) => !m.error && m.content.trim());
+  if (!messages.length) return [{ type: "note", text: "No messages." }];
+  const blocks: Block[] = [];
+  if (doc.system.trim()) {
+    blocks.push({ type: "paragraph", text: `System: ${doc.system.trim()}` }, { type: "gap" });
+  }
+  for (const m of messages) {
+    blocks.push({
+      type: "paragraph",
+      text: m.role === "user" ? "You" : `Assistant${m.model ? ` (${m.model})` : ""}`,
+    });
+    blocks.push(...(await markdownBlocks(m.content)), { type: "gap" });
+  }
+  return blocks;
+}
+
+function kanbanBlocks(text: string): Block[] {
+  let columns;
+  try {
+    columns = parseKanban(text).columns;
+  } catch (error) {
+    return [
+      {
+        type: "note",
+        text: `Not a valid board (${(error as Error).message}).`,
+      },
+    ];
+  }
+  const date = (value: string | undefined) =>
+    value
+      ? parseLocal(value).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "";
+  const rows = columns.flatMap((column) =>
+    column.cards.map((card) => [
+      column.title || "Untitled",
+      card.title || "Untitled",
+      date(card.initial),
+      date(card.start),
+      date(card.end),
+      date(card.due),
+      card.notes ?? "",
+    ]),
+  );
+  if (!rows.length) return [{ type: "note", text: "No cards." }];
+  return tableWithLimit(
+    undefined,
+    ["Column", "Card", "Initial", "Start", "End", "Due", "Notes"],
+    rows,
+  );
+}
+
+/* ───────────────────────────── Calendar ───────────────────────────── */
+
+function calendarBlocks(text: string): Block[] {
+  let doc;
+  try {
+    doc = parseCalendar(text);
+  } catch (error) {
+    return [
+      {
+        type: "note",
+        text: `Not a valid calendar (${(error as Error).message}).`,
+      },
+    ];
+  }
+  if (!doc.events.length) return [{ type: "note", text: "No events." }];
+  const day = (v: string) =>
+    parseLocal(v).toLocaleDateString(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  // All-day events carry dates only (end = last covered day); timed events
+  // carry a date and a time at both ends.
+  const moment = (v: string, allDay: boolean | undefined) =>
+    allDay
+      ? day(v.slice(0, 10))
+      : `${day(v.slice(0, 10))} ${formatTime(parseLocal(v))}`;
+  const rows = doc.events.map((e) => [
+    e.title || "New Event",
+    moment(e.start, e.allDay),
+    moment(e.end, e.allDay),
+    e.allDay ? "Yes" : "No",
+    e.location ?? "",
+    e.color,
+    e.notes ?? "",
+  ]);
+  return tableWithLimit(
+    undefined,
+    ["Event", "Start", "End", "All-day", "Location", "Color", "Notes"],
+    rows,
+  );
 }
 
 /* ───────────────────────────── Mermaid ───────────────────────────── */

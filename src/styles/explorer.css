@@ -1,0 +1,59 @@
+/* Explorer footer — BEM block `explorer-footer`.
+ *
+ * File count, storage note and the dismissible import notice under the tree.
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. */
+
+@layer components {
+  .explorer-footer__item {
+    @apply text-app-dim flex min-w-0 items-center gap-1 font-mono text-[11px];
+  }
+  .explorer-footer__icon {
+    @apply size-3 shrink-0;
+  }
+  .explorer-footer__notice {
+    @apply font-description text-app-warn hover:text-app-bright flex min-w-0 items-center gap-1 text-[11px];
+  }
+  .explorer-footer__notice-text {
+    @apply min-w-0 truncate;
+  }
+}
+
+/* Drag preview — BEM block `tree-drag-ghost`.
+ *
+ * The "3 items" chip shown under the pointer while several explorer rows are
+ * dragged. Rendered off-screen; the browser only snapshots it. */
+
+@layer components {
+  .tree-drag-ghost {
+    @apply border-app-border-accent bg-app-panel text-app-bright fixed -top-96 -left-96 rounded-md border px-2 py-1 font-mono text-[11px];
+  }
+}
+
+/* Convert submenu — BEM block `convert-menu`.
+ *
+ * Why a "Convert to" target is unavailable (parse error, or a format that
+ * needs key/value pairs at the top level), listed under the targets. */
+
+@layer components {
+  .convert-menu__problem {
+    @apply font-description text-app-warn max-w-64 px-2 py-1 text-[11px] break-words;
+  }
+}
+
+/* Reorder insertion line — BEM block `tree-drop-line`.
+ *
+ * Drawn on the top or bottom edge of an explorer row while dragged rows
+ * hover it, showing where a drop will place them. `left` is set inline to
+ * the row's indent. */
+
+@layer components {
+  .tree-drop-line {
+    @apply bg-app-accent pointer-events-none absolute right-1 z-10 h-0.5 rounded-full;
+  }
+  .tree-drop-line--before {
+    @apply top-0 -translate-y-1/2;
+  }
+  .tree-drop-line--after {
+    @apply bottom-0 translate-y-1/2;
+  }
+}

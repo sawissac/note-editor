@@ -1,0 +1,76 @@
+/* TimerDock — BEM block `timer-dock`.
+ *
+ * Toasts in the bottom-left corner, above the status bar, for timers whose
+ * file is not on screen and for timers that just ended. Imported from
+ * `src/index.css`, so `@apply` resolves the app-* theme. */
+
+@layer components {
+  .timer-dock {
+    @apply pointer-events-none fixed bottom-10 left-3 z-50 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col gap-2;
+  }
+  .timer-dock__toast {
+    @apply border-app-border bg-app-panel animate-in fade-in slide-in-from-bottom-2 pointer-events-auto flex flex-col gap-2 rounded-lg border p-2.5 shadow-lg;
+  }
+  .timer-dock__toast--paused {
+    @apply border-app-warn/50;
+  }
+  .timer-dock__toast--done {
+    @apply border-app-success/60;
+  }
+  .timer-dock__row {
+    @apply flex min-w-0 items-center gap-2;
+  }
+  .timer-dock__icon {
+    @apply text-app-accent size-4 shrink-0;
+  }
+  .timer-dock__toast--paused .timer-dock__icon {
+    @apply text-app-warn;
+  }
+  .timer-dock__toast--done .timer-dock__icon {
+    @apply text-app-success;
+  }
+  .timer-dock__text {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+  .timer-dock__title {
+    @apply font-title text-app-bright flex min-w-0 items-center gap-1.5 truncate text-[12px] font-semibold;
+  }
+  .timer-dock__tag {
+    @apply font-title bg-app-accent/15 text-app-accent shrink-0 rounded-sm px-1 text-[9px] leading-4 font-semibold tracking-[0.1em] uppercase;
+  }
+  .timer-dock__file {
+    @apply font-description text-app-dim truncate text-[11px];
+  }
+  .timer-dock__clock {
+    @apply font-display text-app-bright shrink-0 text-[18px] font-semibold tabular-nums;
+  }
+  .timer-dock__actions {
+    @apply flex flex-wrap gap-1;
+  }
+  .timer-dock__close {
+    @apply text-app-dim;
+  }
+  /* Collapsed: one small pill with the soonest timer. */
+  .timer-dock__pill {
+    @apply text-app-bright pointer-events-auto self-start shadow-lg;
+  }
+  .timer-dock__pill-label {
+    @apply font-title max-w-32 truncate text-[12px] font-semibold;
+  }
+  .timer-dock__pill-clock {
+    @apply font-mono text-[12px] font-semibold tabular-nums;
+  }
+  .timer-dock__collapse {
+    @apply text-app-dim pointer-events-auto self-start shadow-sm;
+  }
+  .timer-dock__button-icon {
+    @apply size-3 shrink-0;
+  }
+}
+
+/* ── timer-dock × compacto ─────────────────────────────────────────────
+ * Unlayered so it outranks the compacto Button's own utilities. */
+.timer-dock__pill,
+.timer-dock__collapse {
+  @apply bg-app-panel rounded-full;
+}

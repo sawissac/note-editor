@@ -1,0 +1,27 @@
+/* StatusBar — BEM block `status-bar`.
+ *
+ * The strip under the whole workspace. Imported from `src/index.css`, so
+ * `@apply` resolves the app-* theme. */
+
+@layer components {
+  .status-bar {
+    @apply border-app-border bg-app-sidebar text-app-dim flex h-7 shrink-0 items-center gap-3 border-t px-2;
+  }
+  .status-bar__item {
+    @apply flex min-w-0 items-center gap-1 truncate font-mono text-[11px];
+  }
+  .status-bar__icon {
+    @apply size-3 shrink-0;
+  }
+  .status-bar__spacer {
+    @apply flex-1;
+  }
+  .status-bar__key {
+    @apply ml-0.5;
+  }
+}
+
+/* Unlayered so it outranks the compacto component's own utilities. */
+.status-bar__action {
+  @apply h-6 px-1.5 font-mono text-[11px] hover:text-app-accent;
+}

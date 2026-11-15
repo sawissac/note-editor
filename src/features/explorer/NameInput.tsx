@@ -1,9 +1,20 @@
+import {
+  IconAlertCircle,
+  IconArrowRight,
+  IconArrowsUpDown,
+  IconCornerDownLeft,
+} from "@tabler/icons-react";
 import * as React from "react";
 
-import { cn } from "@/lib/cn";
+import { Input } from "@/components/ui/input";
+import { Kbd } from "@/components/ui/kbd";
 import { FileIcon } from "@/lib/file-icons";
-import { baseNameLength, KIND_LABEL, kindOf } from "@/lib/file-types";
-import * as ui from "@/lib/ui-styles";
+import {
+  baseNameLength,
+  type FileKind,
+  KIND_LABEL,
+  kindOf,
+} from "@/lib/file-types";
 
 /**
  * The inline text field used for both "new item" and "rename" rows.
@@ -14,13 +25,19 @@ import * as ui from "@/lib/ui-styles";
  * - On rename the base name is pre-selected, leaving the extension alone.
  * - `validate` runs on every keystroke; its message renders under the field
  *   and blocks commit.
- * - `suggest` (new files) lists complete names to pick from — `hello_world`
- *   offers `hello_world.md`, `.csv`, … ; ↑/↓ move, Enter or click picks,
- *   Tab fills the field without committing.
+ * - `suggest` lists complete names to pick from — `hello_world` offers
+ *   `hello_world.md`, `.csv`, … ; ↑/↓ move, Enter or click picks, Tab fills
+ *   the field without committing. Used by both create and rename.
+ * - `currentKind` (rename) flags suggestions that would change the editor the
+ *   file opens in.
+ *
+ * CSS: BEM block `name-input` (`src/styles/name-input.css`).
  */
 export function NameInput({
   initialValue = "",
   placeholder,
+  action = "create",
+  currentKind,
   validate,
   suggest,
   onCommit,
@@ -29,6 +46,9 @@ export function NameInput({
 }: {
   initialValue?: string;
   placeholder?: string;
+  /** Verb shown in the keyboard hint under the suggestions. */
+  action?: "create" | "rename";
+  currentKind?: FileKind;
   validate: (value: string) => string | null;
   suggest?: (value: string) => string[];
   onCommit: (value: string) => boolean;
@@ -82,13 +102,15 @@ export function NameInput({
   };
 
   return (
-    <div className="relative min-w-0 flex-1">
-      <input
+    <div className="name-input">
+      <Input
         ref={ref}
         data-testid={testId}
         value={value}
         placeholder={placeholder}
-        aria-label={placeholder ?? "Name"}
+        aria-label={
+          placeholder ?? (action === "rename" ? "New name" : "Name")
+        }
         aria-invalid={Boolean(error) || undefined}
         role={suggest ? "combobox" : undefined}
         aria-expanded={suggest ? showList : undefined}
@@ -132,69 +154,98 @@ export function NameInput({
           if (!value.trim() || validate(value)) finish(false);
           else finish(true);
         }}
-        className={cn(
-          ui.input,
-          "h-6 rounded-sm px-1.5 py-0 text-[12px] leading-6",
-          error &&
-            "border-app-error focus:border-app-error focus:ring-app-error/20",
-        )}
+        className={
+          error ? "name-input__field name-input__field--invalid" : "name-input__field"
+        }
       />
       {showList ? (
         <ul
           id={listId}
           role="listbox"
-          aria-label="Suggested names"
+          aria-label={action === "rename" ? "Suggested new names" : "Suggested names"}
           data-testid={testId ? `${testId}-suggestions` : undefined}
-          className="absolute top-full right-0 left-0 z-30 mt-0.5 overflow-hidden rounded-md border border-app-border-mid bg-app-panel p-0.5"
+          className="name-input__list"
         >
           {options.map((option, i) => {
             const dot = option.name.lastIndexOf(".");
+            const kind = kindOf(option.name);
+            const changesKind = currentKind !== undefined && kind !== currentKind;
+            const selected = i === activeIndex;
             return (
               <li
                 key={option.name}
                 id={`${listId}-${i}`}
                 role="option"
-                aria-selected={i === activeIndex}
+                aria-selected={selected}
                 aria-disabled={Boolean(option.error) || undefined}
-                data-selected={i === activeIndex || undefined}
+                data-testid={testId ? `${testId}-option-${i}` : undefined}
                 // Keep focus in the input so blur does not cancel the draft.
                 onMouseDown={(e) => e.preventDefault()}
                 onMouseEnter={() => !option.error && setActive(i)}
                 onClick={() => !option.error && finish(true, option.name)}
-                title={option.error ?? undefined}
-                className={cn(
-                  "flex h-6 cursor-pointer items-center gap-1.5 rounded-sm px-1.5 text-[12px] text-app-text",
-                  "data-selected:bg-app-selected data-selected:text-app-bright",
-                  option.error && "cursor-not-allowed opacity-50",
-                )}
+                title={
+                  option.error ??
+                  (changesKind
+                    ? `Opens as ${KIND_LABEL[kind]} instead of ${KIND_LABEL[currentKind]}. The content is kept as-is.`
+                    : undefined)
+                }
+                className={[
+                  "name-input__option",
+                  selected && "name-input__option--selected",
+                  option.error && "name-input__option--disabled",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
-                <FileIcon name={option.name} className="size-3.5" />
-                <span className="min-w-0 truncate">
+                <FileIcon name={option.name} />
+                <span className="name-input__option-name">
                   {option.name.slice(0, dot)}
-                  <span className="font-semibold text-app-bright">
+                  <span className="name-input__option-ext">
                     {option.name.slice(dot)}
                   </span>
                 </span>
-                <span className="ml-auto shrink-0 font-mono text-[10px] text-app-dim">
-                  {option.error ? "exists" : KIND_LABEL[kindOf(option.name)]}
+                <span className="name-input__option-kind">
+                  {option.error ? (
+                    "exists"
+                  ) : changesKind ? (
+                    <>
+                      <IconArrowRight
+                        aria-label="changes type to"
+                        className="name-input__option-kind-icon"
+                      />
+                      {KIND_LABEL[kind]}
+                    </>
+                  ) : (
+                    KIND_LABEL[kind]
+                  )}
                 </span>
               </li>
             );
           })}
-          <li
-            role="presentation"
-            className="px-1.5 pt-1 pb-0.5 font-mono text-[10px] text-app-dim"
-          >
-            ↑↓ choose · Enter create · Tab fill
+          <li role="presentation" className="name-input__hint">
+            <span className="name-input__hint-item">
+              <IconArrowsUpDown aria-hidden className="name-input__hint-icon" />
+              choose
+            </span>
+            <span className="name-input__hint-item">
+              <IconCornerDownLeft aria-hidden className="name-input__hint-icon" />
+              {action}
+            </span>
+            <span className="name-input__hint-item">
+              <Kbd className="name-input__key">Tab</Kbd>
+              fill
+            </span>
+            <span className="name-input__hint-item">
+              <Kbd className="name-input__key">Esc</Kbd>
+              cancel
+            </span>
           </li>
         </ul>
       ) : null}
       {error ? (
-        <div
-          role="alert"
-          className="absolute top-full right-0 left-0 z-30 mt-0.5 rounded-sm border border-app-error/40 bg-app-panel px-1.5 py-1 font-description text-[11px] leading-snug text-app-error"
-        >
-          {error}
+        <div role="alert" className="name-input__error">
+          <IconAlertCircle aria-hidden className="name-input__error-icon" />
+          <span>{error}</span>
         </div>
       ) : null}
     </div>

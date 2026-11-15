@@ -2,10 +2,11 @@
  * The app's one color theme — the values behind the `--app-*` token
  * vocabulary.
  *
- * Light and mixed: neutral white / cool-grey surfaces carry no hue of their
- * own, so colour comes from a few distinct voices instead of one tint washed
- * over everything — an indigo accent for interaction, green / amber / red for
- * status, and a separate colour per file type (see `file-icons.tsx`).
+ * Light sage, built on the palette #040D12 · #183D3D · #5C8374 · #93B1A6:
+ * surfaces are pale tints of sage #93B1A6, deep teal #183D3D is the
+ * interaction accent, muted green #5C8374 carries selection / secondary
+ * accent, and near-black #040D12 is high-contrast text. Status colours and
+ * per-file-type colours (see `file-icons.tsx`) sit beside it.
  *
  * `src/styles/compacto/tokens.css` mirrors these values in `:root`, so the
  * first painted frame already matches what {@link applyAppTheme} writes.
@@ -54,25 +55,25 @@ export interface ColorTheme {
 
 export const APP_THEME: ColorTheme = {
   isLight: true,
-  bg: "#f4f5f7",
+  bg: "#eef3f1",
   bgPanel: "#ffffff",
-  bgSidebar: "#eceef2",
-  bgHover: "rgba(15,23,42,0.05)",
-  bgSelected: "rgba(79,70,229,0.1)",
-  border: "rgba(15,23,42,0.1)",
-  borderMid: "rgba(15,23,42,0.18)",
-  borderAccent: "rgba(79,70,229,0.45)",
-  accent: "#4f46e5",
-  accentDim: "#6d67e8",
-  accentFaint: "rgba(79,70,229,0.08)",
-  text: "#334155",
-  textBright: "#0f172a",
-  textDim: "#64748b",
+  bgSidebar: "#e3ebe8",
+  bgHover: "rgba(24,61,61,0.06)",
+  bgSelected: "rgba(92,131,116,0.18)",
+  border: "rgba(24,61,61,0.12)",
+  borderMid: "rgba(24,61,61,0.22)",
+  borderAccent: "rgba(92,131,116,0.55)",
+  accent: "#183d3d",
+  accentDim: "#5c8374",
+  accentFaint: "rgba(92,131,116,0.12)",
+  text: "#2a3f3c",
+  textBright: "#040d12",
+  textDim: "#52675f",
   editorBg: "#ffffff",
-  gutterBg: "#f4f5f7",
-  success: "#059669",
-  warn: "#d97706",
-  error: "#dc2626",
+  gutterBg: "#eef3f1",
+  success: "#2f7d5b",
+  warn: "#b7791f",
+  error: "#c0392b",
 };
 
 /**

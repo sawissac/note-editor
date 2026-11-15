@@ -3,7 +3,10 @@
 import * as React from "react"
 import { FileBarSlot } from "@/features/editors/file-bar-slot"
 import { ToolbarGroups } from "@/components/ui/toolbar-group"
-import { useRegisterDocumentBytes } from "@/features/editors/save-bridge"
+import {
+  useRegisterDocumentBytes,
+  useReportDocumentChange,
+} from "@/features/editors/save-bridge"
 import {
   DocxEditorViewer,
   paragraphLetterheadFloatSideAtNodeIndex,
@@ -27,7 +30,7 @@ import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 import { createPortal } from "react-dom"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
+import { Button } from "@/components/ui/button"
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -39,34 +42,34 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
-} from "@/components/shadcn/context-menu"
+} from "@/components/ui/context-menu"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu"
-import { Input } from "@/components/shadcn/input"
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   ScrollArea as InlineScrollArea,
   ScrollBar,
-} from "@/components/shadcn/scroll-area"
+} from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Separator } from "@/components/shadcn/separator"
-import { ToggleGroup, ToggleGroupItem } from "@/components/shadcn/toggle-group"
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/shadcn/tooltip"
+} from "@/components/ui/tooltip"
 import { ColorPicker } from "@/components/extend/document-color-picker"
 import {
   PreviewCard,
@@ -83,7 +86,7 @@ import {
   createDocxTrackedChangeCardRenderer,
 } from "@/components/extend/docx-annotation-card"
 import { FileThumbnail } from "@/components/extend/file-thumbnail"
-import { IconArrowDownRight, IconArrowUpRight, IconBorderAll, IconBorderBottom, IconBorderHorizontal, IconBorderInner, IconBorderLeft, IconBorderNone, IconBorderRight, IconBorderTop, IconBorderVertical, IconMinus, IconMoon, IconSun, IconTextColor, IconLayoutSidebar, IconFileDiff, IconMessage, IconPencilOff, IconUpload, IconDownload, IconArrowBackUp, IconArrowForwardUp, IconBold, IconItalic, IconUnderline, IconStrikethrough, IconSuperscript, IconSubscript, IconHighlight, IconLink, IconAlignLeft, IconAlignCenter, IconAlignRight, IconAlignJustified, IconLayoutColumns, IconListNumbers, IconPhotoPlus, IconTable, IconColumns3, IconCircleMinus, IconCirclePlus, IconLoader2 } from "@tabler/icons-react"
+import { IconArrowDownRight, IconArrowUpRight, IconBorderAll, IconBorderBottom, IconBorderHorizontal, IconBorderInner, IconBorderLeft, IconBorderNone, IconBorderRight, IconBorderTop, IconBorderVertical, IconMinus, IconMoon, IconSun, IconTextColor, IconLayoutSidebar, IconFileDiff, IconMessage, IconPencilOff, IconUpload, IconDownload, IconArrowBackUp, IconArrowForwardUp, IconBold, IconItalic, IconUnderline, IconStrikethrough, IconSuperscript, IconSubscript, IconHighlight, IconLink, IconAlignLeft, IconAlignCenter, IconAlignRight, IconAlignJustified, IconList, IconListNumbers, IconPencil, IconPhotoPlus, IconTable, IconColumns3, IconCircleMinus, IconCirclePlus, IconLoader2 } from "@tabler/icons-react"
 
 function DocxContextMenuItems({
   actions,
@@ -1126,7 +1129,11 @@ function DocxEditorToolbar({
             disabled={controlsDisabled}
             onClick={() => onIsReadOnlyChange(!isReadOnly)}
           >
-            <IconPencilOff className="size-4" />
+            {isReadOnly ? (
+              <IconPencil className="size-4" />
+            ) : (
+              <IconPencilOff className="size-4" />
+            )}
           </ToolbarIconButton>
           <Separator orientation="vertical" className="mx-1 h-4 self-center" />
           <ToolbarIconButton
@@ -1512,7 +1519,7 @@ function DocxEditorToolbar({
               onPointerDown={preserveTextSelection}
               onClick={() => editor.toggleList("unordered")}
             >
-              <IconLayoutColumns className="size-4" />
+              <IconList className="size-4" />
             </ToolbarIconButton>
             <ToolbarIconButton
               label="Numbered list"
@@ -1811,6 +1818,8 @@ function DocxEditorContent({
   )
   const editor = useDocxEditor(editorOptions)
   useRegisterDocumentBytes(editor.getDocxBytes)
+  // The model is replaced on every edit; a new load nonce is a fresh document.
+  useReportDocumentChange(editor.model, editor.documentLoadNonce)
   const { layout: pageLayout } = useDocxPageLayout(editor)
   const { importDocxFile, setDocumentTheme, status } = editor
   const [reportedPageCount, setReportedPageCount] = React.useState(0)

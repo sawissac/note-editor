@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { Slot } from "radix-ui";
 import * as React from "react";
 
 import { cn } from "@/lib/cn";
@@ -99,4 +100,33 @@ function ButtonGroupSeparator({
   );
 }
 
-export { ButtonGroup, ButtonGroupSeparator, buttonGroupVariants };
+/**
+ * Static label cell inside a {@link ButtonGroup} — a unit, a prefix, a count —
+ * drawn as an outline cell so it shares the group's seams.
+ *
+ * @param props.asChild - Render the child element instead of a `<div>`.
+ */
+function ButtonGroupText({
+  className,
+  asChild = false,
+  ...props
+}: React.ComponentProps<"div"> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : "div";
+  return (
+    <Comp
+      data-slot="button-group-text"
+      className={cn(
+        "flex items-center gap-2 rounded-md border border-app-border bg-app-sidebar px-2.5 font-title text-[11px] font-semibold text-app-dim [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export {
+  ButtonGroup,
+  ButtonGroupSeparator,
+  ButtonGroupText,
+  buttonGroupVariants,
+};

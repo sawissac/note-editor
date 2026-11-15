@@ -1,11 +1,14 @@
 import {
   IconCopy,
+  IconExternalLink,
   IconDownload,
   IconFilePlus,
   IconFoldDown,
   IconFoldUp,
   IconFolderPlus,
   IconPencil,
+  IconSortAscendingLetters,
+  IconSelect,
   IconTrash,
   IconUpload,
 } from "@tabler/icons-react";
@@ -16,6 +19,8 @@ import {
   ContextMenuSeparator,
   ContextMenuShortcut,
 } from "@/components/ui/context-menu";
+import { ConvertMenu } from "@/features/explorer/ConvertMenu";
+import { convertTargetsOf } from "@/lib/convert-targets";
 import { mimeOf } from "@/lib/file-types";
 import { downloadFile, storage } from "@/lib/storage";
 import {
@@ -25,13 +30,46 @@ import {
   openFile,
 } from "@/store/actions";
 import { type FsNode, fsActions } from "@/store/fs-slice";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import { uiActions } from "@/store/ui-slice";
 
 /** Actions for one explorer row, shown on right-click or the row's ⋯ button. */
 export function NodeMenu({ node }: { node: FsNode }) {
   const dispatch = useAppDispatch();
   const folderId = node.type === "folder" ? node.id : node.parentId;
+  const selectedIds = useAppSelector((s) => s.fs.selectedIds);
+  const convertTargets =
+    node.type === "file" ? convertTargetsOf(node.name) : [];
+
+  // Right-click inside a multi-selection acts on the whole selection.
+  if (selectedIds.length > 1 && selectedIds.includes(node.id)) {
+    const count = selectedIds.length;
+    return (
+      <ContextMenuContent
+        data-testid={`node-menu-${node.id}`}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <ContextMenuItem
+          data-testid="node-menu-clear-selection-item"
+          onSelect={() => dispatch(fsActions.selected(node.id))}
+        >
+          <IconSelect />
+          Select only “{node.name}”
+          <ContextMenuShortcut>Esc</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          variant="destructive"
+          data-testid="node-menu-delete-selection-item"
+          onSelect={() => dispatch(uiActions.deleteRequested(selectedIds))}
+        >
+          <IconTrash />
+          Delete {count} items
+          <ContextMenuShortcut>Del</ContextMenuShortcut>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    );
+  }
 
   return (
     <ContextMenuContent
@@ -40,8 +78,9 @@ export function NodeMenu({ node }: { node: FsNode }) {
     >
       {node.type === "file" ? (
         <ContextMenuItem onSelect={() => dispatch(openFile(node.id))}>
+          <IconExternalLink />
           Open
-          <ContextMenuShortcut>Enter</ContextMenuShortcut>
+          <ContextMenuShortcut>Space</ContextMenuShortcut>
         </ContextMenuItem>
       ) : null}
       <ContextMenuItem
@@ -95,6 +134,13 @@ export function NodeMenu({ node }: { node: FsNode }) {
           </ContextMenuItem>
         </>
       ) : null}
+      <ContextMenuItem
+        data-testid="node-menu-sort-by-name-item"
+        onSelect={() => dispatch(fsActions.orderCleared(folderId))}
+      >
+        <IconSortAscendingLetters />
+        {node.type === "folder" ? "Sort contents by name" : "Sort folder by name"}
+      </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
         onSelect={() =>
@@ -103,7 +149,7 @@ export function NodeMenu({ node }: { node: FsNode }) {
       >
         <IconPencil />
         Rename
-        <ContextMenuShortcut>F2</ContextMenuShortcut>
+        <ContextMenuShortcut>Enter</ContextMenuShortcut>
       </ContextMenuItem>
       <ContextMenuItem onSelect={() => void dispatch(duplicateNode(node.id))}>
         <IconCopy />
@@ -119,6 +165,9 @@ export function NodeMenu({ node }: { node: FsNode }) {
           <IconDownload />
           Download
         </ContextMenuItem>
+      ) : null}
+      {convertTargets.length ? (
+        <ConvertMenu node={node} targets={convertTargets} />
       ) : null}
       <ContextMenuSeparator />
       <ContextMenuItem

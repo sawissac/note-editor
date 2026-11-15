@@ -1,0 +1,55 @@
+/* QrPane (`.qr` files) — BEM block `qr-pane`.
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. The
+ * preview fills the left; settings scroll in the right column. */
+
+@layer components {
+  .qr-pane {
+    @apply bg-app-bg grid h-full min-h-0 grid-rows-[minmax(16rem,1fr)_minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_20rem] md:grid-rows-1;
+  }
+
+  /* ── Preview ──────────────────────────────────────────────────────── */
+  .qr-pane__stage-area {
+    @apply flex min-h-0 flex-col items-center justify-center gap-3 overflow-auto p-6;
+  }
+  .qr-pane__stage {
+    @apply border-app-border bg-app-panel flex aspect-square w-full max-w-[min(26rem,100%)] items-center justify-center rounded-lg border p-4 [&_svg]:h-full [&_svg]:w-full [&_canvas]:h-full [&_canvas]:w-full;
+  }
+  /* Checkerboard, so transparent backgrounds read as transparent. */
+  .qr-pane__stage--transparent {
+    @apply bg-[repeating-conic-gradient(var(--app-hover)_0_25%,var(--app-bg)_0_50%)] bg-size-[16px_16px];
+  }
+  .qr-pane__data {
+    @apply text-app-dim m-0 max-w-[26rem] truncate font-mono text-[11px];
+  }
+  .qr-pane__error {
+    @apply font-description text-app-error m-0 flex max-w-[26rem] items-start gap-1.5 text-[12px] leading-snug;
+  }
+
+  /* ── Settings ─────────────────────────────────────────────────────── */
+  .qr-pane__side {
+    @apply border-app-border bg-app-panel divide-app-border min-h-0 divide-y overflow-y-auto border-t md:border-t-0 md:border-l;
+  }
+  .qr-pane__section {
+    @apply flex flex-col gap-2.5 p-3;
+  }
+  .qr-pane__heading {
+    @apply font-title text-app-dim m-0 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  /* Two fields side by side (shape + colour). */
+  .qr-pane__pair {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .qr-pane__logo {
+    @apply border-app-border size-8 shrink-0 rounded-md border object-contain;
+  }
+  .qr-pane__file-input {
+    @apply sr-only;
+  }
+}
+
+/* ── qr-pane × compacto ────────────────────────────────────────────────
+ * Unlayered so it outranks the Select trigger's own utilities, without `!`. */
+.qr-pane__format {
+  @apply w-20;
+}

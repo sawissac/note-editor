@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, ChevronRight, Circle } from "lucide-react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import * as React from "react";
 
@@ -83,22 +83,27 @@ function DropdownMenuContent({
  * @param props.variant - `"destructive"` tints the row for delete-style
  *   actions. It is a tint, not a solid red block — a menu of ten rows with one
  *   filled red bar reads as an error state rather than an option.
+ * @param props.inset - Indents the label to line up with checkbox/radio rows.
  * @param props.className - Extra classes merged onto the row.
  */
 function DropdownMenuItem({
   className,
   variant = "default",
+  inset,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
   variant?: "default" | "destructive";
+  inset?: boolean;
 }) {
   return (
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
       data-variant={variant}
+      data-inset={inset}
       className={cn(
         "relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors duration-(--motion-duration-fast) outline-none select-none",
         "focus:bg-app-selected focus:text-app-bright",
+        "data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50",
         "data-[variant=destructive]:text-app-error data-[variant=destructive]:focus:bg-app-error/10",
         "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         className,
@@ -139,6 +144,7 @@ function DropdownMenuCheckboxItem({
       className={cn(
         "relative flex cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-2 pl-7 text-sm transition-colors duration-(--motion-duration-fast) outline-none select-none",
         "focus:bg-app-selected focus:text-app-bright",
+        "data-disabled:pointer-events-none data-disabled:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         className,
       )}
@@ -154,10 +160,190 @@ function DropdownMenuCheckboxItem({
   );
 }
 
+/** Groups related items; pair with {@link DropdownMenuLabel} for a heading. */
+function DropdownMenuGroup(
+  props: React.ComponentProps<typeof DropdownMenuPrimitive.Group>,
+) {
+  return (
+    <DropdownMenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />
+  );
+}
+
+/**
+ * Non-interactive section heading inside the menu, in the compacto section
+ * label style (11px, uppercase, tracked, dim).
+ *
+ * @param props.inset - Indents to line up with checkbox/radio rows.
+ */
+function DropdownMenuLabel({
+  className,
+  inset,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+  inset?: boolean;
+}) {
+  return (
+    <DropdownMenuPrimitive.Label
+      data-slot="dropdown-menu-label"
+      data-inset={inset}
+      className={cn(
+        "px-2 py-1.5 font-title text-[11px] font-semibold tracking-[0.08em] text-app-dim uppercase data-inset:pl-7",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Hairline rule between groups of items. */
+function DropdownMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+  return (
+    <DropdownMenuPrimitive.Separator
+      data-slot="dropdown-menu-separator"
+      className={cn("-mx-1 my-1 h-px bg-app-border", className)}
+      {...props}
+    />
+  );
+}
+
+/** Right-aligned key hint inside an item. */
+function DropdownMenuShortcut({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="dropdown-menu-shortcut"
+      className={cn(
+        "ml-auto pl-4 font-mono text-[10px] text-app-dim",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Single-choice set of {@link DropdownMenuRadioItem}s. */
+function DropdownMenuRadioGroup(
+  props: React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>,
+) {
+  return (
+    <DropdownMenuPrimitive.RadioGroup
+      data-slot="dropdown-menu-radio-group"
+      {...props}
+    />
+  );
+}
+
+/**
+ * One option of a {@link DropdownMenuRadioGroup}, with a leading dot on the
+ * selected row. Closes the menu on select, like a plain item.
+ */
+function DropdownMenuRadioItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+  return (
+    <DropdownMenuPrimitive.RadioItem
+      data-slot="dropdown-menu-radio-item"
+      className={cn(
+        "relative flex cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-2 pl-7 text-sm transition-colors duration-(--motion-duration-fast) outline-none select-none",
+        "focus:bg-app-selected focus:text-app-bright",
+        "data-disabled:pointer-events-none data-disabled:opacity-50",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      <span
+        data-slot="dropdown-menu-radio-item-indicator"
+        className="absolute left-2 grid place-items-center"
+      >
+        <DropdownMenuPrimitive.ItemIndicator>
+          <Circle className="size-2 fill-current text-app-accent" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </DropdownMenuPrimitive.RadioItem>
+  );
+}
+
+/** Nested menu root; holds a {@link DropdownMenuSubTrigger} and {@link DropdownMenuSubContent}. */
+function DropdownMenuSub(
+  props: React.ComponentProps<typeof DropdownMenuPrimitive.Sub>,
+) {
+  return <DropdownMenuPrimitive.Sub data-slot="dropdown-menu-sub" {...props} />;
+}
+
+/**
+ * Row that opens a nested menu, with a trailing chevron.
+ *
+ * @param props.inset - Indents to line up with checkbox/radio rows.
+ */
+function DropdownMenuSubTrigger({
+  className,
+  inset,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+  inset?: boolean;
+}) {
+  return (
+    <DropdownMenuPrimitive.SubTrigger
+      data-slot="dropdown-menu-sub-trigger"
+      data-inset={inset}
+      className={cn(
+        "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors duration-(--motion-duration-fast) outline-none select-none",
+        "focus:bg-app-selected focus:text-app-bright data-[state=open]:bg-app-selected data-[state=open]:text-app-bright",
+        "data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronRight className="ml-auto size-3.5 text-app-dim" />
+    </DropdownMenuPrimitive.SubTrigger>
+  );
+}
+
+/** Surface of a nested menu — same panel as {@link DropdownMenuContent}. */
+function DropdownMenuSubContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.SubContent
+        data-slot="dropdown-menu-sub-content"
+        className={cn(
+          "z-200 min-w-32 overflow-hidden rounded-lg border border-app-border-mid bg-app-panel p-1 text-app-text",
+          "data-[state=open]:animate-[compacto-fade-up_0.15s_ease]",
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  );
+}
+
 export {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 };

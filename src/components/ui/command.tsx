@@ -31,7 +31,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-md bg-app-panel text-app-text",
+        "bg-app-panel text-app-text flex h-full w-full flex-col overflow-hidden rounded-md",
         className,
       )}
       {...props}
@@ -51,6 +51,12 @@ function Command({
  * @param props.description - Accessible description for the dialog.
  * @param props.className - Extra classes merged onto the dialog panel; the
  *   usual reason is a different width than the default 560px.
+ * @param props.contentProps - Passed to the dialog panel, e.g.
+ *   `onCloseAutoFocus` to decide where focus goes once it closes.
+ * @param props.density - `comfortable` (default) for roomy 48px rows;
+ *   `compact` for dense ~28px rows that fit about twice as many results.
+ * @param props.commandProps - Passed to the inner {@link Command}, e.g.
+ *   `shouldFilter={false}` to filter and rank items yourself.
  *
  * @example
  * ```tsx
@@ -65,16 +71,37 @@ function Command({
  * </CommandDialog>
  * ```
  */
+const DIALOG_DENSITY = {
+  comfortable:
+    "[&_[cmdk-group-heading]]:text-app-dim **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5",
+  compact:
+    "[&_[cmdk-group-heading]]:text-app-dim **:data-[slot=command-input-wrapper]:h-10 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-1.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group]]:px-1 [&_[cmdk-group]]:py-0.5 [&_[cmdk-input-wrapper]_svg]:size-4 [&_[cmdk-input]]:h-10 [&_[cmdk-input]]:text-[13px] [&_[cmdk-item]]:h-7 [&_[cmdk-item]]:gap-1.5 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-0 [&_[cmdk-item]]:text-[12px] [&_[cmdk-item]_svg]:size-3.5 [&_[cmdk-list]]:max-h-[min(440px,60vh)]",
+} as const;
+
 function CommandDialog({
   title = "Command Palette",
   description = "Search for a command to run...",
   children,
   className,
+  contentProps,
+  commandProps,
+  density = "comfortable",
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   title?: string;
+  density?: keyof typeof DIALOG_DENSITY;
   description?: string;
   className?: string;
+  contentProps?: Omit<
+    React.ComponentProps<typeof DialogContent>,
+    "className" | "children"
+  > & {
+    "data-testid"?: string;
+  };
+  commandProps?: Omit<
+    React.ComponentProps<typeof Command>,
+    "className" | "children"
+  >;
 }) {
   return (
     <Dialog {...props}>
@@ -82,8 +109,11 @@ function CommandDialog({
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
-      <DialogContent className={cn("w-[min(560px,92vw)]", className)}>
-        <Command className="**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-app-dim [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+      <DialogContent
+        className={cn("w-[min(560px,92vw)]", className)}
+        {...contentProps}
+      >
+        <Command {...commandProps} className={DIALOG_DENSITY[density]}>
           {children}
         </Command>
       </DialogContent>
@@ -105,13 +135,13 @@ function CommandInput({
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-9 items-center gap-2 border-b border-app-border px-3"
+      className="border-app-border flex h-9 items-center gap-2 border-b px-3"
     >
       <SearchIcon className="size-4 shrink-0 opacity-50" />
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          "flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-app-dim disabled:cursor-not-allowed disabled:opacity-50",
+          "placeholder:text-app-dim flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         {...props}
@@ -164,7 +194,7 @@ function CommandGroup({
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        "overflow-hidden p-1 text-app-text [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-app-dim",
+        "text-app-text [&_[cmdk-group-heading]]:text-app-dim overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium",
         className,
       )}
       {...props}
@@ -180,7 +210,7 @@ function CommandSeparator({
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
-      className={cn("-mx-1 h-px bg-app-border", className)}
+      className={cn("bg-app-border -mx-1 h-px", className)}
       {...props}
     />
   );
@@ -202,7 +232,7 @@ function CommandItem({
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-app-selected data-[selected=true]:text-app-bright [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-app-dim",
+        "data-[selected=true]:bg-app-selected data-[selected=true]:text-app-bright [&_svg:not([class*='text-'])]:text-app-dim relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -218,7 +248,7 @@ function CommandShortcut({
   return (
     <span
       data-slot="command-shortcut"
-      className={cn("ml-auto text-xs tracking-widest text-app-dim", className)}
+      className={cn("text-app-dim ml-auto text-xs tracking-widest", className)}
       {...props}
     />
   );

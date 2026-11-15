@@ -34,17 +34,18 @@ import {
 import { useFormCapability } from "@embedpdf/plugin-form/react"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/shadcn/button"
-import { Input } from "@/components/shadcn/input"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
-import { Switch } from "@/components/shadcn/switch"
-import { ToggleGroup, ToggleGroupItem } from "@/components/shadcn/toggle-group"
+} from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { ColorPicker } from "@/components/extend/document-color-picker"
 import {
   AlignBottomGlyph,
@@ -396,7 +397,7 @@ function PropertySwitch({
       <span className="min-w-0">
         <span className="block text-sm leading-4">{label}</span>
         {description ? (
-          <span className="block text-xs text-muted-foreground">
+          <span className="text-muted-foreground block text-xs">
             {description}
           </span>
         ) : null}
@@ -430,7 +431,7 @@ function ColorControl({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <PdfEditorFieldLabel>{label}</PdfEditorFieldLabel>
-        <span className="text-[11px] text-muted-foreground tabular-nums">
+        <span className="text-muted-foreground text-[11px] tabular-nums">
           {isTransparent ? "None" : current}
         </span>
       </div>
@@ -480,24 +481,17 @@ function SliderControl({
 }) {
   const [draft, update] = useDebouncedCommit(value, onChange)
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <PdfEditorFieldLabel>{label}</PdfEditorFieldLabel>
-        <span className="text-[11px] text-muted-foreground tabular-nums">
-          {format(draft)}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={draft}
-        aria-label={label}
-        onChange={(event) => update(Number(event.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
-      />
-    </div>
+    <Slider
+      size="sm"
+      label={label}
+      aria-label={label}
+      min={min}
+      max={max}
+      step={step}
+      value={draft}
+      formatValue={(current) => format(current)}
+      onValueChange={update}
+    />
   )
 }
 type StrokeStyleValue =
@@ -558,7 +552,7 @@ function StrokeStylePreview({
     <svg
       aria-hidden="true"
       viewBox="0 0 56 12"
-      className="h-6! w-24! shrink-0 text-foreground"
+      className="text-foreground h-6! w-24! shrink-0"
     >
       <path
         d={value.startsWith("cloudy") ? path : "M1 6H55"}
@@ -787,17 +781,19 @@ function FontSizeControl({
     <div className="space-y-1.5">
       <PdfEditorFieldLabel>Font size</PdfEditorFieldLabel>
       <div className="flex items-center gap-1.5">
-        <Input
-          type="number"
-          min={4}
-          max={200}
-          value={draft}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            const next = Number(event.target.value)
-            if (Number.isFinite(next) && next > 0) update(next)
-          }}
-          className={cn("h-8 px-2.5", "w-20")}
-        />
+        <div className="w-20 shrink-0">
+          <Input
+            type="number"
+            min={4}
+            max={200}
+            value={draft}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              const next = Number(event.target.value)
+              if (Number.isFinite(next) && next > 0) update(next)
+            }}
+            className="h-8 px-2.5"
+          />
+        </div>
         <Select
           value={String(draft)}
           onValueChange={(next) => onChange(Number(next))}
@@ -882,7 +878,7 @@ function LineEndingPreview({ value }: { value: PdfAnnotationLineEnding }) {
     <svg
       aria-hidden="true"
       viewBox="0 0 72 16"
-      className="h-6! w-24! shrink-0 text-foreground"
+      className="text-foreground h-6! w-24! shrink-0"
     >
       <path
         d={`M2 8H${lineEndX}`}
@@ -1021,17 +1017,19 @@ function RotationControl({
     <div className="space-y-1.5">
       <PdfEditorFieldLabel>Rotation</PdfEditorFieldLabel>
       <div className="flex items-center gap-1.5">
-        <Input
-          type="number"
-          min={0}
-          max={359}
-          value={Math.round(draft)}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-            update(((Number(event.target.value) % 360) + 360) % 360)
-          }
-          className={cn("h-8 px-2.5", "w-20")}
-        />
-        <span className="text-xs text-muted-foreground">degrees</span>
+        <div className="w-20 shrink-0">
+          <Input
+            type="number"
+            min={0}
+            max={359}
+            value={Math.round(draft)}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              update(((Number(event.target.value) % 360) + 360) % 360)
+            }
+            className="h-8 px-2.5"
+          />
+        </div>
+        <span className="text-muted-foreground text-xs">degrees</span>
         {[0, 90, 180, 270].map((preset) => (
           <Button
             key={preset}
@@ -1409,7 +1407,7 @@ function WidgetProperties({
             className={cn("h-8 px-2.5")}
           />
           {nameError ? (
-            <div className="text-xs text-destructive">{nameError}</div>
+            <div className="text-destructive text-xs">{nameError}</div>
           ) : null}
         </div>
 
@@ -1699,8 +1697,8 @@ export function PdfEditorPropertiesPanel({
   return (
     <div className="space-y-5 p-3">
       <div>
-        <div className="text-sm font-medium text-foreground">{title}</div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-foreground text-sm font-medium">{title}</div>
+        <div className="text-muted-foreground text-xs">
           {isEditing
             ? structurallyLocked
               ? "This annotation is locked. Unlock it to make changes."
@@ -1878,7 +1876,7 @@ function NoteEditor({
         if (draft !== value) onChange(draft)
       }}
       className={cn(
-        "w-full resize-y rounded-lg border border-input bg-background px-2.5 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+        "border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring w-full resize-y rounded-lg border px-2.5 py-2 text-sm outline-none focus-visible:ring-2 disabled:opacity-60"
       )}
     />
   )

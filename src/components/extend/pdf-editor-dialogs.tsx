@@ -41,8 +41,8 @@ import {
 } from "@embedpdf/plugin-signature/react"
 
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/shadcn/badge"
-import { Button } from "@/components/shadcn/button"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -50,17 +50,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/shadcn/dialog"
-import { Input } from "@/components/shadcn/input"
-import { Kbd } from "@/components/shadcn/kbd"
-import { ScrollArea } from "@/components/shadcn/scroll-area"
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Kbd } from "@/components/ui/kbd"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/shadcn/select"
+} from "@/components/ui/select"
 import { ColorPicker } from "@/components/extend/document-color-picker"
 import {
   CopyGlyph,

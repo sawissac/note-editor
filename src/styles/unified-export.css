@@ -1,0 +1,231 @@
+/* UnifiedExportDialog — BEM blocks `unified-export` (the pick view body)
+ * and `unified-export-row` (one file in the order list).
+ *
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. */
+
+@layer components {
+  .unified-export {
+    @apply flex min-h-0 flex-col gap-4 px-4 py-4;
+  }
+
+  /* ── Header (inside DialogHeader) ─────────────────────────────────── */
+  .unified-export__heading {
+    @apply flex min-w-0 items-center gap-2.5 py-1;
+  }
+  .unified-export__heading-icon {
+    @apply border-app-border-accent bg-app-accent-faint text-app-accent flex size-8 shrink-0 items-center justify-center rounded-lg border [&_svg]:size-4;
+  }
+  .unified-export__heading-text {
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
+  .unified-export__subtitle {
+    @apply font-description text-app-dim m-0 text-[11px] leading-snug;
+  }
+
+  /* ── Sections ─────────────────────────────────────────────────────── */
+  .unified-export__card {
+    @apply border-app-border bg-app-panel flex flex-col gap-3 rounded-lg border p-3;
+  }
+  .unified-export__section-title {
+    @apply font-title text-app-dim m-0 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  .unified-export__section-icon {
+    @apply size-3.5 shrink-0;
+  }
+  .unified-export__hint {
+    @apply font-description text-app-dim m-0 text-[11px] leading-snug;
+  }
+
+  /* ── Document settings ────────────────────────────────────────────── */
+  .unified-export__settings {
+    @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+  }
+  .unified-export__field {
+    @apply flex min-w-0 flex-col gap-1.5;
+  }
+  .unified-export__field--wide {
+    @apply sm:col-span-2;
+  }
+  .unified-export__file-name {
+    @apply text-app-text font-mono text-[10.5px];
+  }
+
+  .unified-export__pages {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .unified-export__page {
+    @apply border-app-border bg-app-bg text-app-text hover:border-app-border-accent focus-visible:ring-app-accent/30 flex cursor-pointer items-center gap-2.5 rounded-md border px-2.5 py-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .unified-export__page--selected {
+    @apply border-app-accent bg-app-accent-faint text-app-bright hover:border-app-accent;
+  }
+  .unified-export__page-glyph {
+    @apply border-app-border-mid bg-app-panel h-7 shrink-0 rounded-[2px] border shadow-[inset_0_5px_0_-3px_var(--app-border-mid)];
+  }
+  /* Glyph proportions follow the real sheets. */
+  .unified-export__page-glyph--a4 {
+    @apply aspect-[210/297];
+  }
+  .unified-export__page-glyph--letter {
+    @apply aspect-[216/279];
+  }
+  .unified-export__page-glyph--selected {
+    @apply border-app-accent;
+  }
+  .unified-export__page-text {
+    @apply flex min-w-0 flex-col;
+  }
+  .unified-export__page-name {
+    @apply font-description text-[12px] font-semibold;
+  }
+  .unified-export__page-dims {
+    @apply text-app-dim font-mono text-[10px];
+  }
+
+  .unified-export__toggle {
+    @apply border-app-border bg-app-bg cursor-pointer flex-row items-center justify-between gap-3 self-end rounded-md border px-2.5 py-2;
+  }
+  .unified-export__toggle-text {
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
+
+  /* ── Files ────────────────────────────────────────────────────────── */
+  .unified-export__files {
+    @apply flex min-h-0 flex-1 flex-col gap-2;
+  }
+  .unified-export__files-bar {
+    @apply flex flex-wrap items-center justify-between gap-2;
+  }
+  .unified-export__count {
+    @apply bg-app-hover text-app-text ml-1 rounded-full px-2 py-0.5 font-mono text-[10px] tracking-normal normal-case;
+  }
+  .unified-export__files-actions {
+    @apply flex gap-1.5;
+  }
+  .unified-export__list {
+    @apply m-0 flex min-h-0 list-none flex-col gap-1.5 overflow-y-auto p-0;
+  }
+
+  /* ── Empty state ──────────────────────────────────────────────────── */
+  .unified-export__empty {
+    @apply border-app-border-mid bg-app-panel flex flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-7 text-center;
+  }
+  .unified-export__empty-icon {
+    @apply bg-app-accent-faint text-app-accent mb-1 flex size-11 items-center justify-center rounded-xl [&_svg]:size-5;
+  }
+  .unified-export__empty-title {
+    @apply font-display text-app-bright m-0 text-[15px] font-semibold;
+  }
+  .unified-export__empty-text {
+    @apply font-description text-app-dim m-0 text-[12px];
+  }
+  .unified-export__groups {
+    @apply m-0 mt-2 grid w-full max-w-md list-none grid-cols-1 gap-1.5 p-0 text-left;
+  }
+  .unified-export__group {
+    @apply border-app-border bg-app-bg grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-2 rounded-md border px-2.5 py-1.5;
+  }
+  .unified-export__group-name {
+    @apply font-description text-app-bright flex items-center gap-1.5 text-[12px] font-semibold;
+  }
+  .unified-export__group-icon {
+    @apply text-app-accent-dim size-3.5 shrink-0 self-center;
+  }
+  .unified-export__group-kinds {
+    @apply font-description text-app-dim text-[11px] leading-snug;
+  }
+  .unified-export__empty-actions {
+    @apply mt-3 flex flex-wrap justify-center gap-2;
+  }
+
+  /* ── Status ───────────────────────────────────────────────────────── */
+  .unified-export__notice {
+    @apply font-description m-0 flex items-center gap-1.5 rounded-md border px-2.5 py-2 text-[12px];
+  }
+  .unified-export__notice--error {
+    @apply border-app-error/30 bg-app-error/5 text-app-error;
+  }
+  .unified-export__notice--success {
+    @apply border-app-success/30 bg-app-success/5 text-app-success;
+  }
+  .unified-export__notice-icon {
+    @apply size-3.5 shrink-0;
+  }
+  .unified-export__result {
+    @apply flex flex-col gap-1.5;
+  }
+  .unified-export__failures {
+    @apply m-0 flex list-none flex-col gap-0.5 p-0;
+  }
+  /* In the preview: a strip above the viewer. */
+  .unified-export__failures--banner {
+    @apply border-app-border bg-app-warn/5 border-b px-3 py-2;
+  }
+  .unified-export__failure {
+    @apply font-description text-app-warn flex items-start gap-1.5 text-[11px] leading-snug;
+  }
+  .unified-export__failure-icon {
+    @apply mt-px size-3 shrink-0;
+  }
+
+  /* ── Footer summary ───────────────────────────────────────────────── */
+  .unified-export__summary {
+    @apply text-app-dim m-0 mr-auto hidden min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10.5px] sm:flex;
+  }
+  .unified-export__summary-item {
+    @apply inline-flex items-center gap-1;
+  }
+  .unified-export__summary-icon {
+    @apply text-app-accent-dim size-3 shrink-0;
+  }
+
+  /* ── Row ──────────────────────────────────────────────────────────── */
+  .unified-export-row {
+    @apply border-app-border bg-app-bg flex items-center gap-1.5 rounded-md border py-1 pr-1 pl-0.5 transition-[background-color,border-color,box-shadow] duration-150;
+  }
+  .unified-export-row--checked {
+    @apply border-app-border-accent bg-app-panel shadow-[inset_3px_0_0_var(--app-accent)];
+  }
+  .unified-export-row--dragging {
+    @apply ring-app-border-accent relative z-10 shadow-lg ring-1;
+  }
+  .unified-export-row__handle {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/40 flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded border-0 bg-transparent outline-none focus-visible:ring-2 active:cursor-grabbing disabled:cursor-not-allowed;
+  }
+  .unified-export-row__glyph {
+    @apply size-3.5 shrink-0;
+  }
+  .unified-export-row__position {
+    @apply border-app-border-mid text-app-dim flex size-5 shrink-0 items-center justify-center rounded-full border border-dashed font-mono text-[10px] tabular-nums;
+  }
+  .unified-export-row__position--checked {
+    @apply border-app-accent bg-app-accent text-app-on-solid border-solid font-semibold;
+  }
+  .unified-export-row__main {
+    @apply flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-0.5;
+  }
+  .unified-export-row__checkbox {
+    @apply size-3.5 shrink-0 cursor-pointer accent-(--app-accent);
+  }
+  .unified-export-row__icon {
+    @apply bg-app-hover flex size-7 shrink-0 items-center justify-center rounded-md;
+  }
+  .unified-export-row__text {
+    @apply flex min-w-0 flex-col;
+  }
+  .unified-export-row__name {
+    @apply font-description text-app-bright truncate text-[12px] font-medium;
+  }
+  .unified-export-row__path {
+    @apply text-app-dim truncate font-mono text-[10px];
+  }
+  .unified-export-row__result {
+    @apply border-app-border text-app-text hidden shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] sm:inline-flex;
+  }
+  .unified-export-row__moves {
+    @apply flex shrink-0;
+  }
+  .unified-export-row__move {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-accent focus-visible:ring-app-accent/40 flex size-6 items-center justify-center rounded border-0 bg-transparent outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-30;
+  }
+}
