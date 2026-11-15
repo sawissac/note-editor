@@ -1,3 +1,4 @@
+import "@/styles/app-info-pane.css";
 import { IconArrowsSort, IconPlayerPlay } from "@tabler/icons-react";
 import * as React from "react";
 

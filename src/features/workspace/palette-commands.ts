@@ -34,7 +34,11 @@ import {
 import { APP_FILES } from "@/lib/file-types";
 import type { AppDispatch, RootState } from "@/store";
 import { fsActions, type NodeType } from "@/store/fs-slice";
-import { getPath, getTargetFolderId } from "@/store/selectors";
+import {
+  getPath,
+  getTargetFolderId,
+  selectSidebarVisible,
+} from "@/store/selectors";
 import { tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
 
@@ -111,7 +115,7 @@ export function buildCommands(
     },
     {
       id: "toggle-sidebar",
-      label: state.ui.sidebarOpen ? "Hide sidebar" : "Show sidebar",
+      label: selectSidebarVisible(state) ? "Hide sidebar" : "Show sidebar",
       group: "Workspace",
       icon: IconLayoutSidebar,
       keywords: "explorer toggle panel",

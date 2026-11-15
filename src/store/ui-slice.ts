@@ -2,6 +2,18 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export type SaveState = "saved" | "saving" | "error";
 
+/**
+ * Text selected in an editor and handed to a chat ("Ask AI"): it waits on
+ * that chat's composer as a reference and goes with the next message.
+ */
+export type ChatReference = {
+  /** The `.chat` file it goes to. */
+  chatId: string;
+  /** Where it came from, e.g. `notes/plan.md (lines 3–8)`. */
+  path: string;
+  content: string;
+};
+
 export type UiState = {
   sidebarOpen: boolean;
   quickOpen: boolean;
@@ -19,6 +31,8 @@ export type UiState = {
   /** Dismissible message in the explorer footer (skipped imports, failed
    *  conversions); null = none. */
   explorerNotice: string | null;
+  /** Selections waiting to be sent with a chat message. */
+  chatReferences: ChatReference[];
 };
 
 export const initialUiState: UiState = {
@@ -31,6 +45,7 @@ export const initialUiState: UiState = {
   focusRequestId: null,
   unifiedExportOpen: false,
   explorerNotice: null,
+  chatReferences: [],
 };
 
 const uiSlice = createSlice({
@@ -68,6 +83,26 @@ const uiSlice = createSlice({
     },
     explorerNoticeSet(state, action: PayloadAction<string | null>) {
       state.explorerNotice = action.payload;
+    },
+    chatReferenceAdded(state, action: PayloadAction<ChatReference>) {
+      state.chatReferences.push(action.payload);
+    },
+    /** Drops one waiting reference (by index among the chat's own). */
+    chatReferenceRemoved(
+      state,
+      action: PayloadAction<{ chatId: string; index: number }>,
+    ) {
+      const { chatId, index } = action.payload;
+      let seen = -1;
+      state.chatReferences = state.chatReferences.filter(
+        (r) => r.chatId !== chatId || ++seen !== index,
+      );
+    },
+    /** A chat sent its message: its waiting references are used up. */
+    chatReferencesCleared(state, action: PayloadAction<string>) {
+      state.chatReferences = state.chatReferences.filter(
+        (r) => r.chatId !== action.payload,
+      );
     },
     focusRequested(state, action: PayloadAction<string | null>) {
       state.focusRequestId = action.payload;

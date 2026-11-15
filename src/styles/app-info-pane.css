@@ -1,3 +1,5 @@
+@reference "../index.css";
+
 /* AppInfoPane (`app.info`) — BEM block `app-info-pane`.
  *
  * Imported from `src/index.css`, so `@apply` resolves the app-* theme.

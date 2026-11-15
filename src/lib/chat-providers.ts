@@ -2,7 +2,11 @@
  * Streaming chat calls straight from the browser to Gemini and OpenRouter.
  * Both answer with server-sent events; `onDelta` receives each text chunk.
  */
-import type { ChatMessage, ChatProvider } from "@/lib/chat-doc";
+import {
+  type ChatMessage,
+  type ChatProvider,
+  messageText,
+} from "@/lib/chat-doc";
 
 export type ChatRequest = {
   provider: ChatProvider;
@@ -35,7 +39,9 @@ async function responseError(res: Response) {
   } catch {
     // Not JSON.
   }
-  return new Error(`${res.status} ${res.statusText}${text ? `: ${text.slice(0, 300)}` : ""}`);
+  return new Error(
+    `${res.status} ${res.statusText}${text ? `: ${text.slice(0, 300)}` : ""}`,
+  );
 }
 
 /** Calls `onData` with each `data:` payload of an SSE response. */
@@ -57,7 +63,9 @@ async function readEvents(res: Response, onData: (data: string) => void) {
 }
 
 function usable(messages: ChatMessage[]) {
-  return messages.filter((m) => !m.error && m.content.trim());
+  return messages.filter(
+    (m) => !m.error && (m.content.trim() || m.attachments?.length),
+  );
 }
 
 async function streamGemini(req: ChatRequest) {
@@ -72,7 +80,7 @@ async function streamGemini(req: ChatRequest) {
     body: JSON.stringify({
       contents: usable(req.messages).map((m) => ({
         role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
+        parts: [{ text: messageText(m) }],
       })),
       ...(req.system.trim()
         ? { systemInstruction: { parts: [{ text: req.system }] } }
@@ -109,13 +117,17 @@ async function streamGemini(req: ChatRequest) {
       blocked = reason;
     }
   });
-  if (!wrote && blocked) throw new Error(`Gemini returned no text (${blocked}).`);
+  if (!wrote && blocked)
+    throw new Error(`Gemini returned no text (${blocked}).`);
 }
 
 async function streamOpenRouter(req: ChatRequest) {
   const messages = [
     ...(req.system.trim() ? [{ role: "system", content: req.system }] : []),
-    ...usable(req.messages).map((m) => ({ role: m.role, content: m.content })),
+    ...usable(req.messages).map((m) => ({
+      role: m.role,
+      content: messageText(m),
+    })),
   ];
   const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: "POST",

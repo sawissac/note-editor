@@ -10,7 +10,6 @@ import {
   IconFolderPlus,
   IconHierarchy2,
   IconLoader2,
-  IconNotebook,
   IconAlertTriangle,
   IconPencil,
   IconSearch,
@@ -21,6 +20,7 @@ import {
 } from "@tabler/icons-react";
 import * as React from "react";
 
+import { BentoLogo } from "@/components/bento-logo";
 import { Kbd } from "@/components/ui/kbd";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -49,6 +49,7 @@ import { getPath, getTargetFolderId } from "@/store/selectors";
 import { type TabMode, tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
 import { FileBarSlotProvider } from "@/features/editors/file-bar-slot";
+import { AskAiSelection } from "@/features/editors/AskAiSelection";
 import { LazyCodeEditor } from "@/features/editors/LazyCodeEditor";
 import type { PaneProps } from "@/features/editors/pane-context";
 import {
@@ -132,6 +133,7 @@ export function EditorArea() {
 }
 
 function FilePane({ id, name }: { id: string; name: string }) {
+  const bodyRef = React.useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const kind = kindOf(name);
   const mode = useAppSelector((s) => s.tabs.modes[id]) ?? defaultMode(kind);
@@ -301,7 +303,10 @@ function FilePane({ id, name }: { id: string; name: string }) {
           button tooltips) inside the editor and places them above its top
           edge, which a vertical clip here would cut off. Panes size to this
           box and scroll internally, so nothing else overflows vertically. */}
-      <div className="bg-app-bg relative min-h-0 flex-1 overflow-x-clip">
+      <div
+        ref={bodyRef}
+        className="bg-app-bg relative min-h-0 flex-1 overflow-x-clip"
+      >
         {/* Binary panes remount per mode (they re-read the saved bytes);
             CSV keeps its in-memory text across Raw ⇄ Table. */}
         <ErrorBoundary key={BINARY_EDITORS.has(kind) ? `${id}:${mode}` : id}>
@@ -309,6 +314,11 @@ function FilePane({ id, name }: { id: string; name: string }) {
             <React.Suspense fallback={<PaneSkeleton />}>{body}</React.Suspense>
           </FileBarSlotProvider>
         </ErrorBoundary>
+        {/* Chats take references themselves; every other editor can send
+            selected text to one. */}
+        {kind === "chat" ? null : (
+          <AskAiSelection fileId={id} containerRef={bodyRef} />
+        )}
       </div>
     </section>
   );
@@ -331,15 +341,28 @@ function MarkdownPane({
   useSaveHandler(registerSave, () => dispatch(saveContent(id, latest.current)));
 
   return (
-    <MarkdownEditor
-      markdown={latest.current}
-      isDark={isDark}
-      autoFocus={focusOnMount}
-      onChange={(value) => {
-        latest.current = value;
-        save(value);
-      }}
-    />
+    // Own boundary: show the note's text while MDXEditor (~400 kB) loads,
+    // rather than the generic skeleton — the text is the page's LCP.
+    <React.Suspense fallback={<MarkdownFallback text={latest.current} />}>
+      <MarkdownEditor
+        markdown={latest.current}
+        isDark={isDark}
+        autoFocus={focusOnMount}
+        onChange={(value) => {
+          latest.current = value;
+          save(value);
+        }}
+      />
+    </React.Suspense>
+  );
+}
+
+/** Read-only plain text of a note, shown until the rich editor is ready. */
+function MarkdownFallback({ text }: { text: string }) {
+  return (
+    <div className="markdown-fallback" aria-busy="true">
+      <p className="markdown-fallback__text">{text}</p>
+    </div>
   );
 }
 
@@ -629,17 +652,14 @@ function StartScreen() {
     >
       <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
         <div className="flex flex-col items-center gap-2">
-          <span
-            aria-hidden
-            className="tint-current text-app-accent mb-1 flex size-12 items-center justify-center rounded-xl border"
-          >
-            <IconNotebook className="size-6" />
-          </span>
+          <BentoLogo className="mb-1 size-12 drop-shadow-sm" />
           <h1 className="font-display text-app-bright text-[18px] font-semibold tracking-[-0.01em]">
             Nothing open
           </h1>
           <p className={ui.help}>
-            Pick a file in the explorer, or start something new.
+            {Object.keys(nodes).length > 0
+              ? "Pick a file in the explorer, or start something new."
+              : "Your workspace is empty — start something new."}
           </p>
         </div>
 

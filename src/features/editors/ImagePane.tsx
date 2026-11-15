@@ -1,3 +1,4 @@
+import "@/styles/image-pane.css";
 import {
   IconAlertTriangle,
   IconArrowBackUp,

@@ -8,10 +8,23 @@ export type ChatProvider = "gemini" | "openrouter";
 
 export type ChatRole = "user" | "assistant";
 
+/**
+ * A workspace `.md` / `.txt` file referenced with `@path` in a user message.
+ * Its text is snapshotted at send time, so the conversation replays the
+ * same context even after the file changes or is deleted.
+ */
+export type ChatAttachment = {
+  /** Workspace path, e.g. `notes/todo.md` — what follows the `@`. */
+  path: string;
+  content: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  /** Files referenced with `@path` (user messages only). */
+  attachments?: ChatAttachment[];
   at: number;
   /** Model that wrote an assistant reply. */
   model?: string;
@@ -105,6 +118,7 @@ export function parseChat(text: string): ChatDoc {
       at: typeof m.at === "number" ? m.at : 0,
       ...(typeof m.model === "string" ? { model: m.model } : {}),
       ...(m.error === true ? { error: true } : {}),
+      ...attachmentsOf(m.attachments),
     });
   }
   return {
@@ -128,4 +142,34 @@ export function parseChat(text: string): ChatDoc {
         : base.temperature,
     messages,
   };
+}
+
+function attachmentsOf(value: unknown): { attachments?: ChatAttachment[] } {
+  if (!Array.isArray(value)) return {};
+  const list = value.flatMap((a) =>
+    a &&
+    typeof a === "object" &&
+    typeof (a as ChatAttachment).path === "string" &&
+    typeof (a as ChatAttachment).content === "string"
+      ? [
+          {
+            path: (a as ChatAttachment).path,
+            content: (a as ChatAttachment).content,
+          },
+        ]
+      : [],
+  );
+  return list.length ? { attachments: list } : {};
+}
+
+/**
+ * What the model receives for a message: each referenced file in a
+ * `<file path="…">` block, then the message itself.
+ */
+export function messageText(message: ChatMessage) {
+  if (!message.attachments?.length) return message.content;
+  const files = message.attachments
+    .map((a) => `<file path="${a.path}">\n${a.content}\n</file>`)
+    .join("\n\n");
+  return `Referenced files:\n\n${files}\n\n${message.content}`;
 }

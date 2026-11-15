@@ -1,3 +1,5 @@
+@reference "../index.css";
+
 /* RegexPane (`.regex` files) — BEM block `regex-pane`.
  *
  * Imported from `src/index.css`, so `@apply` resolves the app-* theme.

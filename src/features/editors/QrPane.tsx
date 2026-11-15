@@ -1,3 +1,4 @@
+import "@/styles/qr-pane.css";
 import {
   IconAlertTriangle,
   IconCheck,

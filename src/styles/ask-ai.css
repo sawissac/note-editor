@@ -1,0 +1,13 @@
+/* AskAiSelection — BEM block `ask-ai`.
+ *
+ * The floating "Ask AI" button over selected text in a pane (portalled to
+ * the body, placed with inline top / left). Imported from `src/index.css`. */
+
+@layer components {
+  .ask-ai {
+    @apply bg-app-accent text-app-bg hover:bg-app-accent/90 focus-visible:ring-app-accent/30 font-title fixed z-50 flex h-7 cursor-pointer items-center gap-1 rounded-md border-0 px-2.5 text-[11px] font-semibold shadow-md outline-none focus-visible:ring-2;
+  }
+  .ask-ai__icon {
+    @apply size-3.5;
+  }
+}

@@ -1,0 +1,31 @@
+@reference "../index.css";
+
+/* MermaidZoom — BEM block `mermaid-zoom`.
+ *
+ * The zoomable Mermaid preview (react-zoom-pan-pinch): wheel / pinch to
+ * zoom, drag to pan, and a floating control bar (zoom out, level, zoom in,
+ * fit). Imported by MermaidPane, so it ships in the lazy pane chunk. */
+
+@layer components {
+  .mermaid-zoom {
+    @apply relative min-h-0 flex-1 overflow-hidden;
+  }
+  /* Size comes from the library's inline wrapperStyle (100% × 100%). */
+  .mermaid-zoom__viewport {
+    @apply cursor-grab active:cursor-grabbing;
+  }
+  /* Sized to the diagram's own viewBox so zoom 100% = Mermaid's size. */
+  .mermaid-zoom__diagram {
+    @apply [&_svg]:h-full [&_svg]:w-full [&_svg]:max-w-none;
+  }
+
+  .mermaid-zoom__controls {
+    @apply border-app-border bg-app-panel absolute right-3 bottom-3 flex items-center gap-0.5 rounded-md border p-0.5 shadow-sm;
+  }
+  .mermaid-zoom__button {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-accent focus-visible:ring-app-accent/30 flex size-7 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 outline-none focus-visible:ring-2 [&_svg]:size-4;
+  }
+  .mermaid-zoom__level {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-accent min-w-12 cursor-pointer rounded border-0 bg-transparent px-1 py-1 text-center font-mono text-[11px] tabular-nums;
+  }
+}

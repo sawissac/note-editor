@@ -1,3 +1,5 @@
+@reference "../index.css";
+
 /* ChatPane (`.chat` files) — BEM blocks `chat-pane` (the conversation) and
  * `chat-markdown` (a reply rendered from Markdown).
  *
@@ -73,7 +75,7 @@
     @apply min-h-0 flex-1 overflow-y-auto;
   }
   .chat-pane__messages {
-    @apply mx-auto flex max-w-3xl flex-col gap-4 px-4 py-5;
+    @apply mx-auto flex max-w-3xl flex-col gap-3 px-3 py-4;
   }
   .chat-pane__notice {
     @apply font-description text-app-dim m-0 flex items-start gap-1.5 text-[12px] leading-snug;
@@ -84,61 +86,55 @@
 
   /* ── chat-pane: empty states ──────────────────────────────────────── */
   .chat-pane__empty {
-    @apply flex flex-col items-center gap-3 py-12 text-center;
+    @apply flex flex-col items-center gap-2 py-10 text-center;
   }
   .chat-pane__empty-icon {
-    @apply text-app-accent size-8;
+    @apply text-app-accent size-6;
   }
   .chat-pane__empty-text {
     @apply font-description text-app-dim m-0 max-w-md text-[12px] leading-relaxed;
   }
 
-  /* ── chat-pane: messages ──────────────────────────────────────────── */
+  /* ── chat-pane: messages ──────────────────────────────────────────
+   * Compact, avatar-free: your messages are tight bubbles on the right,
+   * replies read as plain text across the column, errors are a slim red
+   * strip. Copy / retry / delete sit small and dim under each message. */
   .chat-pane__message {
-    @apply flex min-w-0 items-start gap-2.5;
+    @apply flex min-w-0 flex-col items-start gap-0.5;
   }
   .chat-pane__message--user {
-    @apply flex-row-reverse;
-  }
-  .chat-pane__avatar {
-    @apply border-app-border bg-app-panel text-app-accent flex size-7 shrink-0 items-center justify-center rounded-full border;
-  }
-  .chat-pane__message--user .chat-pane__avatar {
-    @apply text-app-dim;
-  }
-  .chat-pane__message--error .chat-pane__avatar {
-    @apply text-app-error;
-  }
-  .chat-pane__avatar-icon {
-    @apply size-4;
+    @apply items-end;
   }
   .chat-pane__bubble {
-    @apply flex max-w-[85%] min-w-0 flex-col gap-1;
+    @apply flex w-full min-w-0 flex-col gap-1.5;
   }
   .chat-pane__message--user .chat-pane__bubble {
-    @apply bg-app-accent-faint border-app-border-accent items-end rounded-lg border px-3 py-2;
+    @apply bg-app-accent-faint w-auto max-w-[80%] rounded-2xl rounded-br-sm px-3 py-1.5;
   }
   .chat-pane__message--error .chat-pane__bubble {
-    @apply border-app-error/40 bg-app-error/5 rounded-lg border px-3 py-2;
+    @apply border-app-error bg-app-error/5 rounded-r-md border-l-2 px-2.5 py-1.5;
   }
   .chat-pane__plain {
     @apply font-description text-app-bright m-0 text-[13px] leading-relaxed break-words whitespace-pre-wrap;
   }
   .chat-pane__message--error .chat-pane__plain {
-    @apply text-app-error font-mono text-[12px];
+    @apply text-app-error flex items-start gap-1.5 font-mono text-[11px] leading-snug;
+  }
+  .chat-pane__error-icon {
+    @apply mt-px size-3.5 shrink-0;
   }
   .chat-pane__tools {
-    @apply flex items-center gap-0.5;
+    @apply text-app-dim flex h-5 items-center gap-0 opacity-70 transition-opacity duration-150 hover:opacity-100 focus-within:opacity-100;
   }
   .chat-pane__meta {
     @apply text-app-dim mr-1 font-mono text-[10px];
   }
   .chat-pane__tool-icon {
-    @apply size-3.5;
+    @apply size-3;
   }
   /* Waiting for the first words of a reply. */
   .chat-pane__pending {
-    @apply border-app-border bg-app-panel flex h-8 items-center gap-1 self-start rounded-full border px-3;
+    @apply flex h-6 items-center gap-1 self-start;
   }
   .chat-pane__dot {
     @apply bg-app-accent size-1.5 animate-bounce rounded-full;
@@ -155,7 +151,7 @@
 
   /* ── chat-pane: composer ──────────────────────────────────────────── */
   .chat-pane__composer {
-    @apply border-app-border bg-app-panel mx-auto flex w-full max-w-3xl shrink-0 items-end gap-2 border-t p-3 md:rounded-t-lg md:border-x;
+    @apply border-app-border bg-app-panel mx-auto flex w-full max-w-3xl shrink-0 items-end gap-2 border-t px-2 py-2 md:rounded-t-lg md:border-x;
   }
   /* A banner sits on top: square the top corners so the two read as one. */
   .chat-pane__composer--attached {
@@ -318,4 +314,56 @@
 
 .chat-pane__tool {
   @apply text-app-dim hover:text-app-bright;
+}
+
+@layer components {
+  /* ── Files a user message referenced with @path ── */
+  .chat-pane__attachments {
+    @apply m-0 flex list-none flex-wrap gap-1 p-0;
+  }
+  .chat-pane__attachment {
+    @apply bg-app-bg/70 text-app-dim flex max-w-64 items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[10px];
+  }
+  .chat-pane__attachment-icon {
+    @apply size-3 shrink-0;
+  }
+  .chat-pane__attachment-path {
+    @apply truncate;
+  }
+
+  /* ── chat-mention: `@` file autocomplete above the caret (portalled) ── */
+  .chat-mention {
+    @apply border-app-border bg-app-panel fixed z-50 flex max-h-72 w-80 flex-col overflow-y-auto rounded-md border p-1 shadow-lg;
+  }
+  .chat-mention__item {
+    @apply text-app-text flex w-full cursor-pointer items-center gap-2 rounded border-0 bg-transparent px-2 py-1.5 text-left;
+  }
+  .chat-mention__item--active {
+    @apply bg-app-hover text-app-bright;
+  }
+  .chat-mention__icon {
+    @apply text-app-dim size-3.5 shrink-0;
+  }
+  .chat-mention__name {
+    @apply font-description shrink-0 truncate text-[12px];
+  }
+  .chat-mention__path {
+    @apply text-app-dim min-w-0 truncate font-mono text-[10px];
+  }
+  .chat-mention__empty {
+    @apply font-description text-app-dim m-0 px-2 py-1.5 text-[12px];
+  }
+}
+
+@layer components {
+  /* ── Selections sent here with "Ask AI", waiting on the next message ── */
+  .chat-pane__references {
+    @apply m-0 mx-auto flex w-full max-w-3xl list-none flex-wrap gap-1 px-2 pt-1.5 pb-1;
+  }
+  .chat-pane__reference {
+    @apply border-app-border-accent bg-app-accent-faint text-app-text flex max-w-80 items-center gap-1 rounded border py-0.5 pr-0.5 pl-1.5 font-mono text-[10px];
+  }
+  .chat-pane__reference-remove {
+    @apply text-app-dim hover:text-app-error flex size-4 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0;
+  }
 }

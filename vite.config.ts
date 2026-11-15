@@ -167,6 +167,29 @@ function bentoSeo(siteUrl: string | undefined, indexable: boolean): Plugin {
   };
 }
 
+/**
+ * The entry stylesheet stops blocking first paint: the boot splash is styled
+ * inline in index.html, so it can paint as soon as the HTML arrives (FCP)
+ * while the app CSS downloads. `media="print"` makes the browser fetch it
+ * without blocking; onload flips it to `all`. main.tsx waits for that before
+ * React renders, so the app never paints unstyled.
+ */
+function nonBlockingEntryCss(): Plugin {
+  return {
+    name: "bento-non-blocking-css",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler: (html) =>
+        html.replace(
+          /<link rel="stylesheet" crossorigin href="(\/assets\/index-[^"]+\.css)">/,
+          `<link rel="stylesheet" crossorigin href="$1" media="print" onload="this.media='all'" data-app-css>` +
+            `<noscript><link rel="stylesheet" href="$1"></noscript>`,
+        ),
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), ""), ...process.env };
   const rawUrl =
@@ -178,7 +201,13 @@ export default defineConfig(({ mode }) => {
     env.SEO_NOINDEX !== "1" && (!env.VERCEL_ENV || env.VERCEL_ENV === "production");
 
   return {
-    plugins: [react(), tailwindcss(), bentoSeo(siteUrl, indexable), bentoPwa()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      bentoSeo(siteUrl, indexable),
+      nonBlockingEntryCss(),
+      bentoPwa(),
+    ],
     resolve: {
       alias: { "@": path.resolve(import.meta.dirname, "src") },
     },

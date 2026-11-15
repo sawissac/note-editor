@@ -4,18 +4,14 @@ import {
   CREATABLE_EXTENSIONS,
   downloadTarget,
   extensionOf,
+  type FileKind,
   isAppFileName,
   isEnvName,
   isImportable,
   KIND_LABEL,
   kindOf,
 } from "@/lib/file-types";
-import { blankContent } from "@/lib/blank-documents";
 import { imageFormatOf } from "@/lib/image-formats";
-import {
-  backupFileName,
-  buildWorkspaceBackup,
-} from "@/lib/workspace-backup";
 import {
   downloadFile,
   type FileContent,
@@ -34,6 +30,11 @@ import {
 } from "@/store/selectors";
 import { tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
+
+// Lazy: the blank templates pull in the diff / calendar / kanban / qr doc
+// modules, which only matter once someone creates such a file.
+const blankContent = (kind: FileKind) =>
+  import("@/lib/blank-documents").then((m) => m.blankContent(kind));
 
 function newId() {
   return crypto.randomUUID();
@@ -520,6 +521,14 @@ export function createSiblingFile(
     );
     await storage.setContent(node.id, content);
     dispatch(fsActions.nodesAdded([node]));
+    // Place the copy right below its source (e.g. a conversion sits under
+    // the file it came from), using the same manual sibling order that
+    // drag-to-reorder sets. "Sort folder by name" goes back to A–Z.
+    const order = getSortedChildren(getState().fs.nodes, source.parentId)
+      .map((n) => n.id)
+      .filter((id) => id !== node.id);
+    order.splice(order.indexOf(sourceId) + 1, 0, node.id);
+    dispatch(fsActions.childrenOrdered(order));
     dispatch(openFile(node.id));
   };
 }
@@ -594,7 +603,9 @@ export function reorderNodes(
 
     dispatch(fsActions.selected(placed[0]));
     if (placed.length > 1) {
-      dispatch(fsActions.selectionSet({ ids: placed, focusId: placed.at(-1)! }));
+      dispatch(
+        fsActions.selectionSet({ ids: placed, focusId: placed.at(-1)! }),
+      );
     }
     return true;
   };
@@ -654,7 +665,11 @@ export function importFiles(
       const name = imageFormatOf(file.name)
         ? `${file.name.slice(0, baseNameLength(file.name))}.img`
         : file.name;
-      const node = makeNode(uniqueName(taken, parentId, name), "file", parentId);
+      const node = makeNode(
+        uniqueName(taken, parentId, name),
+        "file",
+        parentId,
+      );
       const content: FileContent = BINARY_KINDS.has(kindOf(name))
         ? await file.arrayBuffer()
         : await file.text();
@@ -679,6 +694,9 @@ export function exportWorkspace(): AppThunk<Promise<number>> {
   return async (dispatch, getState) => {
     const { fs, tabs, ui } = getState();
     try {
+      // Lazy: date-fns and the backup builder stay out of the boot bundle.
+      const { backupFileName, buildWorkspaceBackup } =
+        await import("@/lib/workspace-backup");
       const backup = await buildWorkspaceBackup({
         workspace: {
           fs: {
@@ -784,5 +802,47 @@ export function seedWorkspace(): AppThunk<Promise<void>> {
     dispatch(fsActions.nodesAdded([welcome, folder, csv]));
     dispatch(fsActions.expandedSet({ id: folder.id, open: true }));
     dispatch(openFile(welcome.id));
+  };
+}
+
+/**
+ * "Ask AI" on selected text: hands the selection to a chat as a reference
+ * and opens that chat. Uses the right-most open `.chat` tab, else the most
+ * recently edited `.chat` file, else creates `Ask AI.chat` at the root.
+ * `where` refines the label, e.g. "lines 3–8".
+ */
+export function askAiAboutSelection(
+  sourceId: string,
+  text: string,
+  where?: string,
+): AppThunk {
+  return (dispatch, getState) => {
+    const { fs, tabs } = getState();
+    const source = fs.nodes[sourceId];
+    if (!source || !text.trim()) return;
+    const isChat = (id: string) => {
+      const n = fs.nodes[id];
+      return n?.type === "file" && kindOf(n.name) === "chat";
+    };
+    let chatId: string | undefined =
+      [...tabs.openIds].reverse().find(isChat) ??
+      Object.values(fs.nodes)
+        .filter((n) => isChat(n.id))
+        .sort((a, b) => b.updatedAt - a.updatedAt)[0]?.id;
+    const created = chatId
+      ? null
+      : dispatch(createAtPath(null, "Ask AI.chat", "file"));
+    chatId ??= created?.id;
+    if (!chatId) return;
+    const path = getPath(fs.nodes, sourceId).join("/");
+    dispatch(
+      uiActions.chatReferenceAdded({
+        chatId,
+        path: `${path} (${where ?? "selection"})`,
+        content: text,
+      }),
+    );
+    // A new chat opens itself once its blank content is stored.
+    if (!created) dispatch(openFile(chatId));
   };
 }

@@ -6,15 +6,50 @@ import {
 import { EditorArea } from "@/features/editors/EditorArea";
 import { DeleteDialog } from "@/features/explorer/DeleteDialog";
 import { Explorer } from "@/features/explorer/Explorer";
-import { ImportDialog } from "@/features/explorer/ImportDialog";
-import { UnifiedExportDialog } from "@/features/export/UnifiedExportDialog";
 import { TabBar } from "@/features/tabs/TabBar";
 import { QuickOpen } from "@/features/workspace/QuickOpen";
 import { StatusBar } from "@/features/workspace/StatusBar";
 import { TimerDock } from "@/features/workspace/TimerDock";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 
-import { useAppSelector } from "@/store";
+import { type RootState, useAppSelector } from "@/store";
+import { selectSidebarVisible } from "@/store/selectors";
+
+// Dialogs only needed on demand: kept out of the boot bundle (dnd-kit,
+// react-dropzone, export CSS) and fetched the first time they open.
+const ImportDialog = lazy(() =>
+  import("@/features/explorer/ImportDialog").then((m) => ({ default: m.ImportDialog })),
+);
+const UnifiedExportDialog = lazy(() =>
+  import("@/features/export/UnifiedExportDialog").then((m) => ({
+    default: m.UnifiedExportDialog,
+  })),
+);
+
+/**
+ * Mounts a lazy dialog once `isOpen` first turns true, then keeps it mounted
+ * so its close animation and internal state behave as if it were eager.
+ */
+function LazyDialog({
+  isOpen,
+  component: Component,
+}: {
+  isOpen: (s: RootState) => boolean;
+  component: ComponentType;
+}) {
+  const open = useAppSelector(isOpen);
+  const [mounted, setMounted] = useState(open);
+  if (open && !mounted) setMounted(true);
+  if (!mounted) return null;
+  return (
+    <Suspense fallback={null}>
+      <Component />
+    </Suspense>
+  );
+}
+
+const isImportOpen = (s: RootState) => s.ui.importParentId !== undefined;
+const isExportOpen = (s: RootState) => s.ui.unifiedExportOpen;
 
 const BASE_TITLE = document.title;
 
@@ -29,7 +64,7 @@ function useDocumentTitle() {
 }
 
 export default function App() {
-  const sidebarOpen = useAppSelector((s) => s.ui.sidebarOpen);
+  const sidebarOpen = useAppSelector(selectSidebarVisible);
   useDocumentTitle();
 
   return (
@@ -53,8 +88,8 @@ export default function App() {
       <StatusBar />
       <QuickOpen />
       <DeleteDialog />
-      <ImportDialog />
-      <UnifiedExportDialog />
+      <LazyDialog isOpen={isImportOpen} component={ImportDialog} />
+      <LazyDialog isOpen={isExportOpen} component={UnifiedExportDialog} />
       <TimerDock />
     </div>
   );

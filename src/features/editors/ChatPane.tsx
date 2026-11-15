@@ -1,20 +1,23 @@
+import "@/styles/chat-pane.css";
 import {
   IconAdjustmentsHorizontal,
   IconAlertTriangle,
   IconCheck,
   IconCopy,
+  IconFileText,
   IconKey,
   IconMessageChatbot,
   IconPlayerStopFilled,
   IconRefresh,
   IconSend2,
   IconTrash,
-  IconUser,
+  IconX,
 } from "@tabler/icons-react";
 import * as React from "react";
 
 import { parseApiKeys } from "@/lib/api-keys";
 import {
+  type ChatAttachment,
   type ChatDoc,
   type ChatMessage,
   type ChatProvider,
@@ -33,10 +36,12 @@ import { extensionOf, kindOf } from "@/lib/file-types";
 import { storage } from "@/lib/storage";
 import { createAtPath, openFile, saveContent } from "@/store/actions";
 import { useAppDispatch, useAppSelector } from "@/store";
+import { uiActions } from "@/store/ui-slice";
 import { getPath } from "@/store/selectors";
 import {
   ChatComposer,
   type ChatComposerHandle,
+  type MentionFile,
 } from "@/features/editors/ChatComposer";
 import { ChatMarkdown } from "@/features/editors/ChatMarkdown";
 import {
@@ -64,6 +69,55 @@ type KeyOption = {
 const IDLE_TIMEOUT_MS = 180_000;
 
 /** Keys for `provider` found in the workspace's key files. */
+const isMac = navigator.platform.toLowerCase().includes("mac");
+
+/** Extensions a chat can reference with `@path`. */
+const MENTIONABLE = new Set(["md", "markdown", "txt"]);
+/** Longest file text sent per reference, so one huge file can't blow the context. */
+const MAX_ATTACHMENT_CHARS = 200_000;
+
+/** Every `.md` / `.txt` file in the workspace, by path. */
+function useMentionFiles(): MentionFile[] {
+  const nodes = useAppSelector((s) => s.fs.nodes);
+  return React.useMemo(
+    () =>
+      Object.values(nodes)
+        .filter(
+          (n) =>
+            n.type === "file" &&
+            MENTIONABLE.has(extensionOf(n.name).toLowerCase()),
+        )
+        .map((n) => ({ id: n.id, path: getPath(nodes, n.id).join("/") }))
+        .sort((a, b) => a.path.localeCompare(b.path)),
+    [nodes],
+  );
+}
+
+/**
+ * The files a message references: every `@path` of a known `.md` / `.txt`
+ * file, read now. Markdown escapes (`my\_file.md`) are undone first.
+ */
+async function resolveAttachments(
+  text: string,
+  files: MentionFile[],
+): Promise<ChatAttachment[]> {
+  const plain = text.replace(/\\([\\`*_{}[\]()#+\-.!|~<>])/g, "$1");
+  const referenced = files.filter((f) => plain.includes(`@${f.path}`));
+  return Promise.all(
+    referenced.map(async (f) => {
+      const value = await storage.getContent(f.id).catch(() => null);
+      const content = typeof value === "string" ? value : "";
+      return {
+        path: f.path,
+        content:
+          content.length > MAX_ATTACHMENT_CHARS
+            ? `${content.slice(0, MAX_ATTACHMENT_CHARS)}\n…(truncated)`
+            : content,
+      };
+    }),
+  );
+}
+
 function useKeyOptions(provider: ChatProvider) {
   const nodes = useAppSelector((s) => s.fs.nodes);
   const extension = providerInfo(provider).extension;
@@ -161,6 +215,13 @@ export default function ChatPane({
   React.useEffect(() => () => abortRef.current?.abort(), []);
 
   const { options, keyFiles } = useKeyOptions(doc.provider);
+  const mentionFiles = useMentionFiles();
+  // Selections other editors sent here with "Ask AI", waiting to go along.
+  const allReferences = useAppSelector((s) => s.ui.chatReferences);
+  const references = React.useMemo(
+    () => allReferences.filter((r) => r.chatId === id),
+    [allReferences, id],
+  );
   const selected = doc.keyRef
     ? options?.find(
         (o) => o.fileId === doc.keyRef!.fileId && o.name === doc.keyRef!.name,
@@ -171,7 +232,10 @@ export default function ChatPane({
   React.useEffect(() => {
     if (!options?.length || selected) return;
     const first = options[0];
-    update((d) => ({ ...d, keyRef: { fileId: first.fileId, name: first.name } }));
+    update((d) => ({
+      ...d,
+      keyRef: { fileId: first.fileId, name: first.name },
+    }));
   }, [options, selected, update]);
 
   // Model suggestions for the chosen key.
@@ -248,7 +312,8 @@ export default function ChatPane({
         patchReply((m) => ({
           ...m,
           error: true,
-          content: "The model finished without sending any text. Try again or pick another model.",
+          content:
+            "The model finished without sending any text. Try again or pick another model.",
         }));
       }
     } catch (error) {
@@ -285,14 +350,27 @@ export default function ChatPane({
     }
   };
 
-  const send = () => {
-    const text = draft.trim();
-    if (!text || streamingId || !selected || !docRef.current.model.trim()) return;
+  const send = async () => {
+    // A trailing space (e.g. after an inserted @mention) exports as `&#x20;`.
+    const text = draft.replace(/(?:\s|&#x20;|&#32;)+$/, "").trim();
+    if (!text || streamingId || !selected || !docRef.current.model.trim())
+      return;
     setDraft("");
     composerRef.current?.clear();
+    const attachments = [
+      ...references.map((r) => ({ path: r.path, content: r.content })),
+      ...(await resolveAttachments(text, mentionFiles)),
+    ];
+    if (references.length) dispatch(uiActions.chatReferencesCleared(id));
     void run([
       ...docRef.current.messages,
-      { id: newMessageId(), role: "user", content: text, at: Date.now() },
+      {
+        id: newMessageId(),
+        role: "user",
+        content: text,
+        at: Date.now(),
+        ...(attachments.length ? { attachments } : {}),
+      },
     ]);
   };
 
@@ -300,7 +378,10 @@ export default function ChatPane({
   const regenerate = () => {
     if (streamingId) return;
     const messages = [...docRef.current.messages];
-    while (messages.length && messages[messages.length - 1].role === "assistant") {
+    while (
+      messages.length &&
+      messages[messages.length - 1].role === "assistant"
+    ) {
       messages.pop();
     }
     if (messages.length) void run(messages);
@@ -336,7 +417,10 @@ export default function ChatPane({
           value={selected}
           disabled={options === null || Boolean(streamingId)}
           onChange={(o) =>
-            update((d) => ({ ...d, keyRef: { fileId: o.fileId, name: o.name } }))
+            update((d) => ({
+              ...d,
+              keyRef: { fileId: o.fileId, name: o.name },
+            }))
           }
           onManage={openKeys}
         />
@@ -363,7 +447,7 @@ export default function ChatPane({
           type="button"
           variant="outline"
           size="sm"
-          className={cn(ui.paneToolbarBtn, "w-7 px-0 hover:text-app-error")}
+          className={cn(ui.paneToolbarBtn, "hover:text-app-error w-7 px-0")}
           aria-label="Clear conversation"
           data-testid="chat-pane-clear-button"
           disabled={!doc.messages.length || Boolean(streamingId)}
@@ -375,7 +459,10 @@ export default function ChatPane({
 
       <div className="chat-pane" data-testid="chat-pane">
         {showSettings ? (
-          <div className="chat-pane__settings" data-testid="chat-pane-settings-content">
+          <div
+            className="chat-pane__settings"
+            data-testid="chat-pane-settings-content"
+          >
             <label className="pane-field">
               <span className="pane-field__label">System prompt</span>
               <textarea
@@ -384,7 +471,9 @@ export default function ChatPane({
                 rows={3}
                 value={doc.system}
                 placeholder="How the assistant should behave (optional)"
-                onChange={(e) => update((d) => ({ ...d, system: e.target.value }))}
+                onChange={(e) =>
+                  update((d) => ({ ...d, system: e.target.value }))
+                }
               />
             </label>
             <Slider
@@ -408,12 +497,20 @@ export default function ChatPane({
           className="chat-pane__scroll"
           onScroll={(e) => {
             const el = e.currentTarget;
-            stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+            stickRef.current =
+              el.scrollHeight - el.scrollTop - el.clientHeight < 40;
           }}
         >
-          <div className="chat-pane__messages" data-testid="chat-pane-message-list">
+          <div
+            className="chat-pane__messages"
+            data-testid="chat-pane-message-list"
+          >
             {parseError ? (
-              <p className="chat-pane__notice chat-pane__notice--error" role="alert" data-testid="chat-pane-parse-error-message">
+              <p
+                className="chat-pane__notice chat-pane__notice--error"
+                role="alert"
+                data-testid="chat-pane-parse-error-message"
+              >
                 <IconAlertTriangle aria-hidden className="pane-icon" />
                 This file is not a valid chat ({parseError}). Sending a message
                 replaces it.
@@ -421,12 +518,18 @@ export default function ChatPane({
             ) : null}
 
             {!noKeys && !doc.messages.length ? (
-              <div className="chat-pane__empty" data-testid="chat-pane-empty-message">
-                <IconMessageChatbot aria-hidden className="chat-pane__empty-icon" />
+              <div
+                className="chat-pane__empty"
+                data-testid="chat-pane-empty-message"
+              >
+                <IconMessageChatbot
+                  aria-hidden
+                  className="chat-pane__empty-icon"
+                />
                 <p className="chat-pane__empty-text">
-                  Chat with {providerInfo(doc.provider).label} · {doc.model || "pick a model"}.
-                  The conversation is saved in this file; your key stays in its
-                  key file.
+                  Chat with {providerInfo(doc.provider).label} ·{" "}
+                  {doc.model || "pick a model"}. The conversation is saved in
+                  this file; your key stays in its key file.
                 </p>
               </div>
             ) : null}
@@ -442,11 +545,15 @@ export default function ChatPane({
                     : () =>
                         update((d) => ({
                           ...d,
-                          messages: d.messages.filter((m) => m.id !== message.id),
+                          messages: d.messages.filter(
+                            (m) => m.id !== message.id,
+                          ),
                         }))
                 }
                 onRegenerate={
-                  message === last && !streamingId && selected ? regenerate : undefined
+                  message === last && !streamingId && selected
+                    ? regenerate
+                    : undefined
                 }
               />
             ))}
@@ -454,7 +561,11 @@ export default function ChatPane({
         </div>
 
         {noKeys ? (
-          <div className="chat-pane__banner" role="status" data-testid="chat-pane-no-key-message">
+          <div
+            className="chat-pane__banner"
+            role="status"
+            data-testid="chat-pane-no-key-message"
+          >
             <span className="chat-pane__banner-text">
               <IconKey aria-hidden className="chat-pane__banner-icon" />
               Add a {providerInfo(doc.provider).label} API key to start chatting
@@ -466,12 +577,54 @@ export default function ChatPane({
               data-testid="chat-pane-create-key-button"
               onClick={openKeys}
             >
-              {keyFiles.length ? `Open ${keyFiles[0].name}` : `Create ${keyFileName}`}
+              {keyFiles.length
+                ? `Open ${keyFiles[0].name}`
+                : `Create ${keyFileName}`}
             </Button>
           </div>
         ) : null}
 
-        <div className={cn("chat-pane__composer", noKeys && "chat-pane__composer--attached")}>
+        {references.length ? (
+          <ul
+            className="chat-pane__references"
+            aria-label="Selections to send with your next message"
+            data-testid="chat-pane-references"
+          >
+            {references.map((r, i) => (
+              <li
+                key={`${r.path}-${i}`}
+                className="chat-pane__reference"
+                title={r.content.slice(0, 500)}
+              >
+                <IconFileText
+                  aria-hidden
+                  className="chat-pane__attachment-icon"
+                />
+                <span className="chat-pane__attachment-path">{r.path}</span>
+                <button
+                  type="button"
+                  className="chat-pane__reference-remove"
+                  aria-label={`Remove ${r.path}`}
+                  data-testid={`chat-pane-reference-${i}-remove-button`}
+                  onClick={() =>
+                    dispatch(
+                      uiActions.chatReferenceRemoved({ chatId: id, index: i }),
+                    )
+                  }
+                >
+                  <IconX aria-hidden className="chat-pane__attachment-icon" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <div
+          className={cn(
+            "chat-pane__composer",
+            noKeys && "chat-pane__composer--attached",
+          )}
+        >
           <ChatComposer
             composerRef={composerRef}
             isDark={isDark}
@@ -479,10 +632,12 @@ export default function ChatPane({
             autoFocus={focusOnMount}
             placeholder={
               selected
-                ? "Message"
+                ? `Message · @ to reference a file · ${isMac ? "⌘" : "Ctrl"}+Enter to send`
                 : "Add an API key to start"
             }
+            mentionFiles={mentionFiles}
             onChange={setDraft}
+            onSubmit={() => void send()}
           />
           {streamingId ? (
             <Button
@@ -498,8 +653,9 @@ export default function ChatPane({
             <Button
               type="button"
               data-testid="chat-pane-send-button"
+              title={`Send (${isMac ? "⌘" : "Ctrl"} + Enter)`}
               disabled={!draft.trim() || !selected || !doc.model.trim()}
-              onClick={send}
+              onClick={() => void send()}
             >
               <IconSend2 aria-hidden className="pane-icon" />
               Send
@@ -535,18 +691,29 @@ function MessageRow({
       aria-label={isUser ? "You" : "Assistant"}
       data-testid={`${testBase}-item`}
     >
-      <span className="chat-pane__avatar" aria-hidden>
-        {isUser ? (
-          <IconUser className="chat-pane__avatar-icon" />
-        ) : message.error ? (
-          <IconAlertTriangle className="chat-pane__avatar-icon" />
-        ) : (
-          <IconMessageChatbot className="chat-pane__avatar-icon" />
-        )}
-      </span>
       <div className="chat-pane__bubble">
+        {message.attachments?.length ? (
+          <ul
+            className="chat-pane__attachments"
+            aria-label="Referenced files"
+            data-testid={`${testBase}-attachments`}
+          >
+            {message.attachments.map((a) => (
+              <li key={a.path} className="chat-pane__attachment" title={a.path}>
+                <IconFileText
+                  aria-hidden
+                  className="chat-pane__attachment-icon"
+                />
+                <span className="chat-pane__attachment-path">{a.path}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {message.error ? (
-          <p className="chat-pane__plain">{message.content}</p>
+          <p className="chat-pane__plain">
+            <IconAlertTriangle aria-hidden className="chat-pane__error-icon" />
+            {message.content}
+          </p>
         ) : message.content ? (
           <ChatMarkdown text={message.content} />
         ) : streaming ? (
@@ -554,58 +721,60 @@ function MessageRow({
         ) : (
           <p className="chat-pane__plain">(empty reply)</p>
         )}
-        {!streaming ? (
-          <div className="chat-pane__tools">
-            {message.model ? <span className="chat-pane__meta">{message.model}</span> : null}
+      </div>
+      {!streaming ? (
+        <div className="chat-pane__tools">
+          {message.model ? (
+            <span className="chat-pane__meta">{message.model}</span>
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="chat-pane__tool"
+            aria-label="Copy message"
+            data-testid={`${testBase}-copy-button`}
+            onClick={() =>
+              void navigator.clipboard.writeText(message.content).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1000);
+              })
+            }
+          >
+            {copied ? (
+              <IconCheck aria-hidden className="chat-pane__tool-icon" />
+            ) : (
+              <IconCopy aria-hidden className="chat-pane__tool-icon" />
+            )}
+          </Button>
+          {onRegenerate ? (
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
               className="chat-pane__tool"
-              aria-label="Copy message"
-              data-testid={`${testBase}-copy-button`}
-              onClick={() =>
-                void navigator.clipboard.writeText(message.content).then(() => {
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1000);
-                })
-              }
+              aria-label={isUser ? "Get a reply" : "Regenerate reply"}
+              data-testid={`${testBase}-regenerate-button`}
+              onClick={onRegenerate}
             >
-              {copied ? (
-                <IconCheck aria-hidden className="chat-pane__tool-icon" />
-              ) : (
-                <IconCopy aria-hidden className="chat-pane__tool-icon" />
-              )}
+              <IconRefresh aria-hidden className="chat-pane__tool-icon" />
             </Button>
-            {onRegenerate ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                className="chat-pane__tool"
-                aria-label={isUser ? "Get a reply" : "Regenerate reply"}
-                data-testid={`${testBase}-regenerate-button`}
-                onClick={onRegenerate}
-              >
-                <IconRefresh aria-hidden className="chat-pane__tool-icon" />
-              </Button>
-            ) : null}
-            {onDelete ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                className="chat-pane__tool"
-                aria-label="Delete message"
-                data-testid={`${testBase}-delete-button`}
-                onClick={onDelete}
-              >
-                <IconTrash aria-hidden className="chat-pane__tool-icon" />
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+          {onDelete ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="chat-pane__tool"
+              aria-label="Delete message"
+              data-testid={`${testBase}-delete-button`}
+              onClick={onDelete}
+            >
+              <IconTrash aria-hidden className="chat-pane__tool-icon" />
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }

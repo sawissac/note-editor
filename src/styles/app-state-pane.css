@@ -1,3 +1,5 @@
+@reference "../index.css";
+
 /* AppStatePane (`app.state`) — BEM block `app-state-pane`.
  *
  * Imported from `src/index.css`, so `@apply` resolves the app-* theme. The

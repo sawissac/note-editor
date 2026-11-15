@@ -362,3 +362,143 @@ export function toIcs(doc: CalendarDoc, name: string) {
   lines.push("END:VCALENDAR");
   return `${lines.map(fold).join("\r\n")}\r\n`;
 }
+
+/* ───────────────────────────── Mermaid timeline ───────────────────────────── */
+
+/**
+ * Event text for a Mermaid timeline. The grammar ends an event at a colon
+ * followed by whitespace (or the line end) and at a newline, and treats
+ * `%%` as a comment. A zero-width space after such a colon keeps it a
+ * plain, normally rendered colon (`\s` does not match U+200B); the same
+ * invisible break splits `%%`. Newlines fold to spaces.
+ */
+function timelineText(value: string) {
+  return value
+    .replace(/\s*\r?\n\s*/g, " ")
+    .replace(/:(?=\s|$)/g, ":\u200B")
+    .replace(/%%/g, "%\u200B%")
+    .trim();
+}
+
+/** Time period / section labels may not hold `:` or `#` at all. */
+const timelineLabel = (value: string) =>
+  value.replace(/[:#]/g, " ").replace(/\s+/g, " ").trim();
+
+/** Longest span (in days) spread across the timeline one day at a time. */
+const TIMELINE_MAX_SPREAD_DAYS = 62;
+
+/**
+ * The calendar as a Mermaid `timeline` diagram (no title): one section per month, one
+ * time period per day that has something on it, that day's events in order.
+ *
+ * Every box carries exact dates and times: its title (and location), then
+ * the date with the exact time window on that day. A multi-day event
+ * appears on EVERY day it covers (Nov 15 → 20 shows on 15, 16, …, 20); each
+ * box gives that day's slice ("Nov 16, 2026, 12:00 AM – 11:59 PM"). Spans
+ * longer than {@link TIMELINE_MAX_SPREAD_DAYS} show on their first and last
+ * day only, so the diagram stays readable. Throws when there is nothing to plot.
+ */
+export function toMermaidTimeline(doc: CalendarDoc) {
+  if (!doc.events.length) {
+    throw new Error("There are no events to put on a timeline.");
+  }
+  const monthOf = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const dayOf = (d: Date) =>
+    d.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  /** "Nov 16, 2026" — boxes carry the exact date, year included. */
+  const fullDay = (d: Date) =>
+    d.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  type Slice = {
+    day: Date;
+    /** Minutes into the day the slice starts; -1 = all day (sorts first). */
+    from: number;
+    text: string;
+    seq: number;
+  };
+  const slices: Slice[] = [];
+
+  sortEvents(doc.events).forEach((e, seq) => {
+    const name = timelineText(
+      `${e.title || "New Event"}${e.location ? ` (${e.location})` : ""}`,
+    );
+    const add = (day: Date, from: number, ...when: string[]) =>
+      slices.push({
+        day,
+        from,
+        seq,
+        text: [name, ...when.map(timelineText)].join(" <br> "),
+      });
+
+    const [first, last] = eventDayRange(e);
+    const s = parseLocal(e.start);
+    const en = parseLocal(e.end);
+    const total = dayDiff(first, last) + 1;
+    const startOfDayTime = formatTime(startOfDay(s));
+    const endOfDayTime = formatTime(addMinutes(startOfDay(s), 24 * 60 - 1));
+
+    if (total === 1) {
+      add(
+        first,
+        e.allDay ? -1 : minutesOfDay(s),
+        e.allDay
+          ? `${fullDay(first)} · All day`
+          : `${fullDay(first)}, ${formatTime(s)} – ${formatTime(en)}`,
+      );
+      return;
+    }
+    // The whole span, exact at both ends (only for spans too long to spread).
+    const range = e.allDay
+      ? `${fullDay(first)} – ${fullDay(last)} · All day`
+      : `${fullDay(s)}, ${formatTime(s)} – ${fullDay(en)}, ${formatTime(en)}`;
+    if (total > TIMELINE_MAX_SPREAD_DAYS) {
+      add(first, e.allDay ? -1 : minutesOfDay(s), `Starts: ${range}`);
+      add(last, -1, `Ends: ${range}`);
+      return;
+    }
+    for (let i = 0; i < total; i++) {
+      const day = addDays(first, i);
+      // This day's exact slice of the event.
+      const from = e.allDay || i > 0 ? startOfDayTime : formatTime(s);
+      const to = e.allDay || i < total - 1 ? endOfDayTime : formatTime(en);
+      const today = e.allDay
+        ? `${fullDay(day)} · All day`
+        : `${fullDay(day)}, ${from} – ${to}`;
+      add(day, !e.allDay && i === 0 ? minutesOfDay(s) : -1, today);
+    }
+  });
+
+  slices.sort(
+    (a, b) =>
+      a.day.getTime() - b.day.getTime() || a.from - b.from || a.seq - b.seq,
+  );
+
+  const lines = ["timeline"];
+  let month = "";
+  let day = "";
+  for (const slice of slices) {
+    const m = timelineLabel(monthOf(slice.day));
+    if (m !== month) {
+      month = m;
+      day = "";
+      lines.push(`    section ${m}`);
+    }
+    const d = timelineLabel(dayOf(slice.day));
+    if (d !== day) {
+      day = d;
+      lines.push(`        ${d} : ${slice.text}`);
+    } else {
+      lines.push(`             : ${slice.text}`);
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}

@@ -1,3 +1,4 @@
+import "@/styles/regex-pane.css";
 import {
   IconAlertTriangle,
   IconBook2,

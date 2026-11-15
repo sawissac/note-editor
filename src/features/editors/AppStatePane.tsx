@@ -1,3 +1,4 @@
+import "@/styles/app-state-pane.css";
 import {
   IconArrowsMaximize,
   IconFoldDown,

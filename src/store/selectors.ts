@@ -119,3 +119,18 @@ export function getTargetFolderId(
   if (!node) return null;
   return node.type === "folder" ? node.id : node.parentId;
 }
+
+/**
+ * The explorer sidebar shows only when the user has it open AND the
+ * workspace holds something — an empty workspace hides it so the editor
+ * area's empty state (New note / New folder / Import) is the whole screen.
+ * It also shows while a new-item draft is pending: New note / New folder
+ * name the item in an explorer row. Derived, not stored: the saved
+ * `sidebarOpen` preference is untouched, so the sidebar comes back as it
+ * was once the first file or folder exists.
+ */
+export const selectSidebarVisible = (s: RootState) =>
+  s.ui.sidebarOpen && (s.fs.draft !== null || Object.keys(s.fs.nodes).length > 0);
+
+/** Whether the workspace has any file or folder at all. */
+export const selectHasNodes = (s: RootState) => Object.keys(s.fs.nodes).length > 0;

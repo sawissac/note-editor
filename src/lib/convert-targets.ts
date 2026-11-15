@@ -15,7 +15,14 @@ import { IMAGE_FORMATS, type ImageFormat } from "@/lib/image-formats";
 export type DataTargetId = "json" | "yml" | "yaml" | "toml" | "env";
 
 export type ConvertTargetId =
-  DataTargetId | "csv" | "md" | "txt" | "pdf" | `img-${ImageFormat}`;
+  | DataTargetId
+  | "csv"
+  | "md"
+  | "txt"
+  | "pdf"
+  | "mermaid-timeline"
+  | "mermaid-gantt"
+  | `img-${ImageFormat}`;
 
 export type ConvertGroup = "data" | "document" | "image" | "pdf";
 
@@ -66,8 +73,8 @@ const TARGETS_BY_KIND: Partial<Record<FileKind, ConvertTargetId[]>> = {
   markdown: ["txt", "pdf"],
   text: ["md", "pdf"],
   schema: ["json", "pdf"],
-  kanban: ["csv", "md", "pdf"],
-  calendar: ["csv", "md", "pdf"],
+  kanban: ["csv", "md", "mermaid-gantt", "pdf"],
+  calendar: ["csv", "md", "mermaid-timeline", "pdf"],
   timer: ["csv", "md", "pdf"],
   chat: ["md", "txt", "pdf"],
   sql: ["pdf"],
@@ -89,6 +96,14 @@ function describe(id: ConvertTargetId, source: FileKind): ConvertTarget {
     };
   }
   if (id === "pdf") return { id, label: ".pdf", group: "pdf", eager: false };
+  if (id === "mermaid-timeline" || id === "mermaid-gantt") {
+    return {
+      id,
+      label: `.mermaid (${id.slice("mermaid-".length)})`,
+      group: "document",
+      eager: TEXT_SOURCES.has(source),
+    };
+  }
   return {
     id,
     label: `.${id}`,
@@ -120,5 +135,7 @@ export function convertedName(name: string, target: ConvertTargetId) {
     const format = target.slice(4) as ImageFormat;
     return `${base}-${IMAGE_FORMATS[format].ext}.img`;
   }
+  // Diagram conversions (timeline, gantt) are all .mermaid files.
+  if (target.startsWith("mermaid-")) return `${base}.mermaid`;
   return `${base}.${target}`;
 }

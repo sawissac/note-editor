@@ -23,7 +23,7 @@ import { FileIcon } from "@/lib/file-icons";
 import * as ui from "@/lib/ui-styles";
 import { openFile } from "@/store/actions";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getPath } from "@/store/selectors";
+import { getPath, selectHasNodes } from "@/store/selectors";
 import { tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
 
@@ -42,6 +42,8 @@ export function TabBar() {
   const openIds = useAppSelector((s) => s.tabs.openIds);
   const activeId = useAppSelector((s) => s.tabs.activeId);
   const sidebarOpen = useAppSelector((s) => s.ui.sidebarOpen);
+  // Empty workspace: no sidebar to show, so no "Show sidebar" button either.
+  const hasNodes = useAppSelector(selectHasNodes);
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = React.useState({ left: false, right: false });
 
@@ -88,7 +90,7 @@ export function TabBar() {
       data-testid="tab-bar"
       className="flex h-9 shrink-0 items-stretch border-b border-app-border bg-app-sidebar"
     >
-      {!sidebarOpen ? (
+      {!sidebarOpen && hasNodes ? (
         <Button
           type="button"
           variant="ghost"

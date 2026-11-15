@@ -51,10 +51,20 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Non-render-blocking: fetched at high priority, applied on load
+         (display=swap already falls back to system fonts meanwhile). -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Open+Sans:wght@400;600&family=Poppins:wght@500;600;700&display=swap"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Open+Sans:wght@400;600&family=Poppins:wght@500;600;700&display=swap"
+      />
+    </noscript>
 
     <!-- Boot splash: real content in the initial HTML (crawlers that don't
          run JS still see what the app is), replaced when React mounts. -->

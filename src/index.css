@@ -2,21 +2,14 @@
 @import "tw-animate-css";
 @import "./styles/compacto/index.css";
 @import "./styles/compacto/compat-shadcn.css";
-@import "./styles/regex-pane.css";
-@import "./styles/diff-pane.css";
 @import "./styles/name-input.css";
 @import "./styles/explorer.css";
 @import "./styles/status-bar.css";
 @import "./styles/quick-open.css";
 @import "./styles/pane-controls.css";
-@import "./styles/qr-pane.css";
-@import "./styles/image-pane.css";
-@import "./styles/timer-pane.css";
 @import "./styles/timer-dock.css";
-@import "./styles/chat-pane.css";
-@import "./styles/app-info-pane.css";
-@import "./styles/app-state-pane.css";
-@import "./styles/unified-export.css";
+@import "./styles/markdown-fallback.css";
+@import "./styles/ask-ai.css";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -1,3 +1,4 @@
+import "@/styles/timer-pane.css";
 import {
   closestCenter,
   DndContext,

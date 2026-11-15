@@ -1,10 +1,19 @@
+import "@/styles/mermaid-zoom.css";
 import {
   IconAlertTriangle,
   IconFileTypePng,
   IconFileTypeSvg,
   IconLoader2,
+  IconMaximize,
+  IconZoomIn,
+  IconZoomOut,
 } from "@tabler/icons-react";
 import * as React from "react";
+import {
+  type ReactZoomPanPinchRef,
+  TransformComponent,
+  TransformWrapper,
+} from "react-zoom-pan-pinch";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -70,6 +79,137 @@ function useMermaidSvg(source: string, isDark: boolean, delay = 250) {
   return state;
 }
 
+/** The diagram's own size, from the SVG's viewBox (zoom 100%). */
+function svgSize(svg: string) {
+  const box = svg.match(
+    /viewBox="(-?[\d.]+)[ ,]+(-?[\d.]+)[ ,]+(-?[\d.]+)[ ,]+(-?[\d.]+)"/,
+  );
+  const width = box ? Number(box[3]) : 0;
+  const height = box ? Number(box[4]) : 0;
+  return width > 0 && height > 0
+    ? { width, height }
+    : { width: 800, height: 600 };
+}
+
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 8;
+/** Room kept around the diagram when fitting it to the pane. */
+const FIT_PADDING = 32;
+
+/**
+ * Pan / zoom stage for the rendered SVG: wheel or pinch to zoom at the
+ * cursor, drag to pan, double-click to zoom in. Opens fitted to the pane
+ * (never above 100%); the transform survives re-renders while editing.
+ */
+function MermaidZoom({ svg }: { svg: string }) {
+  const zoom = React.useRef<ReactZoomPanPinchRef>(null);
+  const stage = React.useRef<HTMLDivElement>(null);
+  const [scale, setScale] = React.useState(1);
+  const size = svgSize(svg);
+
+  const fit = React.useCallback(
+    (animate = true) => {
+      const box = stage.current?.getBoundingClientRect();
+      if (!zoom.current || !box?.width || !box.height) return;
+      const s = Math.max(
+        MIN_ZOOM,
+        Math.min(
+          1,
+          (box.width - FIT_PADDING * 2) / size.width,
+          (box.height - FIT_PADDING * 2) / size.height,
+        ),
+      );
+      zoom.current.centerView(s, animate ? 200 : 0);
+    },
+    [size.width, size.height],
+  );
+
+  // Open fitted once the stage and the zoom instance exist (the wrapper's
+  // onInit fires before its ref is attached). Later edits keep the view.
+  const fitted = React.useRef(false);
+  React.useEffect(() => {
+    if (fitted.current) return;
+    const frame = requestAnimationFrame(() => {
+      fitted.current = true;
+      fit(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [fit]);
+
+  return (
+    <div ref={stage} className="mermaid-zoom" data-testid="mermaid-pane-zoom">
+      <TransformWrapper
+        ref={zoom}
+        minScale={MIN_ZOOM}
+        maxScale={MAX_ZOOM}
+        limitToBounds={false}
+        wheel={{ step: 0.002 }}
+        doubleClick={{ step: 0.7 }}
+        onTransform={(_, state) => setScale(state.scale)}
+      >
+        <TransformComponent
+          wrapperClass="mermaid-zoom__viewport"
+          wrapperStyle={{ width: "100%", height: "100%" }}
+        >
+          <div
+            className="mermaid-zoom__diagram"
+            style={{ width: size.width, height: size.height }}
+            // Mermaid output, sanitized by securityLevel "strict".
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+        </TransformComponent>
+      </TransformWrapper>
+      <div
+        className="mermaid-zoom__controls"
+        role="toolbar"
+        aria-label="Zoom"
+        data-testid="mermaid-pane-zoom-controls"
+      >
+        <button
+          type="button"
+          className="mermaid-zoom__button"
+          aria-label="Zoom out"
+          title="Zoom out"
+          data-testid="mermaid-pane-zoom-out-button"
+          onClick={() => zoom.current?.zoomOut(0.25)}
+        >
+          <IconZoomOut />
+        </button>
+        <button
+          type="button"
+          className="mermaid-zoom__level"
+          aria-label="Reset zoom to 100%"
+          title="Reset to 100%"
+          data-testid="mermaid-pane-zoom-reset-button"
+          onClick={() => zoom.current?.centerView(1, 200)}
+        >
+          {Math.round(scale * 100)}%
+        </button>
+        <button
+          type="button"
+          className="mermaid-zoom__button"
+          aria-label="Zoom in"
+          title="Zoom in"
+          data-testid="mermaid-pane-zoom-in-button"
+          onClick={() => zoom.current?.zoomIn(0.25)}
+        >
+          <IconZoomIn />
+        </button>
+        <button
+          type="button"
+          className="mermaid-zoom__button"
+          aria-label="Fit to view"
+          title="Fit to view"
+          data-testid="mermaid-pane-zoom-fit-button"
+          onClick={() => fit()}
+        >
+          <IconMaximize />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MermaidPreview({
   source,
   isDark,
@@ -84,22 +224,20 @@ function MermaidPreview({
       data-testid="mermaid-pane-preview-content"
       className="bg-app-bg relative flex h-full flex-col"
     >
-      <div className="min-h-0 flex-1 overflow-auto p-8">
-        {svg ? (
-          <div
-            className="mx-auto flex justify-center [&_svg]:h-auto [&_svg]:max-w-full"
-            // Mermaid output, sanitized by securityLevel "strict".
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
-        ) : state.status === "idle" ? (
-          <p
-            data-testid="mermaid-pane-empty-message"
-            className="font-description text-app-dim pt-16 text-center text-[12px]"
-          >
-            Nothing to render yet — write a diagram in Edit mode.
-          </p>
-        ) : null}
-      </div>
+      {svg ? (
+        <MermaidZoom svg={svg} />
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto p-8">
+          {state.status === "idle" ? (
+            <p
+              data-testid="mermaid-pane-empty-message"
+              className="font-description text-app-dim pt-16 text-center text-[12px]"
+            >
+              Nothing to render yet — write a diagram in Edit mode.
+            </p>
+          ) : null}
+        </div>
+      )}
       {state.status === "error" ? (
         <pre
           data-testid="mermaid-pane-error-message"

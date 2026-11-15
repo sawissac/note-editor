@@ -13,7 +13,9 @@ import type {
   ConvertTargetId,
   DataTargetId,
 } from "@/lib/convert-targets";
+import { parseCalendar, toMermaidTimeline } from "@/lib/calendar";
 import { parseData, parseEnv } from "@/lib/data-formats";
+import { parseKanban, toMermaidGantt } from "@/lib/kanban";
 import { type FileKind, kindOf } from "@/lib/file-types";
 import {
   IMAGE_FORMATS,
@@ -464,6 +466,34 @@ export async function convertFile(
       return csvText(table.header ? [table.header, ...table.rows] : table.rows);
     }
     return valueToCsv(await readValue(kind, input));
+  }
+  if (target === "mermaid-gantt") {
+    if (kind !== "kanban") fail("Only boards convert to a Gantt chart.");
+    let board;
+    try {
+      board = parseKanban(textOf(input.content));
+    } catch (error) {
+      fail(`Not a valid board (${errorMessage(error)}).`);
+    }
+    try {
+      return toMermaidGantt(board!);
+    } catch (error) {
+      fail(errorMessage(error));
+    }
+  }
+  if (target === "mermaid-timeline") {
+    if (kind !== "calendar") fail("Only calendars convert to a timeline.");
+    let doc;
+    try {
+      doc = parseCalendar(textOf(input.content));
+    } catch (error) {
+      fail(`Not a valid calendar (${errorMessage(error)}).`);
+    }
+    try {
+      return toMermaidTimeline(doc!);
+    } catch (error) {
+      fail(errorMessage(error));
+    }
   }
   if (target === "md") {
     if (kind === "text") return textOf(input.content);

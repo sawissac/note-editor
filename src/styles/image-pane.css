@@ -1,3 +1,5 @@
+@reference "../index.css";
+
 /* ImagePane (image files) — BEM block `image-pane`.
  *
  * Imported from `src/index.css`, so `@apply` resolves the app-* theme. The

@@ -4,6 +4,7 @@ import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import JsonWorker from "monaco-editor/language/json/json.worker?worker";
 import * as React from "react";
 
+import { CODE_SELECTION_EVENT, type CodeSelection } from "@/lib/ask-ai";
 import { APP_THEME, type ColorTheme } from "@/lib/color-themes";
 import {
   type MermaidSnippet,
@@ -169,6 +170,68 @@ export default function CodeEditor({
         focus: () => editor.focus(),
       };
     }
+    // "Ask AI" on a selection: report it (text, line range, screen box) as a
+    // bubbling DOM event; EditorArea shows the Ask AI button for it.
+    const reportSelection = (ask = false) => {
+      const model = editor.getModel();
+      const sel = editor.getSelection();
+      const node = editor.getDomNode();
+      if (!node) return;
+      const text =
+        model && sel && !sel.isEmpty() ? model.getValueInRange(sel) : "";
+      if (!text.trim()) {
+        node.dispatchEvent(
+          new CustomEvent(CODE_SELECTION_EVENT, {
+            bubbles: true,
+            detail: null,
+          }),
+        );
+        return;
+      }
+      // A selection ending at column 1 really ends on the line above.
+      const lastLine =
+        sel!.endColumn === 1 && sel!.endLineNumber > sel!.startLineNumber
+          ? sel!.endLineNumber - 1
+          : sel!.endLineNumber;
+      // Anchor the button just past the end of the last selected line.
+      const anchor = editor.getScrolledVisiblePosition({
+        lineNumber: lastLine,
+        column: model!.getLineMaxColumn(lastLine),
+      });
+      const box = node.getBoundingClientRect();
+      const detail: CodeSelection = {
+        text,
+        where:
+          sel!.startLineNumber === lastLine
+            ? `line ${lastLine}`
+            : `lines ${sel!.startLineNumber}–${lastLine}`,
+        rect: new DOMRect(
+          box.left + (anchor?.left ?? 0),
+          box.top + (anchor?.top ?? 0),
+          0,
+          anchor?.height ?? 18,
+        ),
+        ask,
+      };
+      node.dispatchEvent(
+        new CustomEvent(CODE_SELECTION_EVENT, { bubbles: true, detail }),
+      );
+    };
+    let selectionTimer: ReturnType<typeof setTimeout> | undefined;
+    editor.onDidChangeCursorSelection(() => {
+      clearTimeout(selectionTimer);
+      selectionTimer = setTimeout(() => reportSelection(), 120);
+    });
+    editor.onDidScrollChange(() => reportSelection());
+    editor.onDidBlurEditorWidget(() => clearTimeout(selectionTimer));
+    editor.addAction({
+      id: "app.askAi",
+      label: "Ask AI about selection",
+      precondition: "editorHasSelection",
+      contextMenuGroupId: "navigation",
+      contextMenuOrder: 0,
+      run: () => reportSelection(true),
+    });
     // Actions, not `addCommand`: a command's keybinding is global to every
     // Monaco editor on the page (the last one mounted wins), an action's only
     // fires in the editor it was added to — panes can host two editors.

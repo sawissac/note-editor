@@ -1,3 +1,5 @@
+@reference "../index.css";
+
 /* DiffPane (`.diff` files) — BEM blocks `diff-pane` (the diff view) and
  * `diff-picker` (choosing the two files to compare).
  *

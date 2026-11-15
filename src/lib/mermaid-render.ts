@@ -29,7 +29,45 @@ export async function renderMermaidSvg(
     flowchart: { htmlLabels },
   } as MermaidConfig);
   const { svg } = await mermaid.render(`mermaid-svg-${++renderSeq}`, source);
-  return svg;
+  return centerTimelineTitle(svg);
+}
+
+/**
+ * Mermaid's timeline puts its title's LEFT edge near the middle
+ * (`x = width / 2 - margin`, no `text-anchor`), so the title sits off to
+ * the right. Re-anchor it over the middle of the period columns (the
+ * axis arrow runs past them, so the viewBox centre is too far right);
+ * falls back to the viewBox centre. Applies to the preview, SVG / PNG
+ * downloads and the PDF export alike.
+ */
+function centerTimelineTitle(svg: string) {
+  if (!svg.includes('aria-roledescription="timeline"')) return svg;
+  let center: number | undefined;
+  // Each period column: <g class="taskWrapper" transform="translate(x, y)">
+  // whose box path is drawn as "M0 … h<width-10> q5,0,5,5 …".
+  const columns = [
+    ...svg.matchAll(/class="taskWrapper" transform="translate\((-?[\d.]+)/g),
+  ];
+  if (columns.length) {
+    const first = svg.slice(columns[0].index);
+    const inner = first.match(/ h(-?[\d.]+) q5,0,5,5/);
+    const xs = columns.map((m) => Number(m[1]));
+    if (inner) {
+      const width = Number(inner[1]) + 10;
+      center = (Math.min(...xs) + Math.max(...xs) + width) / 2;
+    }
+  }
+  if (center === undefined || !Number.isFinite(center)) {
+    const box = svg.match(
+      /viewBox="(-?[\d.]+)[ ,]+(-?[\d.]+)[ ,]+(-?[\d.]+)[ ,]+(-?[\d.]+)"/,
+    );
+    if (!box) return svg;
+    center = Number(box[1]) + Number(box[3]) / 2;
+  }
+  return svg.replace(
+    /<text x="[^"]*"( font-size="4ex" font-weight="bold")/,
+    `<text x="${center}" text-anchor="middle"$1`,
+  );
 }
 
 /** Intrinsic size of a rendered Mermaid SVG, from its viewBox. */

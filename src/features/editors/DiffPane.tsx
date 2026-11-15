@@ -1,3 +1,4 @@
+import "@/styles/diff-pane.css";
 import {
   type FileDiffMetadata,
   parseDiffFromFile,
