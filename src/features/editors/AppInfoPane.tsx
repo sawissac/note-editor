@@ -148,6 +148,7 @@ export default function AppInfoPane({ id, registerSave }: PaneProps) {
               <li
                 key={entry.id}
                 className="app-info-pane__card"
+                title={KIND_LABEL[entry.kind]}
                 style={{ "--app-info-pane-i": i } as React.CSSProperties}
                 data-testid={`app-info-pane-card-${entry.id}`}
               >
@@ -155,9 +156,6 @@ export default function AppInfoPane({ id, registerSave }: PaneProps) {
                   <FileIcon name={entry.iconName} unsized />
                 </span>
                 <span className="app-info-pane__card-ext">{entry.label}</span>
-                <span className="app-info-pane__card-kind">
-                  {KIND_LABEL[entry.kind]}
-                </span>
               </li>
             ))}
           </ul>

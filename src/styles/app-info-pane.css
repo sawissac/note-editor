@@ -55,7 +55,4 @@
   .app-info-pane__card-ext {
     @apply text-app-bright font-mono text-[13px] font-semibold;
   }
-  .app-info-pane__card-kind {
-    @apply font-description text-app-dim -mt-1.5 text-[11px];
-  }
 }
