@@ -26,6 +26,7 @@ export type FileKind =
   | "diff"
   | "qr"
   | "timer"
+  | "random"
   | "chat"
   | "appinfo"
   | "appstate"
@@ -80,6 +81,7 @@ const EXT_KIND: Record<string, FileKind> = {
   patch: "diff",
   qr: "qr",
   timer: "timer",
+  random: "random",
   chat: "chat",
   // Holds one image of any format (PNG, JPEG, WebP, SVG, HEIC, …).
   img: "image",
@@ -126,6 +128,7 @@ export const CREATABLE_EXTENSIONS = [
   "kanban",
   "qr",
   "timer",
+  "random",
   "chat",
   "img",
   "txt",
@@ -194,7 +197,7 @@ export function suggestRenameNames(currentName: string) {
 
 export const IMPORT_ACCEPT: Record<string, string[]> = {
   "text/markdown": [".md", ".markdown"],
-  "text/plain": [".txt", ".regex"],
+  "text/plain": [".txt", ".regex", ".random"],
   "text/csv": [".csv"],
   "application/schema+json": [".schema"],
   "text/vnd.mermaid": [".mermaid", ".mmd"],
@@ -241,6 +244,7 @@ const MIME: Record<FileKind, string> = {
   diff: "text/x-diff",
   qr: "application/json",
   timer: "application/json",
+  random: "text/plain",
   chat: "application/json",
   appinfo: "application/json",
   appstate: "application/json",
@@ -323,6 +327,7 @@ export const KIND_LABEL: Record<FileKind, string> = {
   diff: "Diff",
   qr: "QR code",
   timer: "Timer",
+  random: "Random picker",
   chat: "Chat",
   appinfo: "App info",
   appstate: "App state",

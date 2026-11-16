@@ -101,6 +101,7 @@ export async function toBlocks(
   const bytes = typeof content === "string" || content == null ? null : content;
   switch (kind) {
     case "text":
+    case "random":
       return textBlocks(text);
     case "markdown":
       return markdownBlocks(text);

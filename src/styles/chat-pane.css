@@ -115,7 +115,7 @@
     @apply border-app-error bg-app-error/5 rounded-r-md border-l-2 px-2.5 py-1.5;
   }
   .chat-pane__plain {
-    @apply font-description text-app-bright m-0 text-[13px] leading-relaxed break-words whitespace-pre-wrap;
+    @apply font-description text-app-bright m-0 text-[13px] leading-[1.45] break-words whitespace-pre-wrap;
   }
   .chat-pane__message--error .chat-pane__plain {
     @apply text-app-error flex items-start gap-1.5 font-mono text-[11px] leading-snug;
@@ -185,7 +185,7 @@
 
   /* ── chat-markdown ────────────────────────────────────────────────── */
   .chat-markdown {
-    @apply font-description text-app-text flex min-w-0 flex-col gap-2.5 text-[13px] leading-relaxed break-words;
+    @apply font-description text-app-text flex min-w-0 flex-col gap-1.5 text-[13px] leading-[1.45] break-words;
   }
   .chat-markdown__paragraph {
     @apply m-0;
@@ -194,7 +194,7 @@
     @apply font-title text-app-bright m-0 mt-1 text-[14px] font-semibold;
   }
   .chat-markdown__list {
-    @apply m-0 flex list-disc flex-col gap-1 pl-5;
+    @apply m-0 flex list-disc flex-col gap-0.5 pl-5;
   }
   .chat-markdown__list--ordered {
     @apply list-decimal;

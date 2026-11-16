@@ -11,3 +11,80 @@
     @apply size-3.5;
   }
 }
+
+/* AskAiPanel — BEM block `ask-ai-panel`.
+ *
+ * The inline Ask AI card (portalled, placed with inline left / top /
+ * bottom / max-height). Header with the context, quick questions, the
+ * streamed thread (answers use `chat-markdown`), actions, then the input. */
+
+@layer components {
+  .ask-ai-panel {
+    @apply border-app-border bg-app-panel fixed z-50 flex flex-col overflow-hidden rounded-lg border shadow-xl;
+  }
+  .ask-ai-panel__header {
+    @apply border-app-border flex shrink-0 items-center gap-1.5 border-b py-1 pr-1 pl-2.5;
+  }
+  .ask-ai-panel__logo {
+    @apply text-app-accent size-3.5 shrink-0;
+  }
+  .ask-ai-panel__title {
+    @apply font-title text-app-bright shrink-0 text-[12px] font-semibold;
+  }
+  .ask-ai-panel__context {
+    @apply text-app-dim min-w-0 flex-1 truncate font-mono text-[10px];
+  }
+  .ask-ai-panel__icon-button {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-bright flex size-6 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 [&_svg]:size-3.5;
+  }
+
+  .ask-ai-panel__quick {
+    @apply flex flex-wrap gap-1 px-2.5 pt-2;
+  }
+  .ask-ai-panel__chip {
+    @apply border-app-border-mid bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description cursor-pointer rounded-full border px-2 py-0.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .ask-ai-panel__thread {
+    @apply flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pt-2.5 pb-1;
+  }
+  .ask-ai-panel__question {
+    @apply bg-app-accent-faint font-description text-app-bright m-0 self-end rounded-xl rounded-br-sm px-2.5 py-1 text-[12px] leading-[1.45] whitespace-pre-wrap;
+  }
+  .ask-ai-panel__error {
+    @apply border-app-error bg-app-error/5 text-app-error m-0 rounded-r border-l-2 px-2 py-1 font-mono text-[11px] leading-snug;
+  }
+  .ask-ai-panel__thinking {
+    @apply font-description text-app-dim m-0 animate-pulse text-[12px];
+  }
+
+  .ask-ai-panel__actions {
+    @apply flex shrink-0 flex-wrap gap-1 px-2.5 pt-1;
+  }
+  .ask-ai-panel__action {
+    @apply border-app-border bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description flex h-6 cursor-pointer items-center gap-1 rounded border px-2 text-[11px] [&_svg]:size-3.5;
+  }
+
+  .ask-ai-panel__form {
+    @apply flex shrink-0 items-end gap-1.5 p-2;
+  }
+  .ask-ai-panel__input {
+    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim focus-visible:border-app-accent focus-visible:ring-app-accent/30 font-description field-sizing-content max-h-32 min-h-8 min-w-0 flex-1 resize-none rounded-md border px-2.5 py-1.5 text-[12px] leading-[1.45] outline-none focus-visible:ring-2 disabled:opacity-50;
+  }
+  .ask-ai-panel__send {
+    @apply bg-app-accent text-app-bg hover:bg-app-accent/90 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:size-4;
+  }
+  .ask-ai-panel__send--stop {
+    @apply bg-app-error hover:bg-app-error/90;
+  }
+  .ask-ai-panel__meta {
+    @apply text-app-dim m-0 shrink-0 truncate px-2.5 pb-1.5 font-mono text-[10px];
+  }
+
+  .ask-ai-panel__notice {
+    @apply flex flex-col items-start gap-2 p-3;
+  }
+  .ask-ai-panel__notice-text {
+    @apply font-description text-app-text m-0 text-[12px] leading-[1.45];
+  }
+}

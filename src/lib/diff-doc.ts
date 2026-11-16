@@ -98,6 +98,7 @@ const KIND_LANG: Partial<Record<FileKind, string>> = {
   regex: "regexp",
   qr: "json",
   timer: "json",
+  random: "csv",
   chat: "json",
   text: "text",
 };

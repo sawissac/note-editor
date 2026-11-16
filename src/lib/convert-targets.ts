@@ -19,6 +19,7 @@ export type ConvertTargetId =
   | "csv"
   | "md"
   | "txt"
+  | "random"
   | "pdf"
   | "mermaid-timeline"
   | "mermaid-gantt"
@@ -59,6 +60,7 @@ const TEXT_SOURCES: ReadonlySet<FileKind> = new Set([
   "timer",
   "kanban",
   "calendar",
+  "random",
 ]);
 
 /** What each kind converts to, in menu order. */
@@ -67,7 +69,7 @@ const TARGETS_BY_KIND: Partial<Record<FileKind, ConvertTargetId[]>> = {
   yaml: ["json", "toml", "env", "csv", "pdf"],
   toml: ["json", "yml", "yaml", "env", "csv", "pdf"],
   env: ["json", "yml", "yaml", "toml", "pdf"],
-  csv: ["json", "yml", "yaml", "md", "pdf"],
+  csv: ["json", "yml", "yaml", "md", "random", "pdf"],
   xlsx: ["csv", "json", "md", "pdf"],
   docx: ["md", "txt", "pdf"],
   markdown: ["txt", "pdf"],
@@ -79,6 +81,7 @@ const TARGETS_BY_KIND: Partial<Record<FileKind, ConvertTargetId[]>> = {
   chat: ["md", "txt", "pdf"],
   sql: ["pdf"],
   regex: ["pdf"],
+  random: ["csv", "pdf"],
   diff: ["pdf"],
   mermaid: ["img-png", "img-svg", "pdf"],
   qr: ["img-png", "pdf"],

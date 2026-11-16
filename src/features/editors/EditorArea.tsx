@@ -4,6 +4,7 @@ import {
   IconCode,
   IconDeviceFloppy,
   IconDownload,
+  IconSparkles,
   IconEdit,
   IconEye,
   IconFilePlus,
@@ -44,12 +45,13 @@ import { downloadFile, storage } from "@/lib/storage";
 import * as ui from "@/lib/ui-styles";
 import { saveContent } from "@/store/actions";
 import { fsActions } from "@/store/fs-slice";
-import { useAppDispatch, useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector, useAppStore } from "@/store";
 import { getPath, getTargetFolderId } from "@/store/selectors";
 import { type TabMode, tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
 import { FileBarSlotProvider } from "@/features/editors/file-bar-slot";
 import { AskAiSelection } from "@/features/editors/AskAiSelection";
+import type { AskAiRequest } from "@/lib/ask-ai";
 import { LazyCodeEditor } from "@/features/editors/LazyCodeEditor";
 import type { PaneProps } from "@/features/editors/pane-context";
 import {
@@ -69,6 +71,7 @@ const MarkdownEditor = React.lazy(() =>
   })),
 );
 const PdfPane = React.lazy(() => import("@/features/editors/PdfPane"));
+const AskAiPanel = React.lazy(() => import("@/features/editors/AskAiPanel"));
 const DocxPane = React.lazy(() => import("@/features/editors/DocxPane"));
 const XlsxPane = React.lazy(() => import("@/features/editors/XlsxPane"));
 const CsvPane = React.lazy(() => import("@/features/editors/CsvPane"));
@@ -85,6 +88,7 @@ const RegexPane = React.lazy(() => import("@/features/editors/RegexPane"));
 const DiffPane = React.lazy(() => import("@/features/editors/DiffPane"));
 const QrPane = React.lazy(() => import("@/features/editors/QrPane"));
 const TimerPane = React.lazy(() => import("@/features/editors/TimerPane"));
+const RandomPane = React.lazy(() => import("@/features/editors/RandomPane"));
 const ChatPane = React.lazy(() => import("@/features/editors/ChatPane"));
 const ImagePane = React.lazy(() => import("@/features/editors/ImagePane"));
 // d3 only loads with the app.info / app.state panes.
@@ -106,6 +110,7 @@ const HAS_MODES: ReadonlySet<FileKind> = new Set([
   "toml",
   "env",
   "apikeys",
+  "random",
 ]);
 /**
  * Kinds whose bytes come from the editor on demand (autosaved through
@@ -134,6 +139,38 @@ export function EditorArea() {
 
 function FilePane({ id, name }: { id: string; name: string }) {
   const bodyRef = React.useRef<HTMLDivElement>(null);
+  const store = useAppStore();
+  const [askAi, setAskAi] = React.useState<AskAiRequest | null>(null);
+  const [askAiError, setAskAiError] = React.useState<string | null>(null);
+
+  /** Ask AI about the whole file (toolbar button). */
+  const askAboutFile = async () => {
+    setAskAiError(null);
+    try {
+      await Promise.resolve(save()).catch(() => undefined);
+      const [{ fileAsText }, content] = await Promise.all([
+        import("@/lib/data-convert"),
+        storage.getContent(id),
+      ]);
+      const text = await fileAsText({
+        id,
+        name,
+        content,
+        path: getPath(store.getState().fs.nodes, id).join(" / "),
+      });
+      if (!text.trim()) throw new Error("This file is empty.");
+      setAskAi({
+        context:
+          text.length > 200_000
+            ? `${text.slice(0, 200_000)}\n…(truncated)`
+            : text,
+        where: "whole file",
+        anchor: null,
+      });
+    } catch (error) {
+      setAskAiError(error instanceof Error ? error.message : String(error));
+    }
+  };
   const dispatch = useAppDispatch();
   const kind = kindOf(name);
   const mode = useAppSelector((s) => s.tabs.modes[id]) ?? defaultMode(kind);
@@ -263,6 +300,9 @@ function FilePane({ id, name }: { id: string; name: string }) {
       case "timer":
         body = <TimerPane {...props} />;
         break;
+      case "random":
+        body = <RandomPane {...props} mode={mode} />;
+        break;
       case "chat":
         body = <ChatPane {...props} />;
         break;
@@ -297,6 +337,8 @@ function FilePane({ id, name }: { id: string; name: string }) {
           dispatch(tabsActions.modeSet({ id, mode: next }));
         }}
         onDownload={download}
+        onAskAi={kind === "chat" ? undefined : () => void askAboutFile()}
+        askAiError={askAiError}
         slotRef={setBarSlot}
       />
       {/* Clip sideways only: Monaco mounts its hovers (e.g. the find widget's
@@ -317,8 +359,20 @@ function FilePane({ id, name }: { id: string; name: string }) {
         {/* Chats take references themselves; every other editor can send
             selected text to one. */}
         {kind === "chat" ? null : (
-          <AskAiSelection fileId={id} containerRef={bodyRef} />
+          <AskAiSelection containerRef={bodyRef} onAsk={setAskAi} />
         )}
+        {askAi ? (
+          <React.Suspense fallback={null}>
+            <AskAiPanel
+              key={askAi.context.length + askAi.where}
+              fileId={id}
+              fileName={name}
+              request={askAi}
+              paneRect={bodyRef.current?.getBoundingClientRect()}
+              onClose={() => setAskAi(null)}
+            />
+          </React.Suspense>
+        ) : null}
       </div>
     </section>
   );
@@ -401,6 +455,8 @@ function PaneToolbar({
   mode,
   onMode,
   onDownload,
+  onAskAi,
+  askAiError,
   slotRef,
 }: {
   id: string;
@@ -409,6 +465,9 @@ function PaneToolbar({
   mode: TabMode;
   onMode: (mode: TabMode) => void;
   onDownload: () => void;
+  /** Opens the inline Ask AI panel about the whole file. */
+  onAskAi?: () => void;
+  askAiError?: string | null;
   slotRef: (el: HTMLDivElement | null) => void;
 }) {
   const dispatch = useAppDispatch();
@@ -502,6 +561,32 @@ function PaneToolbar({
             {kind === "csv" ? "Table" : kind === "schema" ? "Builder" : "View"}
           </ModeButton>
         </ButtonGroup>
+      ) : null}
+
+      {onAskAi ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="pane-ask-ai-button"
+              aria-label="Ask AI about this file"
+              className={cn(
+                TOOLBAR_BTN,
+                "w-7 px-0",
+                askAiError && "text-app-error",
+              )}
+              onClick={onAskAi}
+            >
+              <IconSparkles />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {askAiError
+              ? `Can't read this file for AI: ${askAiError}`
+              : "Ask AI about this file — or select text to ask about just that"}
+          </TooltipContent>
+        </Tooltip>
       ) : null}
 
       <ButtonGroup aria-label="File">
@@ -630,7 +715,11 @@ function StartScreen() {
       IconCode,
     ],
     [["Enter"], "Rename the selected item (or F2)", IconPencil],
-    [[isMac ? "⌘" : "Ctrl", "Click"], "Select several items — Shift-click for a range", IconSelectAll],
+    [
+      [isMac ? "⌘" : "Ctrl", "Click"],
+      "Select several items — Shift-click for a range",
+      IconSelectAll,
+    ],
     [["Del"], "Delete the selected items", IconTrash],
     [["↑", "↓", "←", "→"], "Move around the explorer", IconArrowsMove],
   ];

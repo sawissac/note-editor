@@ -454,6 +454,17 @@ export async function convertFile(
   if (DATA_TARGETS.has(target)) {
     return writeData(target as DataTargetId, await readValue(kind, input));
   }
+  if (target === "random" || (target === "csv" && kind === "random")) {
+    // A `.random` file is CSV text — every cell is one entry in the draw —
+    // so the two convert as-is, once there is something to draw.
+    if (kind !== "csv" && kind !== "random") {
+      fail("Only CSV files convert to a random picker.");
+    }
+    const text = textOf(input.content);
+    const { parseRandomValues } = await import("@/lib/random-doc");
+    if (!parseRandomValues(text).length) fail("This file has no values.");
+    return text.endsWith("\n") ? text : `${text}\n`;
+  }
   if (target === "csv") {
     if (
       kind === "xlsx" ||
@@ -555,4 +566,15 @@ export async function checkTargets(
     }),
   );
   return checks;
+}
+
+/**
+ * Any file as readable Markdown-ish text, for handing to an AI: text files
+ * as they are, Word / Excel / PDF / boards / calendars… through the same
+ * extraction the PDF export uses. Throws with a user-facing message.
+ */
+export async function fileAsText(input: ConvertInput): Promise<string> {
+  if (typeof input.content === "string") return input.content;
+  const kind = kindOf(input.name);
+  return blocksToMarkdown(await blocksOf(kind, input));
 }

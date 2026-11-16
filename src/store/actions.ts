@@ -201,8 +201,8 @@ function addEntry(
         void blankContent(kind)
           .then((content) => storage.setContent(node.id, content))
           .then(() => dispatch(openFile(node.id)));
-      } else if (kind === "mermaid") {
-        // Starts from a sample diagram, opened in the split editor.
+      } else if (kind === "mermaid" || kind === "random") {
+        // Starts from a sample, opened in the split editor.
         dispatch(tabsActions.modeSet({ id: node.id, mode: "edit" }));
         void blankContent(kind)
           .then((content) => storage.setContent(node.id, content))
@@ -780,27 +780,18 @@ Everything you write here is saved in this browser (IndexedDB), automatically.
 | \`.qr\` | QR code designer — download as PNG, SVG, JPEG or WebP |
 | \`.img\` | Image editor — import any image, crop, resize, adjust, convert |
 | \`.timer\` | Multiple timers — run them together or as a queue |
+| \`.random\` | Random picker — list values (CSV), draw any number of them |
 | \`.chat\` | Chat with Gemini or OpenRouter, using a key from a \`.gemini\` / \`.openrouter\` file |
 
 Create any of these from the explorer — type a name and pick the type — or use **Import** to bring in files you already have.
 `;
 
-export const SAMPLE_CSV = `name,role,started
-Ada,Engineer,2021-03-01
-Grace,Admiral,1943-07-01
-Linus,Maintainer,1991-08-25
-`;
-
-/** First run: a welcome note and a sample folder. */
+/** First run: only the welcome note, opened. */
 export function seedWorkspace(): AppThunk<Promise<void>> {
   return async (dispatch) => {
     const welcome = makeNode("Welcome.md", "file", null);
-    const folder = makeNode("Notes", "folder", null);
-    const csv = makeNode("people.csv", "file", folder.id);
     await storage.setContent(welcome.id, WELCOME_MARKDOWN);
-    await storage.setContent(csv.id, SAMPLE_CSV);
-    dispatch(fsActions.nodesAdded([welcome, folder, csv]));
-    dispatch(fsActions.expandedSet({ id: folder.id, open: true }));
+    dispatch(fsActions.nodesAdded([welcome]));
     dispatch(openFile(welcome.id));
   };
 }

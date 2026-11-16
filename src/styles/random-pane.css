@@ -1,0 +1,93 @@
+@reference "../index.css";
+
+/* RandomPane (`.random` files) — BEM block `random-pane`.
+ *
+ * Imported from `RandomPane.tsx`; `@reference` resolves the app-* theme.
+ * Values float on the stage as chips; their positions come from the pane's
+ * frame loop (inline transforms), so these rules only set the look. A draw
+ * puts `--drawing` on the block (the centre core glows), the result puts
+ * `--result` on it and `--picked` / `--dimmed` on each chip. */
+
+@keyframes random-pane-pulse {
+  0%,
+  100% {
+    scale: 0.85;
+    opacity: 0.55;
+  }
+  50% {
+    scale: 1.15;
+    opacity: 1;
+  }
+}
+
+@layer components {
+  .random-pane {
+    @apply bg-app-bg relative flex h-full min-h-0 flex-col overflow-hidden;
+  }
+
+  /* ── Stage ────────────────────────────────────────────────────────── */
+  .random-pane__stage {
+    @apply relative min-h-0 flex-1 overflow-hidden;
+  }
+  .random-pane__core {
+    @apply bg-app-accent/10 ring-app-accent/30 pointer-events-none absolute top-[calc(50%-18px)] left-1/2 size-40 -translate-1/2 scale-50 rounded-full opacity-0 ring-1 transition-[opacity,scale] duration-500;
+  }
+  .random-pane--drawing .random-pane__core {
+    @apply animate-[random-pane-pulse_700ms_ease-in-out_infinite] opacity-100 motion-reduce:animate-none;
+  }
+  .random-pane__empty {
+    @apply font-description text-app-dim absolute inset-x-0 top-1/3 m-0 px-8 text-center text-[12px];
+  }
+
+  /* ── Chips ────────────────────────────────────────────────────────── */
+  .random-pane__chip {
+    @apply border-app-border bg-app-panel text-app-bright absolute top-0 left-0 flex max-w-56 origin-center items-center rounded-full border px-3 py-1 font-mono text-[12px] leading-5 whitespace-nowrap transition-[opacity,background-color,border-color,color,box-shadow] duration-300 select-none will-change-transform;
+  }
+  .random-pane__chip-text {
+    @apply min-w-0 truncate;
+  }
+  .random-pane--drawing .random-pane__chip {
+    @apply border-app-border-accent;
+  }
+  .random-pane__chip--picked {
+    @apply border-app-accent bg-app-accent text-app-on-solid z-10 font-semibold shadow-[0_8px_24px_-10px_var(--app-accent)];
+  }
+  .random-pane__chip--dimmed {
+    @apply opacity-30;
+  }
+  .random-pane__chip-rank {
+    @apply bg-app-bright text-app-bg font-title absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full text-[9px] leading-none font-bold tabular-nums;
+  }
+  .random-pane--dense .random-pane__chip {
+    @apply max-w-36 px-2 py-0.5 text-[10px] leading-4;
+  }
+
+  /* ── Dock ─────────────────────────────────────────────────────────── */
+  .random-pane__dock {
+    @apply border-app-border bg-app-panel/90 absolute bottom-4 left-1/2 z-20 m-0 flex -translate-x-1/2 items-center gap-2 rounded-xl border py-1.5 pr-1.5 pl-3 backdrop-blur-sm;
+  }
+  .random-pane__dock-label {
+    @apply font-title text-app-dim text-[10px] font-semibold tracking-[0.1em] uppercase;
+  }
+  .random-pane__dock-total {
+    @apply font-description text-app-dim pr-1 text-[12px] whitespace-nowrap tabular-nums;
+  }
+  .random-pane__stepper {
+    @apply border-app-border-mid bg-app-bg flex h-8 items-center rounded-md border;
+  }
+  .random-pane__step {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/30 flex h-full w-7 items-center justify-center border-0 bg-transparent transition-colors outline-none first:rounded-l-md last:rounded-r-md focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-40;
+  }
+  .random-pane__step-icon {
+    @apply size-3.5;
+  }
+  .random-pane__count {
+    @apply text-app-bright h-full w-10 [appearance:textfield] border-0 bg-transparent text-center font-mono text-[13px] font-semibold tabular-nums outline-none disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
+  }
+  .random-pane__draw-icon {
+    @apply size-4;
+  }
+  .random-pane__live {
+    @apply sr-only;
+  }
+}

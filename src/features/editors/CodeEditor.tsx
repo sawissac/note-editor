@@ -212,6 +212,16 @@ export default function CodeEditor({
           anchor?.height ?? 18,
         ),
         ask,
+        replace: (next) => {
+          editor.pushUndoStop();
+          // Whole-line selections end in a line break; keep it so the
+          // next line doesn't join the replacement.
+          const body =
+            text.endsWith("\n") && !next.endsWith("\n") ? `${next}\n` : next;
+          editor.executeEdits("ai", [{ range: sel!, text: body }]);
+          editor.pushUndoStop();
+          editor.focus();
+        },
       };
       node.dispatchEvent(
         new CustomEvent(CODE_SELECTION_EVENT, { bubbles: true, detail }),

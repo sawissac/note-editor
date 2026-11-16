@@ -4,6 +4,7 @@ import type { FileKind } from "@/lib/file-types";
 import { serializeKanban, starterBoard } from "@/lib/kanban";
 import { emptyChat, serializeChat } from "@/lib/chat-doc";
 import { defaultQrDoc, serializeQr } from "@/lib/qr-doc";
+import { RANDOM_STARTER } from "@/lib/random-doc";
 import { serializeTimers, starterTimers } from "@/lib/timer-doc";
 
 /**
@@ -93,6 +94,8 @@ export async function blankContent(
       return BLANK_DIFF;
     case "qr":
       return serializeQr(defaultQrDoc());
+    case "random":
+      return RANDOM_STARTER;
     case "timer":
       return serializeTimers(starterTimers());
     case "chat":

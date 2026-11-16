@@ -2,14 +2,17 @@ import { IconSparkles } from "@tabler/icons-react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
-import { CODE_SELECTION_EVENT, type CodeSelection } from "@/lib/ask-ai";
-import { askAiAboutSelection } from "@/store/actions";
-import { useAppDispatch } from "@/store";
+import {
+  type AskAiRequest,
+  CODE_SELECTION_EVENT,
+  type CodeSelection,
+} from "@/lib/ask-ai";
 
 type Picked = {
   text: string;
   where?: string;
   rect: DOMRect;
+  replace?: (text: string) => void;
   /** Code editors report their own selection; DOM selections are polled. */
   source: "dom" | "code";
 };
@@ -20,27 +23,38 @@ const BUTTON_HEIGHT = 28;
 /**
  * Floating "Ask AI" button over text selected inside a pane: a DOM
  * selection (Markdown, Word, PDF text…) or a code editor's selection
- * (reported through {@link CODE_SELECTION_EVENT}). Clicking hands the text
- * to a chat as a reference (see `askAiAboutSelection`).
+ * (reported through {@link CODE_SELECTION_EVENT}). Clicking opens the
+ * inline Ask AI panel about that text (`onAsk`).
  *
  * CSS: BEM block `ask-ai` (`src/styles/ask-ai.css`).
  */
 export function AskAiSelection({
-  fileId,
   containerRef,
+  onAsk,
 }: {
-  fileId: string;
   containerRef: React.RefObject<HTMLElement | null>;
+  onAsk: (request: AskAiRequest) => void;
 }) {
-  const dispatch = useAppDispatch();
   const [picked, setPicked] = React.useState<Picked | null>(null);
+  const onAskRef = React.useRef(onAsk);
+  onAskRef.current = onAsk;
 
   const ask = React.useCallback(
-    (p: { text: string; where?: string }) => {
-      dispatch(askAiAboutSelection(fileId, p.text, p.where));
+    (p: {
+      text: string;
+      where?: string;
+      rect: DOMRect;
+      replace?: (t: string) => void;
+    }) => {
+      onAskRef.current({
+        context: p.text,
+        where: p.where ?? "selection",
+        anchor: p.rect,
+        replace: p.replace,
+      });
       setPicked(null);
     },
-    [dispatch, fileId],
+    [],
   );
 
   React.useEffect(() => {
@@ -123,7 +137,7 @@ export function AskAiSelection({
       type="button"
       className="ask-ai"
       style={{ top, left }}
-      title="Ask AI about the selected text — it goes to a chat as a reference"
+      title="Ask AI about the selected text"
       data-testid="ask-ai-selection-button"
       // Keep the selection while clicking.
       onMouseDown={(e) => e.preventDefault()}
