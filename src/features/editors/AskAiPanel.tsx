@@ -5,8 +5,11 @@ import {
   IconCheck,
   IconCopy,
   IconMessageForward,
+  IconPencil,
+  IconPlus,
   IconPlayerStopFilled,
   IconReplace,
+  IconScript,
   IconSparkles,
   IconX,
 } from "@tabler/icons-react";
@@ -28,6 +31,11 @@ import { storage } from "@/lib/storage";
 import { askAiAboutSelection, createAtPath } from "@/store/actions";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { ChatMarkdown } from "@/features/editors/ChatMarkdown";
+import { PromptEditor } from "@/features/editors/PromptPicker";
+import {
+  type PromptChoice,
+  usePromptLibrary,
+} from "@/features/editors/use-prompts";
 
 /** One-click questions; each is sent as typed. */
 const QUICK_ASKS = [
@@ -110,7 +118,9 @@ function placement(anchor: DOMRect | null, pane: DOMRect | undefined) {
  * in for the selection (code editors), or carried on in a chat.
  *
  * Uses the first key in the workspace's `.gemini` / `.openrouter` files
- * with that provider's default model.
+ * with that provider's default model. Beside the built-in quick questions,
+ * each prompt of the workspace's `.prompt` files is a chip that sends its
+ * text; its pencil (or "+") opens a form that writes the file.
  *
  * CSS: BEM block `ask-ai-panel` (`src/styles/ask-ai.css`); answers reuse
  * `chat-markdown`.
@@ -130,6 +140,12 @@ export default function AskAiPanel({
 }) {
   const dispatch = useAppDispatch();
   const aiKey = useAiKey();
+  const promptLibrary = usePromptLibrary();
+  // `undefined`: the quick questions; `null`: a new prompt; else the one edited.
+  const [editing, setEditing] = React.useState<PromptChoice | null>();
+  // Escape leaves the prompt form first, not the whole panel.
+  const editingRef = React.useRef(false);
+  editingRef.current = editing !== undefined;
   const [question, setQuestion] = React.useState("");
   const [thread, setThread] = React.useState<ChatMessage[]>([]);
   const [busy, setBusy] = React.useState(false);
@@ -150,6 +166,10 @@ export default function AskAiPanel({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        if (editingRef.current) {
+          setEditing(undefined);
+          return;
+        }
         onClose();
       }
     };
@@ -316,6 +336,20 @@ export default function AskAiPanel({
                 ),
               )}
             </div>
+          ) : editing !== undefined ? (
+            <div className="ask-ai-panel__editor">
+              <PromptEditor
+                key={editing ? `${editing.fileId}/${editing.name}` : "new"}
+                prompt={editing}
+                testIdPrefix="ask-ai-panel"
+                onSave={promptLibrary.save}
+                onDelete={promptLibrary.remove}
+                onDone={() => {
+                  setEditing(undefined);
+                  inputRef.current?.focus();
+                }}
+              />
+            </div>
           ) : (
             <div
               className="ask-ai-panel__quick"
@@ -333,6 +367,48 @@ export default function AskAiPanel({
                   {q}
                 </button>
               ))}
+              {/* The workspace's own prompts (`.prompt` files), sent as typed. */}
+              {(promptLibrary.prompts ?? []).map((p) => (
+                <span
+                  key={`${p.fileId}/${p.name}`}
+                  className="ask-ai-panel__custom"
+                >
+                  <button
+                    type="button"
+                    className="ask-ai-panel__chip ask-ai-panel__chip--custom"
+                    title={p.text}
+                    disabled={!aiKey || !p.text.trim()}
+                    data-testid={`ask-ai-panel-prompt-${p.fileId}-$<span className="ask-ai-panel__chip-text">{p.name}</span>-button`}
+                    onClick={() => void ask(p.text)}
+                  >
+                    <IconScript
+                      aria-hidden
+                      className="ask-ai-panel__chip-icon"
+                    />
+                    {p.name}
+                  </button>
+                  <button
+                    type="button"
+                    className="ask-ai-panel__chip-edit"
+                    aria-label={`Edit prompt ${p.name}`}
+                    title="Edit"
+                    data-testid={`ask-ai-panel-prompt-${p.fileId}-${p.name}-edit-button`}
+                    onClick={() => setEditing(p)}
+                  >
+                    <IconPencil aria-hidden />
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                className="ask-ai-panel__chip ask-ai-panel__chip--add"
+                aria-label="New prompt"
+                title="New prompt"
+                data-testid="ask-ai-panel-prompt-new-button"
+                onClick={() => setEditing(null)}
+              >
+                <IconPlus aria-hidden className="ask-ai-panel__chip-icon" />
+              </button>
             </div>
           )}
 

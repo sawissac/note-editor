@@ -5,10 +5,14 @@
 @import "./styles/name-input.css";
 @import "./styles/explorer.css";
 @import "./styles/status-bar.css";
+@import "./styles/tab-bar.css";
+@import "./styles/unfold.css";
 @import "./styles/quick-open.css";
 @import "./styles/pane-controls.css";
 @import "./styles/timer-dock.css";
-@import "./styles/markdown-fallback.css";
+@import "./styles/markdown-skeleton.css";
+@import "./styles/pane-skeleton.css";
+@import "./styles/code-skeleton.css";
 @import "./styles/ask-ai.css";
 
 @custom-variant dark (&:is(.dark *));

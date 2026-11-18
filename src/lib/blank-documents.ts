@@ -1,9 +1,12 @@
+import { serializeBookmarks, starterBookmarks } from "@/lib/bookmark-doc";
 import { EMPTY_CALENDAR } from "@/lib/calendar";
 import { BLANK_DIFF } from "@/lib/diff-doc";
 import type { FileKind } from "@/lib/file-types";
 import { serializeKanban, starterBoard } from "@/lib/kanban";
 import { emptyChat, serializeChat } from "@/lib/chat-doc";
+import { serializePptx, starterDeck } from "@/lib/pptx-doc";
 import { defaultQrDoc, serializeQr } from "@/lib/qr-doc";
+import { PROMPT_STARTER } from "@/lib/prompts";
 import { RANDOM_STARTER } from "@/lib/random-doc";
 import { serializeTimers, starterTimers } from "@/lib/timer-doc";
 
@@ -86,6 +89,8 @@ export async function blankContent(
     case "json":
     case "apikeys":
       return "{}\n";
+    case "prompt":
+      return PROMPT_STARTER;
     case "sql":
       return SQL_STARTER;
     case "regex":
@@ -96,6 +101,10 @@ export async function blankContent(
       return serializeQr(defaultQrDoc());
     case "random":
       return RANDOM_STARTER;
+    case "bookmark":
+      return serializeBookmarks(starterBookmarks());
+    case "pptx":
+      return serializePptx(starterDeck());
     case "timer":
       return serializeTimers(starterTimers());
     case "chat":

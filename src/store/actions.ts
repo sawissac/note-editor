@@ -21,6 +21,7 @@ import {
 import { type FsNode, fsActions, type NodeType } from "@/store/fs-slice";
 import type { AppThunk } from "@/store";
 import {
+  collator,
   getAncestorIds,
   getDescendantIds,
   getPath,
@@ -196,6 +197,8 @@ function addEntry(
         kind === "diff" ||
         kind === "qr" ||
         kind === "timer" ||
+        kind === "bookmark" ||
+        kind === "pptx" ||
         kind === "chat"
       ) {
         void blankContent(kind)
@@ -448,12 +451,14 @@ export function deleteNodes(targetIds: string[]): AppThunk {
 
 /**
  * Adds a file whose content is already made (e.g. an image converted to
- * another format) into `parentId`, under a free name, and opens it.
+ * another format) into `parentId`, under a free name, and opens it (unless
+ * `open` is `false`).
  */
 export function addFileWithContent(
   name: string,
   parentId: string | null,
   content: FileContent,
+  { open = true }: { open?: boolean } = {},
 ): AppThunk<Promise<FsNode>> {
   return async (dispatch, getState) => {
     const node = makeNode(
@@ -463,7 +468,7 @@ export function addFileWithContent(
     );
     await storage.setContent(node.id, content);
     dispatch(fsActions.nodesAdded([node]));
-    dispatch(openFile(node.id));
+    if (open) dispatch(openFile(node.id));
     return node;
   };
 }
@@ -570,9 +575,9 @@ export type DropPosition = "before" | "after";
 
 /**
  * Drag-to-reorder: puts `ids` just before / after `targetId`, moving them
- * into the target's folder first when they come from elsewhere. Folders stay
- * above files, so the order applies within each group. Returns false when
- * nothing could be placed (e.g. a folder dropped next to its own child).
+ * into the target's folder first when they come from elsewhere. Files and
+ * folders can be placed in any order. Returns false when nothing could be
+ * placed (e.g. a folder dropped next to its own child).
  */
 export function reorderNodes(
   ids: string[],
@@ -611,7 +616,73 @@ export function reorderNodes(
   };
 }
 
-/** Alt+↑ / Alt+↓: swaps a row with its neighbour of the same type. */
+/** How "Sort by" orders a folder's contents. Folders go on top. */
+export type SortKey = "name" | "name-desc" | "modified" | "created" | "type";
+
+export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Name (A–Z)" },
+  { key: "name-desc", label: "Name (Z–A)" },
+  { key: "modified", label: "Last modified" },
+  { key: "created", label: "Date created" },
+  { key: "type", label: "Type" },
+];
+
+const SORT_COMPARE: Record<
+  Exclude<SortKey, "name">,
+  (a: FsNode, b: FsNode) => number
+> = {
+  "name-desc": (a, b) => collator.compare(b.name, a.name),
+  modified: (a, b) => b.updatedAt - a.updatedAt,
+  created: (a, b) => b.createdAt - a.createdAt,
+  type: (a, b) =>
+    collator.compare(extensionOf(a.name), extensionOf(b.name)) ||
+    collator.compare(a.name, b.name),
+};
+
+/**
+ * Sorts the contents of `parentId` (null = root) once, writing the result as
+ * the manual order — later drags still adjust it. "name" clears the manual
+ * order instead, so new rows keep landing in A–Z place. `deep` also sorts
+ * every folder underneath.
+ */
+export function sortChildren(
+  parentId: string | null,
+  key: SortKey,
+  deep = false,
+): AppThunk {
+  return (dispatch, getState) => {
+    const { nodes } = getState().fs;
+    const folderIds: (string | null)[] = [parentId];
+    if (deep) {
+      const below = parentId
+        ? getDescendantIds(nodes, parentId).slice(1)
+        : Object.keys(nodes);
+      for (const id of below) {
+        if (nodes[id]?.type === "folder") folderIds.push(id);
+      }
+    }
+    for (const folderId of folderIds) {
+      if (key === "name") {
+        dispatch(fsActions.orderCleared(folderId));
+        continue;
+      }
+      const compare = SORT_COMPARE[key];
+      const sorted = Object.values(nodes)
+        .filter((n) => n.parentId === folderId)
+        .sort(
+          (a, b) =>
+            (a.type === b.type ? 0 : a.type === "folder" ? -1 : 1) ||
+            compare(a, b) ||
+            collator.compare(a.name, b.name),
+        );
+      if (sorted.length) {
+        dispatch(fsActions.childrenOrdered(sorted.map((n) => n.id)));
+      }
+    }
+  };
+}
+
+/** Alt+↑ / Alt+↓: swaps a row with its neighbour (file or folder). */
 export function shiftNode(id: string, delta: -1 | 1): AppThunk<boolean> {
   return (dispatch, getState) => {
     const { nodes } = getState().fs;
@@ -620,7 +691,7 @@ export function shiftNode(id: string, delta: -1 | 1): AppThunk<boolean> {
     const siblings = getSortedChildren(nodes, node.parentId);
     const i = siblings.findIndex((n) => n.id === id);
     const other = siblings[i + delta];
-    if (!other || other.type !== node.type) return false;
+    if (!other) return false;
     siblings[i] = other;
     siblings[i + delta] = node;
     dispatch(fsActions.childrenOrdered(siblings.map((n) => n.id)));
@@ -766,21 +837,23 @@ Everything you write here is saved in this browser (IndexedDB), automatically.
 | \`.md\` | Markdown editor |
 | \`.csv\` | Table viewer + raw editor |
 | \`.pdf\` | PDF editor / viewer |
-| \`.docx\` | Word editor / viewer |
+| \`.docx\` | Word editor |
 | \`.xlsx\` | Excel editor / viewer |
 | \`.schema\` | JSON Schema builder + raw editor |
 | \`.mermaid\` | Mermaid diagram preview + live editor |
 | \`.calendar\` | Calendar — day, week, month and year views |
 | \`.kanban\` | Board — drag cards between columns |
-| \`.json\` \`.yaml\` \`.toml\` | Editor with error checking + tree view |
+| \`.json\` \`.yaml\` \`.toml\` | Editor with error checking + Format |
 | \`.sql\` | SQL editor — runs in an in-browser SQLite |
-| \`.env\` | Environment variables, values hidden until shown |
+| \`.env\` | Environment variables editor with error checking |
 | \`.regex\` | Regex tester — live matches, explanation, autocomplete |
 | \`.diff\` | Compare two files of the same type side by side |
 | \`.qr\` | QR code designer — download as PNG, SVG, JPEG or WebP |
 | \`.img\` | Image editor — import any image, crop, resize, adjust, convert |
 | \`.timer\` | Multiple timers — run them together or as a queue |
 | \`.random\` | Random picker — list values (CSV), draw any number of them |
+| \`.bookmark\` | Bookmark manager — links with tags, folders, descriptions and website previews |
+| \`.pptx\` | Slide editor — text, shapes, pictures and colours; present, or export to .pptx / PDF |
 | \`.chat\` | Chat with Gemini or OpenRouter, using a key from a \`.gemini\` / \`.openrouter\` file |
 
 Create any of these from the explorer — type a name and pick the type — or use **Import** to bring in files you already have.

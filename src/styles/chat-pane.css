@@ -4,72 +4,90 @@
  * `chat-markdown` (a reply rendered from Markdown).
  *
  * Imported from `src/index.css`, so `@apply` resolves the app-* theme.
- * Provider, key and model pickers are portalled into the file bar. */
+ * The chat-setup button (provider · key · model) is portalled into the
+ * file bar; its popover also holds the system prompt and temperature. */
 
 @layer components {
-  /* ── chat-picker: provider / key / model triggers in the file bar ── */
-  .chat-picker {
-    @apply max-w-32 min-w-0 shrink;
+  /* ── chat-setup: provider · key · model button and its popover ── */
+  .chat-setup {
+    @apply max-w-96 min-w-0 shrink;
   }
-  .chat-picker--wide {
-    @apply max-w-44;
-  }
-  .chat-picker__icon {
+  .chat-setup__icon {
     @apply text-app-dim size-3 shrink-0;
   }
-  /* Named for screen readers and the tooltip; the icon says it visually. */
-  .chat-picker__label {
-    @apply sr-only;
-  }
-  .chat-picker__value {
+  .chat-setup__value {
     @apply text-app-bright min-w-0 truncate font-medium;
   }
-  .chat-picker__value--mono {
+  .chat-setup__value--mono {
     @apply font-mono text-[10.5px];
   }
-  .chat-picker__chevron {
+  .chat-setup__dot {
+    @apply text-app-dim shrink-0;
+  }
+  .chat-setup__chevron {
     @apply text-app-dim size-2.5 shrink-0;
   }
-  .chat-picker__menu {
-    @apply w-52 max-w-[calc(100vw-1rem)];
+  /* Popover: nav | models, then the footer. */
+  .chat-setup__body {
+    @apply grid min-h-0 flex-1 grid-cols-1 overflow-hidden sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:grid-rows-[minmax(0,1fr)];
   }
-  .chat-picker__option-text {
-    @apply flex min-w-0 flex-1 items-baseline gap-1.5;
+  .chat-setup__nav {
+    @apply border-app-border bg-app-sidebar flex min-h-0 flex-col gap-3 overflow-y-auto border-b p-2 sm:border-r sm:border-b-0;
   }
-  .chat-picker__option-title {
-    @apply text-app-bright shrink-0 truncate text-[12px];
+  .chat-setup__group {
+    @apply flex flex-col gap-0.5;
   }
-  .chat-picker__option-sub {
-    @apply text-app-dim min-w-0 truncate font-mono text-[10px];
+  .chat-setup__heading {
+    @apply font-title text-app-dim px-1.5 pb-1 text-[10px] font-semibold tracking-[0.1em] uppercase;
   }
-  .chat-picker__option-mono {
-    @apply min-w-0 flex-1 truncate font-mono text-[11px];
+  .chat-setup__hint {
+    @apply font-description text-app-dim px-1.5 py-1 text-[11px];
   }
-  .chat-picker__option-icon {
-    @apply text-app-dim size-3 shrink-0;
+  .chat-setup__choice {
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/40 flex h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .chat-picker__check {
-    @apply text-app-accent size-3 shrink-0;
+  .chat-setup__choice--selected {
+    @apply bg-app-selected text-app-bright font-medium;
   }
-  .chat-picker__divider {
-    @apply bg-app-border -mx-1 my-1 h-px;
+  .chat-setup__radio {
+    @apply border-app-border-mid size-3 shrink-0 rounded-full border;
   }
-  .chat-picker__list {
-    @apply max-h-64;
+  .chat-setup__radio--on {
+    @apply border-app-accent border-[3.5px];
   }
-  .chat-picker__empty {
+  .chat-setup__choice-text {
+    @apply min-w-0 truncate;
+  }
+  .chat-setup__manage {
+    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent/40 mt-1 flex h-6 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-1.5 text-[11px] transition-colors duration-150 outline-none focus-visible:ring-2;
+  }
+  .chat-setup__manage-icon {
+    @apply size-3 shrink-0;
+  }
+  .chat-setup__empty {
     @apply font-description text-app-dim px-3 py-4 text-center text-[11px];
   }
-  .chat-picker__footer {
-    @apply border-app-border font-description text-app-dim m-0 border-t px-2.5 py-1 text-[10px];
+  .chat-setup__option-text {
+    @apply min-w-0 flex-1 truncate font-mono text-[11px];
+  }
+  .chat-setup__check {
+    @apply text-app-accent size-3 shrink-0;
+  }
+  .chat-setup__footer {
+    @apply border-app-border flex shrink-0 items-center justify-end border-t px-3 py-2;
+  }
+  .chat-setup__field {
+    @apply flex items-center gap-2;
+  }
+  .chat-setup__field-label {
+    @apply font-title text-app-dim shrink-0 text-[10px] font-semibold tracking-[0.1em] uppercase;
+  }
+  .chat-setup__readout {
+    @apply text-app-bright w-6 shrink-0 text-right font-mono text-[11px] tabular-nums;
   }
 
-  /* ── chat-pane: layout ────────────────────────────────────────────── */
   .chat-pane {
     @apply bg-app-bg flex h-full min-h-0 flex-col;
-  }
-  .chat-pane__settings {
-    @apply border-app-border bg-app-panel grid shrink-0 gap-3 border-b p-3 md:grid-cols-[minmax(0,1fr)_14rem];
   }
   .chat-pane__scroll {
     @apply min-h-0 flex-1 overflow-y-auto;
@@ -298,18 +316,30 @@
   color: var(--app-bright);
 }
 
-/* ── chat-picker × compacto menus ──────────────────────────────────────
- * The compacto DropdownMenu / Popover / Command primitives size their rows
- * and panels with Tailwind utilities, which outrank `@layer components`.
+/* ── chat-setup × compacto ─────────────────────────────────────────────
+ * The compacto Popover / Command / Select / ToggleGroup primitives size
+ * themselves with Tailwind utilities, which outrank `@layer components`.
  * The compact sizes below are unlayered so they win, without `!`. */
-.chat-picker__option {
+/* A fixed height (capped by the room Radix measured), so the model list
+   fills the right pane instead of leaving a gap; the left pane scrolls when
+   its lists run long. */
+.chat-setup__panel {
+  @apply flex h-[min(var(--radix-popover-content-available-height),30rem)] w-[34rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden p-0;
+}
+.chat-setup__models {
+  @apply flex h-full min-h-0 min-w-0 flex-col rounded-none bg-transparent;
+}
+.chat-setup__list {
+  @apply max-h-none min-h-0 flex-1;
+}
+.chat-setup__options {
+  @apply p-1;
+}
+.chat-setup__option {
   @apply min-h-6 gap-1.5 px-1.5 py-1 text-[12px];
 }
-.chat-picker__popover {
-  @apply w-72 p-0;
-}
-.chat-picker__group {
-  @apply p-1;
+.chat-setup__slider {
+  @apply w-28;
 }
 
 .chat-pane__tool {

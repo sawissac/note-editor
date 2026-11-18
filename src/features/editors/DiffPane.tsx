@@ -49,6 +49,7 @@ import {
   type PaneProps,
   useSaveHandler,
 } from "@/features/editors/pane-context";
+import { DiffLinesSkeleton } from "@/features/editors/PaneSkeleton";
 
 type Side = "left" | "right";
 
@@ -381,7 +382,7 @@ function PairDiff({
 
       <div className="diff-pane__body" data-testid="diff-pane-view">
         {loaded.status === "loading" ? (
-          <p className="diff-pane__message">Reading files…</p>
+          <DiffLinesSkeleton />
         ) : loaded.status === "error" ? (
           <p className="diff-pane__message diff-pane__message--tone-error">
             Could not read the files: {loaded.error}

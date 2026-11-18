@@ -2,6 +2,8 @@ import {
   IconAlertTriangle,
   IconLoader2,
   IconPlayerPlay,
+  IconTable,
+  IconTableOff,
 } from "@tabler/icons-react";
 import * as React from "react";
 import type { QueryExecResult, SqlJsStatic } from "sql.js";
@@ -68,6 +70,8 @@ export default function SqlPane({
   const textRef = React.useRef(text);
   const [focusOnMount] = React.useState(autoFocus);
   const [run, setRun] = React.useState<RunState>({ status: "idle" });
+  // Results panel starts hidden; Run reveals it, the toggle hides it again.
+  const [showResults, setShowResults] = React.useState(false);
   const apiRef = React.useRef<CodeEditorApi | null>(null);
   const save = useDebouncedSave(
     (value) => void dispatch(saveContent(id, value)),
@@ -79,6 +83,7 @@ export default function SqlPane({
     const scope = selected ? "selection" : "file";
     const sql = selected || textRef.current;
     if (!sql.trim()) return;
+    setShowResults(true);
     setRun({ status: "running" });
     try {
       const SQL = await loadSqlite();
@@ -128,9 +133,27 @@ export default function SqlPane({
           Run
           <span className="text-app-dim">{mod}↵</span>
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn(ui.paneToolbarBtn, "w-7 px-0")}
+          data-active={showResults || undefined}
+          aria-pressed={showResults}
+          aria-label={showResults ? "Hide results" : "Show results"}
+          title={showResults ? "Hide results" : "Show results"}
+          data-testid="sql-pane-results-toggle-button"
+          onClick={() => setShowResults((v) => !v)}
+        >
+          {showResults ? (
+            <IconTable aria-hidden className="pane-icon" />
+          ) : (
+            <IconTableOff aria-hidden className="pane-icon" />
+          )}
+        </Button>
       </FileBarSlot>
       <ResizableGroup orientation="vertical">
-        <ResizablePanel defaultSize="60%" minSize="120px">
+        <ResizablePanel id="sql-source" defaultSize="60%" minSize="120px">
           <LazyCodeEditor
             path={`${id}.sql`}
             language="sql"
@@ -147,10 +170,14 @@ export default function SqlPane({
             }}
           />
         </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel minSize="80px">
-          <SqlResults run={run} mod={mod} />
-        </ResizablePanel>
+        {showResults ? (
+          <>
+            <ResizableHandle />
+            <ResizablePanel id="sql-results" defaultSize="40%" minSize="80px">
+              <SqlResults run={run} mod={mod} />
+            </ResizablePanel>
+          </>
+        ) : null}
       </ResizableGroup>
     </>
   );

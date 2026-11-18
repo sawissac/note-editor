@@ -44,6 +44,7 @@ import {
 import { saveContent } from "@/store/actions";
 import { useAppDispatch } from "@/store";
 import { FileBarSlot } from "@/features/editors/file-bar-slot";
+import { PaneSplit } from "@/features/editors/pane-split";
 import {
   type PaneProps,
   useSaveHandler,
@@ -203,285 +204,287 @@ export default function QrPane({ id, name, content, registerSave }: PaneProps) {
       </FileBarSlot>
 
       <div className="qr-pane" data-testid="qr-pane">
-        <div className="qr-pane__stage-area">
-          <div
-            ref={stageRef}
-            className={cn(
-              "qr-pane__stage",
-              doc.background.transparent && "qr-pane__stage--transparent",
-            )}
-            role="img"
-            aria-label={`QR code for ${data || "nothing yet"}`}
-            data-testid="qr-pane-preview-content"
-          />
-          <p className="qr-pane__data" data-testid="qr-pane-data-message">
-            {data || "Nothing to encode yet"}
-          </p>
-          {parseError ? (
-            <p
-              className="qr-pane__error"
-              role="alert"
-              data-testid="qr-pane-parse-error-message"
-            >
-              <IconAlertTriangle aria-hidden className="pane-icon" />
-              This file is not a valid QR design ({parseError}). Any change
-              replaces it with the design shown.
-            </p>
-          ) : null}
-          {actionError ? (
-            <p
-              className="qr-pane__error"
-              role="alert"
-              data-testid="qr-pane-action-error-message"
-            >
-              <IconAlertTriangle aria-hidden className="pane-icon" />
-              {actionError}
-            </p>
-          ) : null}
-        </div>
-
-        <aside className="qr-pane__side" aria-label="QR code settings">
-          <Section title="Content">
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="sm"
-              className="flex-wrap"
-              aria-label="Content type"
-              value={doc.content.kind}
-              onValueChange={(kind) => {
-                // Single-select groups emit "" when the active item is
-                // clicked again; a QR always has a content kind.
-                if (kind) setContent({ kind: kind as QrContent["kind"] });
-              }}
-            >
-              {CONTENT_KINDS.map((k) => (
-                <ToggleGroupItem
-                  key={k.value}
-                  value={k.value}
-                  data-testid={`qr-pane-kind-${k.value}-button`}
-                >
-                  {k.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-            <ContentFields content={doc.content} onChange={setContent} />
-          </Section>
-
-          <Section title="Dots">
-            <SelectField
-              label="Shape"
-              testId="qr-pane-dot-type-select"
-              value={doc.dots.type}
-              options={DOT_TYPES}
-              onChange={(type) => update((d) => ({ ...d, dots: { ...d.dots, type } }))}
+        <PaneSplit sideSize="20rem">
+          <div className="qr-pane__stage-area">
+            <div
+              ref={stageRef}
+              className={cn(
+                "qr-pane__stage",
+                doc.background.transparent && "qr-pane__stage--transparent",
+              )}
+              role="img"
+              aria-label={`QR code for ${data || "nothing yet"}`}
+              data-testid="qr-pane-preview-content"
             />
-            <ColorField
-              label={doc.dots.gradient ? "Start colour" : "Colour"}
-              testId="qr-pane-dot-color"
-              value={doc.dots.color}
-              onChange={(color) =>
-                update((d) => ({ ...d, dots: { ...d.dots, color } }))
-              }
-            />
-            <label className="pane-field__check">
-              <input
-                type="checkbox"
-                className="pane-field__checkbox"
-                data-testid="qr-pane-gradient-checkbox"
-                checked={Boolean(doc.dots.gradient)}
-                onChange={(e) =>
-                  update((d) => ({
-                    ...d,
-                    dots: {
-                      ...d.dots,
-                      gradient: e.target.checked
-                        ? { type: "linear", to: "#6366f1", rotation: 45 }
-                        : null,
-                    },
-                  }))
+            <p className="qr-pane__data" data-testid="qr-pane-data-message">
+              {data || "Nothing to encode yet"}
+            </p>
+            {parseError ? (
+              <p
+                className="qr-pane__error"
+                role="alert"
+                data-testid="qr-pane-parse-error-message"
+              >
+                <IconAlertTriangle aria-hidden className="pane-icon" />
+                This file is not a valid QR design ({parseError}). Any change
+                replaces it with the design shown.
+              </p>
+            ) : null}
+            {actionError ? (
+              <p
+                className="qr-pane__error"
+                role="alert"
+                data-testid="qr-pane-action-error-message"
+              >
+                <IconAlertTriangle aria-hidden className="pane-icon" />
+                {actionError}
+              </p>
+            ) : null}
+          </div>
+
+          <aside className="qr-pane__side" aria-label="QR code settings">
+            <Section title="Content">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                className="flex-wrap"
+                aria-label="Content type"
+                value={doc.content.kind}
+                onValueChange={(kind) => {
+                  // Single-select groups emit "" when the active item is
+                  // clicked again; a QR always has a content kind.
+                  if (kind) setContent({ kind: kind as QrContent["kind"] });
+                }}
+              >
+                {CONTENT_KINDS.map((k) => (
+                  <ToggleGroupItem
+                    key={k.value}
+                    value={k.value}
+                    data-testid={`qr-pane-kind-${k.value}-button`}
+                  >
+                    {k.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <ContentFields content={doc.content} onChange={setContent} />
+            </Section>
+
+            <Section title="Dots">
+              <SelectField
+                label="Shape"
+                testId="qr-pane-dot-type-select"
+                value={doc.dots.type}
+                options={DOT_TYPES}
+                onChange={(type) => update((d) => ({ ...d, dots: { ...d.dots, type } }))}
+              />
+              <ColorField
+                label={doc.dots.gradient ? "Start colour" : "Colour"}
+                testId="qr-pane-dot-color"
+                value={doc.dots.color}
+                onChange={(color) =>
+                  update((d) => ({ ...d, dots: { ...d.dots, color } }))
                 }
               />
-              Gradient
-            </label>
-            {doc.dots.gradient ? (
-              <>
-                <ColorField
-                  label="End colour"
-                  testId="qr-pane-gradient-color"
-                  value={doc.dots.gradient.to}
-                  onChange={(to) =>
+              <label className="pane-field__check">
+                <input
+                  type="checkbox"
+                  className="pane-field__checkbox"
+                  data-testid="qr-pane-gradient-checkbox"
+                  checked={Boolean(doc.dots.gradient)}
+                  onChange={(e) =>
                     update((d) => ({
                       ...d,
-                      dots: { ...d.dots, gradient: { ...d.dots.gradient!, to } },
+                      dots: {
+                        ...d.dots,
+                        gradient: e.target.checked
+                          ? { type: "linear", to: "#6366f1", rotation: 45 }
+                          : null,
+                      },
                     }))
                   }
                 />
-                <SelectField
-                  label="Gradient type"
-                  testId="qr-pane-gradient-type-select"
-                  value={doc.dots.gradient.type}
-                  options={[
-                    { value: "linear", label: "Linear" },
-                    { value: "radial", label: "Radial" },
-                  ]}
-                  onChange={(type) =>
-                    update((d) => ({
-                      ...d,
-                      dots: { ...d.dots, gradient: { ...d.dots.gradient!, type } },
-                    }))
-                  }
-                />
-                {doc.dots.gradient.type === "linear" ? (
-                  <RangeField
-                    label="Angle"
-                    testId="qr-pane-gradient-angle-input"
-                    min={0}
-                    max={360}
-                    step={15}
-                    value={doc.dots.gradient.rotation}
-                    format={(v) => `${v}°`}
-                    onChange={(rotation) =>
+                Gradient
+              </label>
+              {doc.dots.gradient ? (
+                <>
+                  <ColorField
+                    label="End colour"
+                    testId="qr-pane-gradient-color"
+                    value={doc.dots.gradient.to}
+                    onChange={(to) =>
                       update((d) => ({
                         ...d,
-                        dots: {
-                          ...d.dots,
-                          gradient: { ...d.dots.gradient!, rotation },
-                        },
+                        dots: { ...d.dots, gradient: { ...d.dots.gradient!, to } },
                       }))
                     }
                   />
-                ) : null}
-              </>
-            ) : null}
-          </Section>
+                  <SelectField
+                    label="Gradient type"
+                    testId="qr-pane-gradient-type-select"
+                    value={doc.dots.gradient.type}
+                    options={[
+                      { value: "linear", label: "Linear" },
+                      { value: "radial", label: "Radial" },
+                    ]}
+                    onChange={(type) =>
+                      update((d) => ({
+                        ...d,
+                        dots: { ...d.dots, gradient: { ...d.dots.gradient!, type } },
+                      }))
+                    }
+                  />
+                  {doc.dots.gradient.type === "linear" ? (
+                    <RangeField
+                      label="Angle"
+                      testId="qr-pane-gradient-angle-input"
+                      min={0}
+                      max={360}
+                      step={15}
+                      value={doc.dots.gradient.rotation}
+                      format={(v) => `${v}°`}
+                      onChange={(rotation) =>
+                        update((d) => ({
+                          ...d,
+                          dots: {
+                            ...d.dots,
+                            gradient: { ...d.dots.gradient!, rotation },
+                          },
+                        }))
+                      }
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </Section>
 
-          <Section title="Corners">
-            <div className="qr-pane__pair">
-              <SelectField
-                label="Frame"
-                testId="qr-pane-corner-square-type-select"
-                value={doc.cornerSquare.type}
-                options={CORNER_SQUARE_TYPES}
-                onChange={(type) =>
-                  update((d) => ({ ...d, cornerSquare: { ...d.cornerSquare, type } }))
-                }
-              />
+            <Section title="Corners">
+              <div className="qr-pane__pair">
+                <SelectField
+                  label="Frame"
+                  testId="qr-pane-corner-square-type-select"
+                  value={doc.cornerSquare.type}
+                  options={CORNER_SQUARE_TYPES}
+                  onChange={(type) =>
+                    update((d) => ({ ...d, cornerSquare: { ...d.cornerSquare, type } }))
+                  }
+                />
+                <ColorField
+                  label="Colour"
+                  testId="qr-pane-corner-square-color"
+                  value={doc.cornerSquare.color}
+                  onChange={(color) =>
+                    update((d) => ({ ...d, cornerSquare: { ...d.cornerSquare, color } }))
+                  }
+                />
+              </div>
+              <div className="qr-pane__pair">
+                <SelectField
+                  label="Centre"
+                  testId="qr-pane-corner-dot-type-select"
+                  value={doc.cornerDot.type}
+                  options={CORNER_DOT_TYPES}
+                  onChange={(type) =>
+                    update((d) => ({ ...d, cornerDot: { ...d.cornerDot, type } }))
+                  }
+                />
+                <ColorField
+                  label="Colour"
+                  testId="qr-pane-corner-dot-color"
+                  value={doc.cornerDot.color}
+                  onChange={(color) =>
+                    update((d) => ({ ...d, cornerDot: { ...d.cornerDot, color } }))
+                  }
+                />
+              </div>
+            </Section>
+
+            <Section title="Background">
               <ColorField
                 label="Colour"
-                testId="qr-pane-corner-square-color"
-                value={doc.cornerSquare.color}
+                testId="qr-pane-background-color"
+                value={doc.background.color}
+                disabled={doc.background.transparent}
                 onChange={(color) =>
-                  update((d) => ({ ...d, cornerSquare: { ...d.cornerSquare, color } }))
+                  update((d) => ({ ...d, background: { ...d.background, color } }))
                 }
               />
-            </div>
-            <div className="qr-pane__pair">
+              <label className="pane-field__check">
+                <input
+                  type="checkbox"
+                  className="pane-field__checkbox"
+                  data-testid="qr-pane-transparent-checkbox"
+                  checked={doc.background.transparent}
+                  onChange={(e) =>
+                    update((d) => ({
+                      ...d,
+                      background: { ...d.background, transparent: e.target.checked },
+                    }))
+                  }
+                />
+                Transparent (PNG, SVG, WebP)
+              </label>
+            </Section>
+
+            <Section title="Logo">
+              <LogoField doc={doc} update={update} onError={setActionError} />
+            </Section>
+
+            <Section title="Output">
+              <RangeField
+                label="Size"
+                testId="qr-pane-size-input"
+                min={MIN_SIZE}
+                max={MAX_SIZE}
+                step={32}
+                value={doc.size}
+                format={(v) => `${v}px`}
+                onChange={(size) => update((d) => ({ ...d, size }))}
+              />
+              <RangeField
+                label="Quiet zone"
+                testId="qr-pane-margin-input"
+                min={0}
+                max={64}
+                step={2}
+                value={doc.margin}
+                format={(v) => `${v}px`}
+                onChange={(margin) => update((d) => ({ ...d, margin }))}
+              />
               <SelectField
-                label="Centre"
-                testId="qr-pane-corner-dot-type-select"
-                value={doc.cornerDot.type}
-                options={CORNER_DOT_TYPES}
-                onChange={(type) =>
-                  update((d) => ({ ...d, cornerDot: { ...d.cornerDot, type } }))
+                label="Error correction"
+                testId="qr-pane-error-correction-select"
+                value={doc.errorCorrection}
+                options={ERROR_LEVELS}
+                onChange={(errorCorrection) =>
+                  update((d) => ({ ...d, errorCorrection }))
                 }
               />
-              <ColorField
-                label="Colour"
-                testId="qr-pane-corner-dot-color"
-                value={doc.cornerDot.color}
-                onChange={(color) =>
-                  update((d) => ({ ...d, cornerDot: { ...d.cornerDot, color } }))
-                }
+              <SelectField
+                label="Outline"
+                testId="qr-pane-shape-select"
+                value={doc.shape}
+                options={[
+                  { value: "square", label: "Square" },
+                  { value: "circle", label: "Circle" },
+                ]}
+                onChange={(shape) => update((d) => ({ ...d, shape }))}
               />
-            </div>
-          </Section>
-
-          <Section title="Background">
-            <ColorField
-              label="Colour"
-              testId="qr-pane-background-color"
-              value={doc.background.color}
-              disabled={doc.background.transparent}
-              onChange={(color) =>
-                update((d) => ({ ...d, background: { ...d.background, color } }))
-              }
-            />
-            <label className="pane-field__check">
-              <input
-                type="checkbox"
-                className="pane-field__checkbox"
-                data-testid="qr-pane-transparent-checkbox"
-                checked={doc.background.transparent}
-                onChange={(e) =>
-                  update((d) => ({
-                    ...d,
-                    background: { ...d.background, transparent: e.target.checked },
-                  }))
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                data-testid="qr-pane-reset-button"
+                onClick={() =>
+                  update((d) => ({ ...defaultQrDoc(), content: d.content }))
                 }
-              />
-              Transparent (PNG, SVG, WebP)
-            </label>
-          </Section>
-
-          <Section title="Logo">
-            <LogoField doc={doc} update={update} onError={setActionError} />
-          </Section>
-
-          <Section title="Output">
-            <RangeField
-              label="Size"
-              testId="qr-pane-size-input"
-              min={MIN_SIZE}
-              max={MAX_SIZE}
-              step={32}
-              value={doc.size}
-              format={(v) => `${v}px`}
-              onChange={(size) => update((d) => ({ ...d, size }))}
-            />
-            <RangeField
-              label="Quiet zone"
-              testId="qr-pane-margin-input"
-              min={0}
-              max={64}
-              step={2}
-              value={doc.margin}
-              format={(v) => `${v}px`}
-              onChange={(margin) => update((d) => ({ ...d, margin }))}
-            />
-            <SelectField
-              label="Error correction"
-              testId="qr-pane-error-correction-select"
-              value={doc.errorCorrection}
-              options={ERROR_LEVELS}
-              onChange={(errorCorrection) =>
-                update((d) => ({ ...d, errorCorrection }))
-              }
-            />
-            <SelectField
-              label="Outline"
-              testId="qr-pane-shape-select"
-              value={doc.shape}
-              options={[
-                { value: "square", label: "Square" },
-                { value: "circle", label: "Circle" },
-              ]}
-              onChange={(shape) => update((d) => ({ ...d, shape }))}
-            />
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              data-testid="qr-pane-reset-button"
-              onClick={() =>
-                update((d) => ({ ...defaultQrDoc(), content: d.content }))
-              }
-            >
-              <IconRefresh aria-hidden className="pane-icon" />
-              Reset style
-            </Button>
-          </Section>
-        </aside>
+              >
+                <IconRefresh aria-hidden className="pane-icon" />
+                Reset style
+              </Button>
+            </Section>
+          </aside>
+        </PaneSplit>
       </div>
     </>
   );

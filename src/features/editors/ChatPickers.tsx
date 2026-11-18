@@ -1,8 +1,6 @@
 import {
   IconCheck,
   IconChevronDown,
-  IconCpu,
-  IconKey,
   IconSettings,
   IconSparkles,
 } from "@tabler/icons-react";
@@ -18,257 +16,342 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 import { type ChatProvider, PROVIDERS } from "@/lib/chat-doc";
 import { cn } from "@/lib/cn";
-
-type TriggerProps = React.ComponentProps<"button"> & {
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  label: string;
-  value: string;
-  /** Width class of the value: `wide` for keys and models. */
-  wide?: boolean;
-  mono?: boolean;
-};
-
-/** File-bar button that opens a picker: icon, small label, current value. */
-const PickerTrigger = React.forwardRef<HTMLButtonElement, TriggerProps>(
-  function PickerTrigger(
-    { icon: Icon, label, value, wide, mono, className, ...props },
-    ref,
-  ) {
-    return (
-      <Button
-        ref={ref}
-        type="button"
-        variant="outline"
-        size="xs"
-        className={cn("chat-picker", wide && "chat-picker--wide", className)}
-        {...props}
-      >
-        <Icon aria-hidden className="chat-picker__icon" />
-        <span className="chat-picker__label">{label}</span>
-        <span
-          className={cn(
-            "chat-picker__value",
-            mono && "chat-picker__value--mono",
-          )}
-        >
-          {value}
-        </span>
-        <IconChevronDown aria-hidden className="chat-picker__chevron" />
-      </Button>
-    );
-  },
-);
-
-export function ProviderPicker({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: ChatProvider;
-  disabled: boolean;
-  onChange: (provider: ChatProvider) => void;
-}) {
-  const current = PROVIDERS.find((p) => p.value === value) ?? PROVIDERS[0];
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild disabled={disabled}>
-        <PickerTrigger
-          icon={IconSparkles}
-          label="Provider"
-          value={current.label}
-          aria-label={`Provider: ${current.label}`}
-          data-testid="chat-pane-provider-trigger"
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="chat-picker__menu">
-        {PROVIDERS.map((p) => (
-          <DropdownMenuItem
-            key={p.value}
-            className="chat-picker__option"
-            data-testid={`chat-pane-provider-${p.value}-item`}
-            onSelect={() => onChange(p.value)}
-          >
-            <span className="chat-picker__option-text">
-              <span className="chat-picker__option-title">{p.label}</span>
-              <span className="chat-picker__option-sub">
-                .{p.extension}
-              </span>
-            </span>
-            {p.value === value ? (
-              <IconCheck aria-hidden className="chat-picker__check" />
-            ) : null}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
+import { PromptEditor, PromptList } from "@/features/editors/PromptPicker";
+import type { PromptChoice, PromptDraft } from "@/features/editors/use-prompts";
 
 export type KeyChoice = { fileId: string; name: string; path: string };
+const keyId = (k: { fileId: string; name: string }) => `${k.fileId}/${k.name}`;
 
-export function KeyPicker({
-  options,
-  value,
-  disabled,
-  onChange,
-  onManage,
-}: {
-  options: KeyChoice[];
-  value: { fileId: string; name: string } | undefined;
-  disabled: boolean;
-  onChange: (choice: KeyChoice) => void;
-  /** Opens the key file to add or edit keys. */
-  onManage: () => void;
-}) {
-  const current = options.find(
-    (o) => o.fileId === value?.fileId && o.name === value?.name,
-  );
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild disabled={disabled}>
-        <PickerTrigger
-          icon={IconKey}
-          label="Key"
-          value={current ? current.name : "None"}
-          wide
-          aria-label={`API key: ${current ? current.name : "none"}`}
-          title={current ? `${current.name} · ${current.path}` : undefined}
-          data-testid="chat-pane-key-trigger"
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="chat-picker__menu">
-        {options.map((o) => {
-          const selected = o === current;
-          return (
-            <DropdownMenuItem
-              key={`${o.fileId}/${o.name}`}
-              className="chat-picker__option"
-              data-testid={`chat-pane-key-${o.fileId}-${o.name}-item`}
-              onSelect={() => onChange(o)}
-            >
-              <span className="chat-picker__option-text">
-                <span className="chat-picker__option-title">{o.name}</span>
-                <span className="chat-picker__option-sub">{o.path}</span>
-              </span>
-              {selected ? (
-                <IconCheck aria-hidden className="chat-picker__check" />
-              ) : null}
-            </DropdownMenuItem>
-          );
-        })}
-        {options.length ? <div className="chat-picker__divider" /> : null}
-        <DropdownMenuItem
-          className="chat-picker__option"
-          data-testid="chat-pane-key-manage-item"
-          onSelect={onManage}
-        >
-          <IconSettings aria-hidden className="chat-picker__option-icon" />
-          <span className="chat-picker__option-title">Manage keys…</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-/** Searchable model list; any typed id can be used even if it is not listed. */
-export function ModelPicker({
-  value,
+/**
+ * Everything a chat is set up with, behind one file-bar button that reads
+ * `Provider · model`. The popover has two panes — provider, API key and
+ * system prompt as radio lists on the left, the searchable model list on the
+ * right — over a slim footer with the temperature. Prompts live in `.prompt`
+ * files: a prompt's pencil, or "New prompt", swaps the model list for a
+ * {@link PromptEditor} that writes the file.
+ *
+ * Styles: BEM block `chat-setup` (`src/styles/chat-pane.css`).
+ *
+ * @param props.provider - Current provider.
+ * @param props.keys - Keys found for that provider; `null` while reading.
+ * @param props.keyValue - The chosen key, if any.
+ * @param props.model - Current model id (any id may be typed).
+ * @param props.models - Listed model ids, as suggestions.
+ * @param props.modelsLoading - The model list is being fetched.
+ * @param props.prompts - Entries of the workspace's `.prompt` files; `null`
+ *   while reading.
+ * @param props.promptValue - The chosen prompt, if any.
+ * @param props.temperature - Sampling temperature, 0–2.
+ * @param props.busy - A reply is streaming: provider and key are locked.
+ * @param props.onProvider - Provider picked.
+ * @param props.onKey - Key picked.
+ * @param props.onManageKeys - Open (or create) the key file.
+ * @param props.onModel - Model picked or typed.
+ * @param props.onPrompt - Prompt picked; `null` for none.
+ * @param props.onSavePrompt - Writes a prompt draft into its `.prompt` file.
+ * @param props.onDeletePrompt - Removes a prompt from its file.
+ * @param props.onTemperature - Temperature moved.
+ *
+ * Test ids: `chat-setup-trigger`, `chat-setup-content`,
+ * `chat-setup-provider-<value>-item`, `chat-setup-key-<fileId>-<name>-item`,
+ * `chat-setup-manage-keys-button`, `chat-setup-model-search-input`,
+ * `chat-setup-model-list`, `chat-setup-model-custom-item`,
+ * `chat-setup-temperature-input`; the prompt list and editor use the
+ * `chat-setup-prompt-*` ids of {@link PromptList} / {@link PromptEditor}.
+ */
+export function ChatSetup({
+  provider,
+  keys,
+  keyValue,
+  model,
   models,
-  loading,
-  onChange,
+  modelsLoading,
+  prompts,
+  promptValue,
+  temperature,
+  busy,
+  onProvider,
+  onKey,
+  onManageKeys,
+  onModel,
+  onPrompt,
+  onSavePrompt,
+  onDeletePrompt,
+  onTemperature,
 }: {
-  value: string;
+  provider: ChatProvider;
+  keys: KeyChoice[] | null;
+  keyValue: { fileId: string; name: string } | undefined;
+  model: string;
   models: string[];
-  loading: boolean;
-  onChange: (model: string) => void;
+  modelsLoading: boolean;
+  prompts: PromptChoice[] | null;
+  promptValue: { fileId: string; name: string } | undefined;
+  temperature: number;
+  busy: boolean;
+  onProvider: (provider: ChatProvider) => void;
+  onKey: (choice: KeyChoice) => void;
+  onManageKeys: () => void;
+  onModel: (model: string) => void;
+  onPrompt: (choice: PromptChoice | null) => void;
+  onSavePrompt: (draft: PromptDraft) => Promise<PromptChoice>;
+  onDeletePrompt: (prompt: PromptChoice) => Promise<unknown>;
+  onTemperature: (temperature: number) => void;
 }) {
   const [open, setOpen] = React.useState(false);
+  // `undefined`: the model list; `null`: a new prompt; else the prompt edited.
+  const [editing, setEditing] = React.useState<PromptChoice | null>();
   const [query, setQuery] = React.useState("");
+  const searchRef = React.useRef<HTMLInputElement>(null);
   const typed = query.trim();
-  const pick = (model: string) => {
-    onChange(model);
-    setOpen(false);
+  const current = PROVIDERS.find((p) => p.value === provider) ?? PROVIDERS[0];
+  const key = keys?.find((k) => keyValue && keyId(k) === keyId(keyValue));
+  const summary = `${current.label} · ${key?.name ?? "no key"} · ${model || "no model"}`;
+
+  const pickModel = (next: string) => {
+    onModel(next);
     setQuery("");
   };
+
+  const radio = (
+    selected: boolean,
+    label: React.ReactNode,
+    onSelect: () => void,
+    props: { testId: string; title?: string; disabled?: boolean },
+  ) => (
+    <button
+      key={props.testId}
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={props.disabled}
+      title={props.title}
+      className={cn(
+        "chat-setup__choice",
+        selected && "chat-setup__choice--selected",
+      )}
+      data-testid={props.testId}
+      onClick={onSelect}
+    >
+      <span
+        aria-hidden
+        className={cn("chat-setup__radio", selected && "chat-setup__radio--on")}
+      />
+      <span className="chat-setup__choice-text">{label}</span>
+    </button>
+  );
+
+  const manage = (label: string, testId: string, onClick: () => void) => (
+    <button
+      type="button"
+      className="chat-setup__manage"
+      data-testid={testId}
+      onClick={() => {
+        setOpen(false);
+        onClick();
+      }}
+    >
+      <IconSettings aria-hidden className="chat-setup__manage-icon" />
+      {label}
+    </button>
+  );
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setEditing(undefined);
+      }}
+    >
       <PopoverTrigger asChild>
-        <PickerTrigger
-          icon={IconCpu}
-          label="Model"
-          value={value || "Pick a model"}
-          wide
-          mono
-          aria-label={`Model: ${value || "none"}`}
-          title={value}
-          data-testid="chat-pane-model-trigger"
-        />
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          className="chat-setup"
+          aria-label={`Chat setup: ${summary}`}
+          title={summary}
+          data-testid="chat-setup-trigger"
+        >
+          <IconSparkles aria-hidden className="chat-setup__icon" />
+          <span className="chat-setup__value">{current.label}</span>
+          <span aria-hidden className="chat-setup__dot">
+            ·
+          </span>
+          <span className="chat-setup__value chat-setup__value--mono">
+            {model || "Pick a model"}
+          </span>
+          <IconChevronDown aria-hidden className="chat-setup__chevron" />
+        </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="chat-picker__popover">
-        <Command>
-          <CommandInput
-            value={query}
-            onValueChange={setQuery}
-            placeholder="Search or type a model id…"
-            data-testid="chat-pane-model-search-input"
-          />
-          <CommandList
-            className="chat-picker__list"
-            data-testid="chat-pane-model-list"
-          >
-            <CommandEmpty className="chat-picker__empty">
-              {loading ? "Loading models…" : "No listed model matches."}
-            </CommandEmpty>
-            {models.length ? (
-              <CommandGroup className="chat-picker__group">
-                {models.map((model) => (
-                  <CommandItem
-                    key={model}
-                    value={model}
-                    className="chat-picker__option"
-                    onSelect={() => pick(model)}
-                  >
-                    <span className="chat-picker__option-mono">{model}</span>
-                    {model === value ? (
-                      <IconCheck aria-hidden className="chat-picker__check" />
-                    ) : null}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ) : null}
-            {typed && !models.includes(typed) ? (
-              <CommandGroup className="chat-picker__group">
-                <CommandItem
-                  value={`__custom__${typed}`}
-                  className="chat-picker__option"
-                  data-testid="chat-pane-model-custom-item"
-                  onSelect={() => pick(typed)}
-                >
-                  <span className="chat-picker__option-title">
-                    Use “{typed}”
-                  </span>
-                </CommandItem>
-              </CommandGroup>
-            ) : null}
-          </CommandList>
-          {models.length ? (
-            <p className="chat-picker__footer">
-              {models.length} models · type any id to use it
-            </p>
-          ) : null}
-        </Command>
+      <PopoverContent
+        align="end"
+        className="chat-setup__panel"
+        data-testid="chat-setup-content"
+        // Land in the model search, the thing most often changed.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          searchRef.current?.focus();
+        }}
+      >
+        <div className="chat-setup__body">
+          <div className="chat-setup__nav">
+            <div
+              role="radiogroup"
+              aria-label="Provider"
+              className="chat-setup__group"
+            >
+              <span className="chat-setup__heading">Provider</span>
+              {PROVIDERS.map((p) =>
+                radio(
+                  p.value === provider,
+                  p.label,
+                  () => p.value !== provider && onProvider(p.value),
+                  {
+                    testId: `chat-setup-provider-${p.value}-item`,
+                    disabled: busy,
+                  },
+                ),
+              )}
+            </div>
+            <div
+              role="radiogroup"
+              aria-label="API key"
+              className="chat-setup__group"
+            >
+              <span className="chat-setup__heading">Key</span>
+              {keys === null ? (
+                <span className="chat-setup__hint">Reading keys…</span>
+              ) : keys.length ? (
+                keys.map((k) =>
+                  radio(k === key, k.name, () => onKey(k), {
+                    testId: `chat-setup-key-${k.fileId}-${k.name}-item`,
+                    title: k.path,
+                    disabled: busy,
+                  }),
+                )
+              ) : (
+                <span className="chat-setup__hint">No keys yet</span>
+              )}
+              {manage(
+                keys?.length ? "Manage keys" : "Add a key",
+                "chat-setup-manage-keys-button",
+                onManageKeys,
+              )}
+            </div>
+            <div className="chat-setup__group">
+              <span className="chat-setup__heading">Prompt</span>
+              <PromptList
+                prompts={prompts}
+                value={promptValue}
+                testIdPrefix="chat-setup"
+                onSelect={onPrompt}
+                onEdit={setEditing}
+                onNew={() => setEditing(null)}
+              />
+            </div>
+          </div>
+
+          {editing !== undefined ? (
+            <PromptEditor
+              key={editing ? keyId(editing) : "new"}
+              prompt={editing}
+              testIdPrefix="chat-setup"
+              onSave={async (draft) => {
+                const saved = await onSavePrompt(draft);
+                // A new prompt is the one to use; a renamed chosen one stays.
+                if (
+                  !editing ||
+                  (promptValue && keyId(editing) === keyId(promptValue))
+                ) {
+                  onPrompt(saved);
+                }
+              }}
+              onDelete={onDeletePrompt}
+              onDone={() => setEditing(undefined)}
+            />
+          ) : (
+            <Command className="chat-setup__models">
+              <CommandInput
+                ref={searchRef}
+                value={query}
+                onValueChange={setQuery}
+                placeholder="Search or type a model id…"
+                data-testid="chat-setup-model-search-input"
+              />
+              <CommandList
+                className="chat-setup__list"
+                data-testid="chat-setup-model-list"
+              >
+                <CommandEmpty className="chat-setup__empty">
+                  {modelsLoading
+                    ? "Loading models…"
+                    : "No listed model matches."}
+                </CommandEmpty>
+                {models.length ? (
+                  <CommandGroup className="chat-setup__options">
+                    {models.map((m) => (
+                      <CommandItem
+                        key={m}
+                        value={m}
+                        className="chat-setup__option"
+                        onSelect={() => pickModel(m)}
+                      >
+                        <span className="chat-setup__option-text">{m}</span>
+                        {m === model ? (
+                          <IconCheck
+                            aria-hidden
+                            className="chat-setup__check"
+                          />
+                        ) : null}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : null}
+                {typed && !models.includes(typed) ? (
+                  <CommandGroup className="chat-setup__options">
+                    <CommandItem
+                      value={`__custom__${typed}`}
+                      className="chat-setup__option"
+                      data-testid="chat-setup-model-custom-item"
+                      onSelect={() => pickModel(typed)}
+                    >
+                      Use “{typed}”
+                    </CommandItem>
+                  </CommandGroup>
+                ) : null}
+              </CommandList>
+            </Command>
+          )}
+        </div>
+
+        <div className="chat-setup__footer">
+          <div className="chat-setup__field">
+            <span className="chat-setup__field-label">Temp</span>
+            <Slider
+              size="sm"
+              aria-label="Temperature"
+              className="chat-setup__slider"
+              data-testid="chat-setup-temperature-input"
+              min={0}
+              max={2}
+              step={0.1}
+              value={temperature}
+              onValueChange={onTemperature}
+            />
+            <span className="chat-setup__readout">
+              {temperature.toFixed(1)}
+            </span>
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );

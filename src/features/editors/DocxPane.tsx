@@ -1,11 +1,9 @@
 import * as React from "react";
 
 import { DocxEditorPreview } from "@/components/extend/docx-editor";
-import { DocxViewerPreview } from "@/components/extend/docx-viewer";
 import { mimeOf } from "@/lib/file-types";
 import { saveContent } from "@/store/actions";
 import { useAppDispatch } from "@/store";
-import type { TabMode } from "@/store/tabs-slice";
 import {
   type GetDocumentBytes,
   SaveBridgeProvider,
@@ -19,22 +17,22 @@ import {
 } from "@/features/editors/pane-context";
 import { EmptyBinary } from "@/features/editors/PdfPane";
 
+/** Word documents: always the editor — there is no separate preview mode. */
 export default function DocxPane({
   id,
   name,
   content,
   isDark,
-  mode,
   autoFocus,
   registerSave,
-}: PaneProps & { mode: TabMode }) {
+}: PaneProps) {
   const dispatch = useAppDispatch();
   const bridge = React.useRef<GetDocumentBytes | null>(null);
   const url = useObjectUrl(content, mimeOf(name));
   const [dark, setDark] = useDocumentDark(isDark);
 
   const saveNow = async () => {
-    if (mode !== "edit" || !bridge.current) return;
+    if (!bridge.current) return;
     const bytes = await bridge.current();
     if (bytes) await dispatch(saveContent(id, bytes));
   };
@@ -43,7 +41,7 @@ export default function DocxPane({
 
   if (!url) return <EmptyBinary name={name} />;
 
-  return mode === "edit" ? (
+  return (
     <SaveBridgeProvider bridgeRef={bridge} onChange={autosave.onChange}>
       <div className="h-full" {...autosave.guardProps}>
         <DocxEditorPreview
@@ -56,15 +54,5 @@ export default function DocxPane({
         />
       </div>
     </SaveBridgeProvider>
-  ) : (
-    <DocxViewerPreview
-      className="h-full"
-      src={url}
-      fileName={name}
-      isDark={dark}
-      onIsDarkChange={setDark}
-      showUpload={false}
-      showDownload={false}
-    />
   );
 }

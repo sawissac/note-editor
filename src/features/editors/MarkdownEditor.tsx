@@ -30,9 +30,11 @@ import {
   toolbarPlugin,
   UndoRedo,
 } from "@mdxeditor/editor";
+import { AnimatePresence } from "motion/react";
 import * as React from "react";
 
 import { ImageDialog } from "@/features/editors/ImageDialog";
+import { MarkdownSkeleton } from "@/features/editors/MarkdownSkeleton";
 import { cn } from "@/lib/cn";
 
 const CODE_LANGUAGES = {
@@ -78,6 +80,8 @@ export function MarkdownEditor({
 }) {
   const [error, setError] = React.useState<string | null>(null);
   const editorRef = React.useRef<MDXEditorMethods>(null);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const ready = useEditableReady(rootRef);
   const plugins = React.useMemo(
     () => [
       headingsPlugin(),
@@ -129,7 +133,8 @@ export function MarkdownEditor({
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col"
+      ref={rootRef}
+      className="relative flex h-full min-h-0 flex-col"
       // The editable block is only as tall as its text, so a click in the
       // empty space below it would otherwise do nothing. Send it to the end.
       onMouseDown={(e) => {
@@ -164,6 +169,35 @@ export function MarkdownEditor({
         autoFocus={autoFocus}
         spellCheck
       />
+      {/* MDXEditor paints its content a few frames after mounting; keep the
+          loading skeleton over it until then, and fade it away. */}
+      <AnimatePresence>
+        {ready ? null : <MarkdownSkeleton key="skeleton" overlay />}
+      </AnimatePresence>
     </div>
   );
+}
+
+/** Safety net: never leave the skeleton up if the editable never appears. */
+const READY_TIMEOUT_MS = 3000;
+
+/** True once MDXEditor's editable content (`.md-content`) is in the DOM. */
+function useEditableReady(rootRef: React.RefObject<HTMLDivElement | null>) {
+  const [ready, setReady] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || ready) return;
+    const check = () => {
+      if (root.querySelector(".md-content")) setReady(true);
+    };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(root, { childList: true, subtree: true });
+    const timer = setTimeout(() => setReady(true), READY_TIMEOUT_MS);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, [rootRef, ready]);
+  return ready;
 }

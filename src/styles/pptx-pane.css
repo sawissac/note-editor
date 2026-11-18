@@ -1,0 +1,136 @@
+@reference "../index.css";
+
+/* PptxPane (`.pptx` files) — BEM blocks `pptx-pane` (the
+ * editor) and `pptx-show` (the full-screen slide show).
+ *
+ * Slides list on the left, the slide being edited in the middle, its
+ * settings on the right. Under `lg` the settings drop below the slide. */
+
+@layer components {
+  .pptx-pane {
+    /* Slides | canvas | settings, all resizable: PaneSplit (pane-split.tsx)
+       with a nested slides | canvas group. Settings stack below under lg. */
+    @apply bg-app-bg h-full min-h-0;
+  }
+
+  /* ── Slide list ───────────────────────────────────────────────────── */
+  .pptx-pane__slides {
+    @apply bg-app-panel flex h-full min-h-0 flex-col gap-2 p-2;
+  }
+  .pptx-pane__slide-list {
+    @apply m-0 flex min-h-0 flex-1 list-none flex-col gap-2 overflow-y-auto p-0;
+  }
+  .pptx-pane__slide {
+    @apply relative flex shrink-0 gap-1;
+  }
+  .pptx-pane__slide--dragging {
+    @apply z-10 opacity-60;
+  }
+  .pptx-pane__slide-number {
+    @apply text-app-dim w-4 shrink-0 pt-0.5 text-right font-mono text-[10px];
+  }
+  .pptx-pane__slide-number--selected {
+    @apply text-app-accent font-semibold;
+  }
+  .pptx-pane__slide-button {
+    @apply border-app-border bg-app-bg hover:border-app-border-accent focus-visible:ring-app-accent block min-w-0 flex-1 cursor-pointer overflow-hidden rounded-md border p-0 outline-none focus-visible:ring-2;
+  }
+  .pptx-pane__slide-button--selected {
+    @apply border-app-accent ring-app-accent/40 ring-2;
+  }
+  .pptx-pane__thumb {
+    @apply pointer-events-none block aspect-video w-full select-none;
+  }
+  /* Duplicate / delete, over the open slide's thumbnail corner. */
+  .pptx-pane__slide-actions {
+    @apply bg-app-panel border-app-border absolute top-1 right-1 flex rounded-md border;
+  }
+
+  /* ── Slide being edited ───────────────────────────────────────────── */
+  .pptx-pane__main {
+    @apply flex h-full min-h-0 min-w-0 flex-col;
+  }
+  .pptx-pane__notice {
+    @apply border-app-border font-description text-app-error flex shrink-0 items-start gap-2 border-b px-3 py-2 text-[12px] leading-snug;
+  }
+  .pptx-pane__notice-text {
+    @apply m-0 min-w-0 flex-1;
+  }
+  .pptx-pane__workspace {
+    @apply bg-app-hover focus-visible:ring-app-accent/40 flex min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 focus-visible:ring-inset;
+  }
+  .pptx-pane__workspace--dropping {
+    @apply bg-app-accent-faint;
+  }
+  /* `m-auto` centres the slide and still lets it scroll when it overflows. */
+  .pptx-pane__canvas {
+    @apply relative m-auto shrink-0;
+  }
+  .pptx-pane__stage {
+    @apply block;
+  }
+  /* The text box being typed into, laid over its drawn twin. */
+  .pptx-pane__editor {
+    @apply outline-app-accent absolute flex flex-col outline-2 outline-dashed;
+  }
+  .pptx-pane__editor--middle {
+    @apply justify-center;
+  }
+  .pptx-pane__editor--bottom {
+    @apply justify-end;
+  }
+  .pptx-pane__editor-input {
+    @apply m-0 block w-full resize-none overflow-hidden border-0 bg-transparent p-0 outline-none;
+  }
+
+  /* ── Settings ─────────────────────────────────────────────────────── */
+  .pptx-pane__side {
+    @apply bg-app-panel divide-app-border h-full min-h-0 divide-y overflow-y-auto;
+  }
+  .pptx-pane__section {
+    @apply flex flex-col gap-2.5 p-3;
+  }
+  .pptx-pane__heading {
+    @apply font-title text-app-dim m-0 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  /* Two fields side by side. */
+  .pptx-pane__pair {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .pptx-pane__actions {
+    @apply flex flex-wrap gap-1.5;
+  }
+  .pptx-pane__swatches {
+    @apply flex flex-wrap gap-1;
+  }
+  .pptx-pane__swatch {
+    @apply border-app-border-mid hover:border-app-accent focus-visible:ring-app-accent size-4 cursor-pointer rounded-sm border p-0 outline-none focus-visible:ring-2;
+  }
+  .pptx-pane__swatch--selected {
+    @apply border-app-accent ring-app-accent ring-1;
+  }
+  .pptx-pane__file-input {
+    @apply sr-only;
+  }
+
+  /* ── Slide show ───────────────────────────────────────────────────── */
+  .pptx-show {
+    @apply fixed inset-0 z-100 flex cursor-pointer items-center justify-center bg-black outline-none;
+  }
+  .pptx-show__slide {
+    @apply block size-full object-contain select-none;
+  }
+  .pptx-show__count {
+    @apply absolute right-4 bottom-3 m-0 font-mono text-[12px] text-white/60;
+  }
+  .pptx-show__close {
+    @apply absolute top-3 right-3 flex size-8 cursor-pointer items-center justify-center rounded-md border-0 bg-white/10 text-white/70 outline-none hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white;
+  }
+}
+
+/* ── pptx-pane × compacto ────────────────────────────────────────
+ * Unlayered so it outranks the compacto components' own utilities,
+ * without `!`. */
+.pptx-pane__add-slide {
+  @apply w-full shrink-0;
+}

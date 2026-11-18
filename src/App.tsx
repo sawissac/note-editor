@@ -10,8 +10,10 @@ import { TabBar } from "@/features/tabs/TabBar";
 import { QuickOpen } from "@/features/workspace/QuickOpen";
 import { StatusBar } from "@/features/workspace/StatusBar";
 import { TimerDock } from "@/features/workspace/TimerDock";
+import { m } from "motion/react";
 import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 
+import { enter } from "@/lib/motion";
 import { type RootState, useAppSelector } from "@/store";
 import { selectSidebarVisible } from "@/store/selectors";
 
@@ -73,7 +75,15 @@ export default function App() {
         {sidebarOpen ? (
           <>
             <ResizablePanel id="sidebar" defaultSize="22%" minSize={200} maxSize="45%">
-              <Explorer />
+              {/* Slides in from the edge when the sidebar is shown. */}
+              <m.div
+                className="h-full"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={enter}
+              >
+                <Explorer />
+              </m.div>
             </ResizablePanel>
             <ResizableHandle />
           </>

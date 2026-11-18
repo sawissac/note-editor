@@ -1,0 +1,35 @@
+/* MarkdownSkeleton — BEM block `markdown-skeleton`.
+ *
+ * Placeholder for the Markdown editor while the note is read, the MDXEditor
+ * chunk downloads, and MDXEditor paints its first frame (then as an overlay). The toolbar strip matches `.app-mdx .md-toolbar`
+ * (height, background, hairline) and the body matches `.app-mdx .md-content`
+ * padding, so swapping in the real editor barely shifts anything.
+ * Imported from `src/index.css`. */
+
+@layer components {
+  .markdown-skeleton {
+    @apply bg-app-bg flex h-full min-h-0 flex-col overflow-hidden;
+  }
+  /* Over the real editor while it mounts underneath. */
+  .markdown-skeleton--overlay {
+    @apply absolute inset-0 z-10;
+  }
+  .markdown-skeleton__toolbar {
+    @apply border-app-border bg-app-sidebar flex shrink-0 flex-wrap items-center gap-1.5 border-b px-3 py-1;
+  }
+  .markdown-skeleton__tool {
+    @apply h-7;
+  }
+  .markdown-skeleton__body {
+    @apply flex min-h-0 flex-1 flex-col gap-3 px-10 pt-8;
+  }
+  .markdown-skeleton__line {
+    @apply h-3.5 max-w-3xl;
+  }
+  .markdown-skeleton__line--heading {
+    @apply mb-2 h-7 w-2/5;
+  }
+  .markdown-skeleton__gap {
+    @apply h-2;
+  }
+}

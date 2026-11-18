@@ -14,6 +14,7 @@ import {
   type RegexSnippetGroup,
   REGEX_SNIPPETS,
 } from "@/features/editors/regex-snippets";
+import { CodeSkeleton } from "@/features/editors/CodeSkeleton";
 
 // Bundle Monaco locally (the wrapper would otherwise fetch it from a CDN).
 // JSON gets its language-service worker (syntax errors, folding, format);
@@ -317,7 +318,8 @@ export default function CodeEditor({
           }
           onChange(next);
         }}
-        loading={null}
+        // Monaco boots after its chunk loads; keep the same placeholder up.
+        loading={singleLine ? null : <CodeSkeleton />}
         options={{
           ariaLabel: ariaLabel,
           placeholder,

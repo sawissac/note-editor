@@ -22,11 +22,14 @@ export type FileKind =
   | "sql"
   | "env"
   | "apikeys"
+  | "prompt"
   | "regex"
   | "diff"
   | "qr"
   | "timer"
   | "random"
+  | "bookmark"
+  | "pptx"
   | "chat"
   | "appinfo"
   | "appstate"
@@ -76,12 +79,15 @@ const EXT_KIND: Record<string, FileKind> = {
   env: "env",
   gemini: "apikeys",
   openrouter: "apikeys",
+  prompt: "prompt",
   regex: "regex",
   diff: "diff",
   patch: "diff",
   qr: "qr",
   timer: "timer",
   random: "random",
+  bookmark: "bookmark",
+  pptx: "pptx",
   chat: "chat",
   // Holds one image of any format (PNG, JPEG, WebP, SVG, HEIC, …).
   img: "image",
@@ -119,6 +125,7 @@ export const CREATABLE_EXTENSIONS = [
   "env",
   "gemini",
   "openrouter",
+  "prompt",
   "regex",
   "diff",
   "schema",
@@ -129,6 +136,8 @@ export const CREATABLE_EXTENSIONS = [
   "qr",
   "timer",
   "random",
+  "bookmark",
+  "pptx",
   "chat",
   "img",
   "txt",
@@ -205,6 +214,8 @@ export const IMPORT_ACCEPT: Record<string, string[]> = {
   "application/vnd.note-editor.kanban+json": [".kanban"],
   "application/vnd.note-editor.qr+json": [".qr"],
   "application/vnd.note-editor.timer+json": [".timer"],
+  "application/vnd.note-editor.bookmark+json": [".bookmark"],
+  "application/vnd.note-editor.pptx+json": [".pptx"],
   "application/vnd.note-editor.chat+json": [".chat"],
   "application/json": [".json"],
   "application/yaml": [".yaml", ".yml"],
@@ -240,11 +251,14 @@ const MIME: Record<FileKind, string> = {
   sql: "application/sql",
   env: "text/plain",
   apikeys: "application/json",
+  prompt: "application/json",
   regex: "text/plain",
   diff: "text/x-diff",
   qr: "application/json",
   timer: "application/json",
   random: "text/plain",
+  bookmark: "application/json",
+  pptx: "application/json",
   chat: "application/json",
   appinfo: "application/json",
   appstate: "application/json",
@@ -323,11 +337,14 @@ export const KIND_LABEL: Record<FileKind, string> = {
   sql: "SQL",
   env: "Environment",
   apikeys: "API keys",
+  prompt: "Prompts",
   regex: "Regex",
   diff: "Diff",
   qr: "QR code",
   timer: "Timer",
   random: "Random picker",
+  bookmark: "Bookmarks",
+  pptx: "Slides",
   chat: "Chat",
   appinfo: "App info",
   appstate: "App state",

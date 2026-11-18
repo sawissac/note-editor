@@ -26,6 +26,7 @@ import { saveContent } from "@/store/actions";
 import type { FsNode } from "@/store/fs-slice";
 import { type RootState, useAppDispatch, useAppStore } from "@/store";
 import { FileBarSlot } from "@/features/editors/file-bar-slot";
+import { PaneSplit } from "@/features/editors/pane-split";
 import {
   type PaneProps,
   useSaveHandler,
@@ -516,80 +517,82 @@ export default function AppStatePane({ id, registerSave }: PaneProps) {
       </FileBarSlot>
 
       <div className="app-state-pane" data-testid="app-state-pane">
-        <div className="app-state-pane__stage">
-          <svg
-            ref={svgRef}
-            className="app-state-pane__graph"
-            data-testid="app-state-pane-graph"
-            role="group"
-            aria-label="App state tree"
-          >
-            <g ref={viewRef}>
-              <g ref={linksRef} />
-              <g ref={nodesRef} />
-            </g>
-          </svg>
-          <p className="app-state-pane__hint">
-            {frozen ? "Paused · " : "Live · "}
-            click to open · drag to pan · scroll to zoom
-          </p>
-        </div>
-
-        <aside className="app-state-pane__side" aria-label="State details">
-          <section className="app-state-pane__section">
-            <h3 className="app-state-pane__heading">Store</h3>
-            <dl className="app-state-pane__counts">
-              {counts.map((c) => (
-                <div key={c.id} className="app-state-pane__count">
-                  <dt className="app-state-pane__count-label">{c.label}</dt>
-                  <dd
-                    className="app-state-pane__count-value"
-                    data-testid={`app-state-pane-${c.id}-count-message`}
-                  >
-                    {c.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <p className="app-state-pane__meta">
-              Last change {updatedAt.toLocaleTimeString()}
-            </p>
-          </section>
-          <section className="app-state-pane__section app-state-pane__section--grow">
-            <h3 className="app-state-pane__heading">Selected</h3>
-            <p className="app-state-pane__path">{selected}</p>
-            <pre
-              className="app-state-pane__detail"
-              data-testid="app-state-pane-detail-content"
+        <PaneSplit sideSize="20rem">
+          <div className="app-state-pane__stage">
+            <svg
+              ref={svgRef}
+              className="app-state-pane__graph"
+              data-testid="app-state-pane-graph"
+              role="group"
+              aria-label="App state tree"
             >
-              {detail}
-            </pre>
-          </section>
-          <section className="app-state-pane__section">
-            <h3 className="app-state-pane__heading">Legend</h3>
-            <ul className="app-state-pane__legend">
-              {(
-                ["object", "array", "string", "number", "boolean", "null"] as const
-              ).map((t) => (
-                <li key={t} className="app-state-pane__legend-item">
-                  <svg
-                    className="app-state-pane__legend-swatch"
-                    viewBox="0 0 12 12"
-                    aria-hidden
-                  >
-                    <circle
-                      cx="6"
-                      cy="6"
-                      r="4.5"
-                      className={`app-state-pane__dot app-state-pane__dot--type-${t}`}
-                    />
-                  </svg>
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </aside>
+              <g ref={viewRef}>
+                <g ref={linksRef} />
+                <g ref={nodesRef} />
+              </g>
+            </svg>
+            <p className="app-state-pane__hint">
+              {frozen ? "Paused · " : "Live · "}
+              click to open · drag to pan · scroll to zoom
+            </p>
+          </div>
+
+          <aside className="app-state-pane__side" aria-label="State details">
+            <section className="app-state-pane__section">
+              <h3 className="app-state-pane__heading">Store</h3>
+              <dl className="app-state-pane__counts">
+                {counts.map((c) => (
+                  <div key={c.id} className="app-state-pane__count">
+                    <dt className="app-state-pane__count-label">{c.label}</dt>
+                    <dd
+                      className="app-state-pane__count-value"
+                      data-testid={`app-state-pane-${c.id}-count-message`}
+                    >
+                      {c.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="app-state-pane__meta">
+                Last change {updatedAt.toLocaleTimeString()}
+              </p>
+            </section>
+            <section className="app-state-pane__section app-state-pane__section--grow">
+              <h3 className="app-state-pane__heading">Selected</h3>
+              <p className="app-state-pane__path">{selected}</p>
+              <pre
+                className="app-state-pane__detail"
+                data-testid="app-state-pane-detail-content"
+              >
+                {detail}
+              </pre>
+            </section>
+            <section className="app-state-pane__section">
+              <h3 className="app-state-pane__heading">Legend</h3>
+              <ul className="app-state-pane__legend">
+                {(
+                  ["object", "array", "string", "number", "boolean", "null"] as const
+                ).map((t) => (
+                  <li key={t} className="app-state-pane__legend-item">
+                    <svg
+                      className="app-state-pane__legend-swatch"
+                      viewBox="0 0 12 12"
+                      aria-hidden
+                    >
+                      <circle
+                        cx="6"
+                        cy="6"
+                        r="4.5"
+                        className={`app-state-pane__dot app-state-pane__dot--type-${t}`}
+                      />
+                    </svg>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </aside>
+        </PaneSplit>
       </div>
     </>
   );

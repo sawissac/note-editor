@@ -4,6 +4,7 @@ import {
   IconFilePlus,
   IconFolderPlus,
 } from "@tabler/icons-react";
+import { m } from "motion/react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
 import { FileIcon, FolderIcon } from "@/lib/file-icons";
+import { glide } from "@/lib/motion";
 import { kindOf, suggestRenameNames } from "@/lib/file-types";
 import {
   commitRename,
@@ -28,7 +30,9 @@ import {
 import { type FsNode, fsActions } from "@/store/fs-slice";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
+  clearDraggingIds,
   dropZone,
+  getDraggingIds,
   getNodePayload,
   hasFilePayload,
   hasNodePayload,
@@ -125,6 +129,16 @@ export function TreeRow({
   const isDropTarget = isFolder && dropTargetId === node.id;
   const [menuOpen, setMenuOpen] = React.useState(false);
 
+  /** Rows from this folder's own level are dragged over it. */
+  const isSiblingDrag = () => {
+    if (!isFolder) return false;
+    const dragged = getDraggingIds().map((id) => nodes[id]);
+    return (
+      dragged.length > 0 &&
+      dragged.every((n) => n !== undefined && n.parentId === node.parentId)
+    );
+  };
+
   const activate = () => {
     if (isFolder) {
       dispatch(fsActions.selected(node.id));
@@ -167,6 +181,7 @@ export function TreeRow({
             if (ids.length > 1) setMultiDragImage(e, `${ids.length} items`);
           }}
           onDragEnd={() => {
+            clearDraggingIds();
             onDropTarget(undefined);
             onDropLine(undefined);
           }}
@@ -177,7 +192,9 @@ export function TreeRow({
             e.stopPropagation();
             e.dataTransfer.dropEffect = isNode ? "move" : "copy";
             // OS files always import into the folder; only rows reorder.
-            const zone = isNode ? dropZone(e, isFolder, open) : "into";
+            const zone = isNode
+              ? dropZone(e, isFolder, open, isSiblingDrag())
+              : "into";
             if (zone === "into") {
               onDropLine(undefined);
               onDropTarget(dropFolderId);
@@ -193,7 +210,8 @@ export function TreeRow({
             onDropLine(undefined);
             const ids = getNodePayload(e);
             if (ids.length) {
-              const zone = dropZone(e, isFolder, open);
+              const zone = dropZone(e, isFolder, open, isSiblingDrag());
+              clearDraggingIds();
               if (zone === "into") dispatch(moveNodes(ids, dropFolderId));
               else dispatch(reorderNodes(ids, node.id, zone));
             } else if (e.dataTransfer.files.length) {
@@ -202,15 +220,28 @@ export function TreeRow({
           }}
           style={{ paddingLeft: rowPadding(depth), height: ROW_HEIGHT }}
           className={cn(
-            "group relative flex cursor-pointer items-center gap-1.5 pr-1 text-[12px] text-app-text outline-none select-none",
+            "group relative isolate flex cursor-pointer items-center gap-1.5 pr-1 text-[12px] text-app-text outline-none select-none",
             "transition-colors duration-(--motion-duration-fast) hover:bg-app-hover",
             active && "text-app-bright",
-            selected && "bg-app-selected text-app-bright",
+            selected && "text-app-bright",
+            // A multi-selection fills every row in place; a single selection
+            // uses the sliding fill below.
+            selected && multi && "bg-app-selected",
             focused && multi && "ring-1 ring-app-border-mid ring-inset",
             (isDropTarget || menuOpen) &&
               "bg-app-accent-faint ring-1 ring-app-border-accent ring-inset",
           )}
         >
+          {/* Single selection: one shared fill that slides from the previously
+              selected row (like the bookmark sidebar). */}
+          {selected && !multi ? (
+            <m.span
+              aria-hidden
+              layoutId="explorer-selection"
+              transition={glide}
+              className="tree-selection"
+            />
+          ) : null}
           <IndentGuides depth={depth} />
           {dropLine ? (
             <span

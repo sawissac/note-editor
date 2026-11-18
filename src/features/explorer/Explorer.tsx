@@ -12,14 +12,23 @@ import {
   IconUpload,
   IconFileExport,
   IconDatabaseExport,
+  IconArrowsSort,
 } from "@tabler/icons-react";
+import { AnimatePresence, m, type Variants } from "motion/react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Sidebar,
-  SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarTitle,
@@ -30,6 +39,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
+import { enter, exit } from "@/lib/motion";
+import { Unfold } from "@/components/unfold";
 import * as ui from "@/lib/ui-styles";
 import {
   collapseAll,
@@ -41,6 +52,8 @@ import {
   moveNodes,
   openFile,
   shiftNode,
+  SORT_OPTIONS,
+  sortChildren,
   validateName,
 } from "@/store/actions";
 import { fsActions, type NodeType } from "@/store/fs-slice";
@@ -63,6 +76,37 @@ import { useVisibleRows } from "@/features/explorer/use-visible-rows";
 import { FileIcon, FolderIcon } from "@/lib/file-icons";
 import { suggestFileNames } from "@/lib/file-types";
 
+const NO_MOTION = { duration: 0 };
+
+/**
+ * Row fold/unfold. `custom` = "instant": the change came with a tab switch
+ * (opening a file auto-expands its ancestors and scrolls the row into view),
+ * so the rows must be at full height at once or the scroll lands short and
+ * the tree visibly jumps. Only direct folder toggles animate.
+ */
+const ROW_VARIANTS: Variants = {
+  folded: (instant: boolean) => ({
+    height: 0,
+    opacity: 0,
+    pointerEvents: "none",
+    transition: instant ? NO_MOTION : exit,
+  }),
+  unfolded: (instant: boolean) =>
+    instant
+      ? {
+          height: "auto",
+          opacity: 1,
+          pointerEvents: "auto",
+          transition: NO_MOTION,
+        }
+      : {
+          height: "auto",
+          opacity: 1,
+          pointerEvents: "auto",
+          transition: enter,
+        },
+};
+
 /**
  * The left pane: a file tree with VS Code–style inline create / rename,
  * keyboard navigation, drag-to-move, OS file drop-to-import, and a
@@ -76,6 +120,14 @@ export function Explorer() {
   const selectedId = useAppSelector((s) => s.fs.selectedId);
   const draft = useAppSelector((s) => s.fs.draft);
   const selectionCount = useAppSelector((s) => s.fs.selectedIds.length);
+  // Rows that change in the same render as the active tab snap instead of
+  // animating (see ROW_VARIANTS).
+  const activeId = useAppSelector((s) => s.tabs.activeId);
+  const lastActiveId = React.useRef(activeId);
+  const instantRows = lastActiveId.current !== activeId;
+  React.useEffect(() => {
+    lastActiveId.current = activeId;
+  }, [activeId]);
   const treeRef = React.useRef<HTMLDivElement>(null);
   // undefined = no drop in progress, null = root, string = folder id.
   const [dropTarget, setDropTarget] = React.useState<
@@ -346,6 +398,7 @@ export function Explorer() {
           >
             <IconFoldUp />
           </HeaderAction>
+          <SortAction />
         </ButtonGroup>
         <HeaderAction
           label="Hide sidebar"
@@ -355,8 +408,13 @@ export function Explorer() {
         </HeaderAction>
       </SidebarHeader>
 
-      <SidebarContent
+      {/* The tree's own scroller (SidebarContent's classes), as a motion
+          element: `layoutScroll` keeps the sliding selection fill on target
+          while keyboard navigation scrolls the selected row into view. */}
+      <m.div
         ref={treeRef}
+        layoutScroll
+        data-slot="sidebar-content"
         role="tree"
         aria-multiselectable
         aria-label="Files"
@@ -391,32 +449,46 @@ export function Explorer() {
           }
         }}
         className={cn(
+          "min-h-0 flex-1 overflow-y-auto",
           "focus-visible:ring-app-border-accent py-1 outline-none focus-visible:ring-1 focus-visible:ring-inset",
           dropTarget === null && "bg-app-accent-faint",
         )}
       >
-        {rows.map((row) =>
-          row.kind === "node" ? (
-            <TreeRow
-              key={row.node.id}
-              node={row.node}
-              depth={row.depth}
-              dropTargetId={dropTarget}
-              onDropTarget={setDropTarget}
-              dropLine={
-                dropLine?.id === row.node.id ? dropLine.position : undefined
-              }
-              onDropLine={setDropLine}
-              onExternalDrop={(files, parentId) =>
-                void handleExternalDrop(files, parentId)
-              }
-              onSelectClick={onSelectClick}
-              getDragIds={getDragIds}
-            />
-          ) : (
-            <DraftRow key="draft" parentId={row.parentId} depth={row.depth} />
-          ),
-        )}
+        {/* Rows unfold when a folder expands and fold away when it collapses
+            (or a node is deleted). `initial={false}`: the first render — and
+            re-showing the sidebar — paints the tree without animating it. */}
+        <AnimatePresence initial={false} custom={instantRows}>
+          {rows.map((row) => (
+            <Unfold
+              key={row.kind === "node" ? row.node.id : "draft"}
+              custom={instantRows}
+              variants={ROW_VARIANTS}
+              initial="folded"
+              animate="unfolded"
+              exit="folded"
+            >
+              {row.kind === "node" ? (
+                <TreeRow
+                  node={row.node}
+                  depth={row.depth}
+                  dropTargetId={dropTarget}
+                  onDropTarget={setDropTarget}
+                  dropLine={
+                    dropLine?.id === row.node.id ? dropLine.position : undefined
+                  }
+                  onDropLine={setDropLine}
+                  onExternalDrop={(files, parentId) =>
+                    void handleExternalDrop(files, parentId)
+                  }
+                  onSelectClick={onSelectClick}
+                  getDragIds={getDragIds}
+                />
+              ) : (
+                <DraftRow parentId={row.parentId} depth={row.depth} />
+              )}
+            </Unfold>
+          ))}
+        </AnimatePresence>
         {isEmpty ? (
           <EmptyState
             onNewFile={() => startCreate("file")}
@@ -431,7 +503,7 @@ export function Explorer() {
             onClick={() => dispatch(fsActions.selected(null))}
           />
         )}
-      </SidebarContent>
+      </m.div>
 
       {/* Shown only while there is something to say: a multi-selection or
           an import notice. */}
@@ -511,6 +583,44 @@ function DraftRow({
         onCancel={() => dispatch(fsActions.draftCancelled())}
       />
     </div>
+  );
+}
+
+/** Header "Sort" button: sorts every folder in the workspace at once. */
+function SortAction() {
+  const dispatch = useAppDispatch();
+  return (
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Sort all folders"
+              data-testid="explorer-sort-button"
+              className="text-app-dim hover:text-app-accent size-6 bg-transparent [&_svg:not([class*='size-'])]:size-3.5"
+            >
+              <IconArrowsSort />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Sort all folders</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Sort all folders by</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {SORT_OPTIONS.map((option) => (
+          <DropdownMenuItem
+            key={option.key}
+            data-testid={`explorer-sort-${option.key}-item`}
+            onSelect={() => dispatch(sortChildren(null, option.key, true))}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

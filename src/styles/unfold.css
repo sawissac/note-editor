@@ -1,0 +1,10 @@
+/* Unfold — BEM block `unfold` (src/components/unfold.tsx).
+ *
+ * Motion wrapper that clips only mid-animation. Imported from
+ * `src/index.css`. */
+
+@layer components {
+  .unfold--clipped {
+    @apply overflow-hidden;
+  }
+}

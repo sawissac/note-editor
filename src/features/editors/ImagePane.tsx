@@ -88,6 +88,8 @@ import {
 } from "@/features/editors/pane-context";
 import { useBinaryAutosave } from "@/features/editors/use-binary-autosave";
 import { useObjectUrl } from "@/features/editors/use-file-content";
+import { PaneSplit } from "@/features/editors/pane-split";
+import { PaneSkeleton } from "@/features/editors/PaneSkeleton";
 
 /** One step of edit history: the pixels plus the colour settings on top. */
 type Snapshot = {
@@ -793,14 +795,7 @@ function ImageEditor({
     );
   }
   if (!history || !current) {
-    return (
-      <div
-        className="image-pane__message"
-        data-testid="image-pane-loading-message"
-      >
-        Opening image…
-      </div>
-    );
+    return <PaneSkeleton kind="image" />;
   }
 
   const frame = (
@@ -934,534 +929,536 @@ function ImageEditor({
         data-testid="image-pane"
         {...autosave.guardProps}
       >
-        <div className="image-pane__viewer">
-          <div ref={stageRef} className="image-pane__stage">
-            <div className="image-pane__canvas-area">
-              {/* Always mounted (disabled outside crop mode) so the preview
-                  canvas keeps its pixels when cropping starts or ends. */}
-              <ReactCrop
-                crop={crop ?? undefined}
-                disabled={!crop}
-                aspect={aspectRatio}
-                keepSelection
-                ruleOfThirds
-                className="image-pane__crop"
-                style={{ maxWidth: "none" }}
-                onChange={(_, percent) => setCrop(percent)}
+        <PaneSplit sideSize="19rem" stackedSideSize="50%">
+          <div className="image-pane__viewer">
+            <div ref={stageRef} className="image-pane__stage">
+              <div className="image-pane__canvas-area">
+                {/* Always mounted (disabled outside crop mode) so the preview
+                    canvas keeps its pixels when cropping starts or ends. */}
+                <ReactCrop
+                  crop={crop ?? undefined}
+                  disabled={!crop}
+                  aspect={aspectRatio}
+                  keepSelection
+                  ruleOfThirds
+                  className="image-pane__crop"
+                  style={{ maxWidth: "none" }}
+                  onChange={(_, percent) => setCrop(percent)}
+                >
+                  {frame}
+                </ReactCrop>
+              </div>
+            </div>
+
+            <div className="image-pane__status" data-testid="image-pane-status">
+              <span
+                className="image-pane__status-item"
+                data-testid="image-pane-size-message"
               >
-                {frame}
-              </ReactCrop>
+                {width} × {height} px · {info.label}
+                {current.original && originalBytes
+                  ? ` · ${formatBytes(originalBytes.byteLength)}`
+                  : ""}
+              </span>
+              {crop && cropPx ? (
+                <span className="image-pane__status-item">
+                  Crop {cropPx.width} × {cropPx.height}
+                </span>
+              ) : null}
+              {readout ? (
+                <span
+                  className="image-pane__status-item"
+                  data-testid="image-pane-readout-message"
+                >
+                  <span
+                    aria-hidden
+                    className="image-pane__swatch"
+                    style={{
+                      backgroundColor: readout.hex,
+                      opacity: readout.alpha,
+                    }}
+                  />
+                  {readout.hex}
+                  {readout.alpha < 1
+                    ? ` · ${Math.round(readout.alpha * 100)}%`
+                    : ""}{" "}
+                  · {readout.x}, {readout.y}
+                </span>
+              ) : null}
+              <span className="image-pane__status-spacer" />
+              {busy ? (
+                <span className="image-pane__status-item" role="status">
+                  {busy}
+                </span>
+              ) : notice ? (
+                <span
+                  className={cn(
+                    "image-pane__status-item",
+                    notice.tone === "error" && "image-pane__status-item--error",
+                  )}
+                  role={notice.tone === "error" ? "alert" : "status"}
+                  data-testid="image-pane-notice-message"
+                >
+                  {notice.tone === "error" ? (
+                    <IconAlertTriangle aria-hidden className="pane-icon" />
+                  ) : null}
+                  {notice.text}
+                </span>
+              ) : (
+                <span className="image-pane__status-item image-pane__status-item--hint">
+                  Click to copy a colour · ⌘-scroll to zoom
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="image-pane__status" data-testid="image-pane-status">
-            <span
-              className="image-pane__status-item"
-              data-testid="image-pane-size-message"
-            >
-              {width} × {height} px · {info.label}
-              {current.original && originalBytes
-                ? ` · ${formatBytes(originalBytes.byteLength)}`
-                : ""}
-            </span>
-            {crop && cropPx ? (
-              <span className="image-pane__status-item">
-                Crop {cropPx.width} × {cropPx.height}
-              </span>
+          <aside className="image-pane__side" aria-label="Image tools">
+            {saveFormat !== format ? (
+              <p
+                className="image-pane__note"
+                data-testid="image-pane-save-format-message"
+              >
+                <IconAlertTriangle aria-hidden className="pane-icon" />
+                This browser can't write {info.label}, so edits are saved as{" "}
+                {IMAGE_FORMATS[saveFormat].label}.
+              </p>
+            ) : format === "svg" ? (
+              <p className="image-pane__note">
+                Saving edits stores the picture as pixels inside the SVG.
+              </p>
+            ) : format === "gif" ? (
+              <p className="image-pane__note">
+                Saving edits keeps the first frame of an animated GIF.
+              </p>
             ) : null}
-            {readout ? (
-              <span
-                className="image-pane__status-item"
-                data-testid="image-pane-readout-message"
-              >
-                <span
-                  aria-hidden
-                  className="image-pane__swatch"
-                  style={{
-                    backgroundColor: readout.hex,
-                    opacity: readout.alpha,
-                  }}
-                />
-                {readout.hex}
-                {readout.alpha < 1
-                  ? ` · ${Math.round(readout.alpha * 100)}%`
-                  : ""}{" "}
-                · {readout.x}, {readout.y}
-              </span>
-            ) : null}
-            <span className="image-pane__status-spacer" />
-            {busy ? (
-              <span className="image-pane__status-item" role="status">
-                {busy}
-              </span>
-            ) : notice ? (
-              <span
-                className={cn(
-                  "image-pane__status-item",
-                  notice.tone === "error" && "image-pane__status-item--error",
-                )}
-                role={notice.tone === "error" ? "alert" : "status"}
-                data-testid="image-pane-notice-message"
-              >
-                {notice.tone === "error" ? (
-                  <IconAlertTriangle aria-hidden className="pane-icon" />
-                ) : null}
-                {notice.text}
-              </span>
-            ) : (
-              <span className="image-pane__status-item image-pane__status-item--hint">
-                Click to copy a colour · ⌘-scroll to zoom
-              </span>
-            )}
-          </div>
-        </div>
 
-        <aside className="image-pane__side" aria-label="Image tools">
-          {saveFormat !== format ? (
-            <p
-              className="image-pane__note"
-              data-testid="image-pane-save-format-message"
-            >
-              <IconAlertTriangle aria-hidden className="pane-icon" />
-              This browser can't write {info.label}, so edits are saved as{" "}
-              {IMAGE_FORMATS[saveFormat].label}.
-            </p>
-          ) : format === "svg" ? (
-            <p className="image-pane__note">
-              Saving edits stores the picture as pixels inside the SVG.
-            </p>
-          ) : format === "gif" ? (
-            <p className="image-pane__note">
-              Saving edits keeps the first frame of an animated GIF.
-            </p>
-          ) : null}
-
-          <Tabs defaultValue="edit" className="image-pane__tabs">
-            <TabsList variant="line" className="image-pane__tab-list">
-              <TabsTrigger
-                value="edit"
-                data-testid="image-pane-edit-tab-trigger"
-              >
-                Edit
-              </TabsTrigger>
-              <TabsTrigger
-                value="adjust"
-                data-testid="image-pane-adjust-tab-trigger"
-              >
-                Adjust
-              </TabsTrigger>
-              <TabsTrigger
-                value="export"
-                data-testid="image-pane-export-tab-trigger"
-              >
-                Export
-              </TabsTrigger>
-            </TabsList>
-
-            {/* ── Edit ── */}
-            <TabsContent value="edit" className="image-pane__panel">
-              <Section title="Crop">
-                <ToggleGroup
-                  type="single"
-                  variant="outline"
-                  size="sm"
-                  className="image-pane__chips"
-                  aria-label="Crop aspect ratio"
-                  value={aspectId}
-                  onValueChange={(value) => value && chooseAspect(value)}
+            <Tabs defaultValue="edit" className="image-pane__tabs">
+              <TabsList variant="line" className="image-pane__tab-list">
+                <TabsTrigger
+                  value="edit"
+                  data-testid="image-pane-edit-tab-trigger"
                 >
-                  {ASPECTS.map((a) => (
-                    <ToggleGroupItem
-                      key={a.id}
-                      value={a.id}
-                      data-testid={`image-pane-aspect-${a.id.replace(":", "-")}-button`}
-                    >
-                      {a.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-                {crop && cropPx ? (
-                  <>
-                    <div className="image-pane__grid">
-                      <NumberField
-                        label="X"
-                        testId="image-pane-crop-x-input"
-                        value={cropPx.x}
-                        onChange={(x) => setCropPx({ x })}
-                      />
-                      <NumberField
-                        label="Y"
-                        testId="image-pane-crop-y-input"
-                        value={cropPx.y}
-                        onChange={(y) => setCropPx({ y })}
-                      />
-                      <NumberField
-                        label="Width"
-                        testId="image-pane-crop-width-input"
-                        value={cropPx.width}
-                        onChange={(w) => setCropPx({ width: w })}
-                      />
-                      <NumberField
-                        label="Height"
-                        testId="image-pane-crop-height-input"
-                        value={cropPx.height}
-                        onChange={(h) => setCropPx({ height: h })}
-                      />
-                    </div>
-                    <div className="image-pane__actions">
-                      <Button
-                        type="button"
-                        size="sm"
-                        data-testid="image-pane-crop-apply-button"
-                        onClick={applyCrop}
-                      >
-                        <IconCheck aria-hidden className="pane-icon" />
-                        Apply crop
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        data-testid="image-pane-crop-cancel-button"
-                        onClick={() => setCrop(null)}
-                      >
-                        <IconX aria-hidden className="pane-icon" />
-                        Cancel
-                      </Button>
-                    </div>
-                    <p className="pane-field__hint">
-                      Drag the box or its handles. Enter applies, Esc cancels.
-                    </p>
-                  </>
-                ) : (
-                  <Button
-                    type="button"
+                  Edit
+                </TabsTrigger>
+                <TabsTrigger
+                  value="adjust"
+                  data-testid="image-pane-adjust-tab-trigger"
+                >
+                  Adjust
+                </TabsTrigger>
+                <TabsTrigger
+                  value="export"
+                  data-testid="image-pane-export-tab-trigger"
+                >
+                  Export
+                </TabsTrigger>
+              </TabsList>
+
+              {/* ── Edit ── */}
+              <TabsContent value="edit" className="image-pane__panel">
+                <Section title="Crop">
+                  <ToggleGroup
+                    type="single"
                     variant="outline"
                     size="sm"
-                    data-testid="image-pane-crop-button"
-                    onClick={startCrop}
+                    className="image-pane__chips"
+                    aria-label="Crop aspect ratio"
+                    value={aspectId}
+                    onValueChange={(value) => value && chooseAspect(value)}
                   >
-                    <IconCrop aria-hidden className="pane-icon" />
-                    Crop…
-                  </Button>
-                )}
-              </Section>
-
-              <Section title="Transform">
-                <div className="image-pane__grid">
-                  <ToolButton
-                    testId="image-pane-rotate-left-button"
-                    onClick={() => transform((c) => rotateQuarter(c, -1))}
-                  >
-                    <IconRotate2 aria-hidden className="pane-icon" />
-                    Rotate left
-                  </ToolButton>
-                  <ToolButton
-                    testId="image-pane-rotate-right-button"
-                    onClick={() => transform((c) => rotateQuarter(c, 1))}
-                  >
-                    <IconRotateClockwise2 aria-hidden className="pane-icon" />
-                    Rotate right
-                  </ToolButton>
-                  <ToolButton
-                    testId="image-pane-flip-horizontal-button"
-                    onClick={() => transform((c) => flip(c, "horizontal"))}
-                  >
-                    <IconFlipVertical aria-hidden className="pane-icon" />
-                    Flip H
-                  </ToolButton>
-                  <ToolButton
-                    testId="image-pane-flip-vertical-button"
-                    onClick={() => transform((c) => flip(c, "vertical"))}
-                  >
-                    <IconFlipHorizontal aria-hidden className="pane-icon" />
-                    Flip V
-                  </ToolButton>
-                  <ToolButton testId="image-pane-trim-button" onClick={trim}>
-                    <IconBorderCorners aria-hidden className="pane-icon" />
-                    Trim edges
-                  </ToolButton>
-                </div>
-              </Section>
-
-              <Section title="Resize">
-                <div className="image-pane__grid">
-                  <NumberField
-                    label="Width"
-                    testId="image-pane-resize-width-input"
-                    value={resize.w}
-                    onChange={(w) =>
-                      setResize({
-                        w: String(w),
-                        h:
-                          lockRatio && w > 0
-                            ? String(
-                                Math.max(1, Math.round((w * height) / width)),
-                              )
-                            : resize.h,
-                      })
-                    }
-                  />
-                  <NumberField
-                    label="Height"
-                    testId="image-pane-resize-height-input"
-                    value={resize.h}
-                    onChange={(h) =>
-                      setResize({
-                        h: String(h),
-                        w:
-                          lockRatio && h > 0
-                            ? String(
-                                Math.max(1, Math.round((h * width) / height)),
-                              )
-                            : resize.w,
-                      })
-                    }
-                  />
-                </div>
-                <label className="pane-field__check">
-                  <Switch
-                    size="sm"
-                    checked={lockRatio}
-                    onCheckedChange={setLockRatio}
-                    data-testid="image-pane-lock-ratio-switch"
-                  />
-                  Keep aspect ratio
-                </label>
-                <div className="image-pane__actions">
-                  {[0.25, 0.5, 2].map((f) => (
+                    {ASPECTS.map((a) => (
+                      <ToggleGroupItem
+                        key={a.id}
+                        value={a.id}
+                        data-testid={`image-pane-aspect-${a.id.replace(":", "-")}-button`}
+                      >
+                        {a.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                  {crop && cropPx ? (
+                    <>
+                      <div className="image-pane__grid">
+                        <NumberField
+                          label="X"
+                          testId="image-pane-crop-x-input"
+                          value={cropPx.x}
+                          onChange={(x) => setCropPx({ x })}
+                        />
+                        <NumberField
+                          label="Y"
+                          testId="image-pane-crop-y-input"
+                          value={cropPx.y}
+                          onChange={(y) => setCropPx({ y })}
+                        />
+                        <NumberField
+                          label="Width"
+                          testId="image-pane-crop-width-input"
+                          value={cropPx.width}
+                          onChange={(w) => setCropPx({ width: w })}
+                        />
+                        <NumberField
+                          label="Height"
+                          testId="image-pane-crop-height-input"
+                          value={cropPx.height}
+                          onChange={(h) => setCropPx({ height: h })}
+                        />
+                      </div>
+                      <div className="image-pane__actions">
+                        <Button
+                          type="button"
+                          size="sm"
+                          data-testid="image-pane-crop-apply-button"
+                          onClick={applyCrop}
+                        >
+                          <IconCheck aria-hidden className="pane-icon" />
+                          Apply crop
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          data-testid="image-pane-crop-cancel-button"
+                          onClick={() => setCrop(null)}
+                        >
+                          <IconX aria-hidden className="pane-icon" />
+                          Cancel
+                        </Button>
+                      </div>
+                      <p className="pane-field__hint">
+                        Drag the box or its handles. Enter applies, Esc cancels.
+                      </p>
+                    </>
+                  ) : (
                     <Button
-                      key={f}
                       type="button"
                       variant="outline"
-                      size="xs"
-                      data-testid={`image-pane-scale-${f * 100}-button`}
-                      onClick={() => scaleTo(f)}
-                    >
-                      {f * 100}%
-                    </Button>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={
-                    !resizeValid ||
-                    (resizeW === width && resizeH === height) ||
-                    busy !== null
-                  }
-                  data-testid="image-pane-resize-apply-button"
-                  onClick={() => void applyResize()}
-                >
-                  Resize to {resizeValid ? `${resizeW} × ${resizeH}` : "…"}
-                </Button>
-                {!resizeValid ? (
-                  <p className="pane-field__hint">
-                    Whole pixels from 1 to {MAX_DIMENSION}.
-                  </p>
-                ) : null}
-              </Section>
-
-              <Section title="History">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  data-testid="image-pane-revert-button"
-                  disabled={pristine}
-                  onClick={revert}
-                >
-                  <IconRestore aria-hidden className="pane-icon" />
-                  Revert to original
-                </Button>
-              </Section>
-            </TabsContent>
-
-            {/* ── Adjust ── */}
-            <TabsContent value="adjust" className="image-pane__panel">
-              <Section title="Presets">
-                <ToggleGroup
-                  type="single"
-                  variant="outline"
-                  size="sm"
-                  className="image-pane__chips"
-                  aria-label="Look"
-                  value={activePreset ?? ""}
-                  onValueChange={(value) => {
-                    const preset = ADJUSTMENT_PRESETS.find(
-                      (p) => p.id === value,
-                    );
-                    if (preset)
-                      commitAdjust({ ...NO_ADJUSTMENTS, ...preset.adjust });
-                  }}
-                >
-                  {ADJUSTMENT_PRESETS.map((p) => (
-                    <ToggleGroupItem
-                      key={p.id}
-                      value={p.id}
-                      data-testid={`image-pane-preset-${p.id}-button`}
-                    >
-                      {p.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </Section>
-              <Section title="Light & colour">
-                {SLIDERS.map((s) => (
-                  <Slider
-                    key={s.key}
-                    size="sm"
-                    label={s.label}
-                    data-testid={`image-pane-${s.key}-slider`}
-                    min={s.min}
-                    max={s.max}
-                    step={1}
-                    value={adjust[s.key]}
-                    formatValue={(v) =>
-                      `${v > 0 && s.min < 0 ? "+" : ""}${v}${s.unit ?? ""}`
-                    }
-                    onValueChange={(v) => setLive({ [s.key]: v })}
-                    onValueCommit={() => commitAdjust()}
-                  />
-                ))}
-                <label className="pane-field__check">
-                  <Switch
-                    size="sm"
-                    checked={adjust.invert}
-                    onCheckedChange={(invert) =>
-                      commitAdjust({ ...adjustRef.current, invert })
-                    }
-                    data-testid="image-pane-invert-switch"
-                  />
-                  Invert colours
-                </label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isIdentity(adjust)}
-                  data-testid="image-pane-adjust-reset-button"
-                  onClick={() => commitAdjust(NO_ADJUSTMENTS)}
-                >
-                  <IconRestore aria-hidden className="pane-icon" />
-                  Reset adjustments
-                </Button>
-              </Section>
-            </TabsContent>
-
-            {/* ── Export ── */}
-            <TabsContent value="export" className="image-pane__panel">
-              <Section title="Convert">
-                <div className="pane-field">
-                  <span className="pane-field__label">Format</span>
-                  <Select
-                    value={exportFormat}
-                    onValueChange={(v) => setExportFormat(v as ImageFormat)}
-                  >
-                    <SelectTrigger
                       size="sm"
-                      className="pane-field__select"
-                      aria-label="Format"
-                      data-testid="image-pane-format-select"
+                      data-testid="image-pane-crop-button"
+                      onClick={startCrop}
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {exportFormats.map((f) => (
-                        <SelectItem key={f} value={f}>
-                          {IMAGE_FORMATS[f].label} (.{IMAGE_FORMATS[f].ext})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {exportInfo.lossy ? (
-                  <Slider
-                    size="sm"
-                    label="Quality"
-                    data-testid="image-pane-quality-slider"
-                    min={10}
-                    max={100}
-                    step={1}
-                    value={quality}
-                    formatValue={(v) => `${v}%`}
-                    onValueChange={setQuality}
-                  />
-                ) : null}
-                {!exportInfo.alpha ? (
-                  <div className="pane-field">
-                    <span className="pane-field__label">
-                      Background (for transparency)
-                    </span>
-                    <div className="pane-field__row">
-                      <input
-                        type="color"
-                        className="pane-field__color"
-                        aria-label="Background colour"
-                        data-testid="image-pane-background-input"
-                        value={background}
-                        onChange={(e) => setBackground(e.target.value)}
-                      />
-                      <span className="pane-field__hint">{background}</span>
-                    </div>
+                      <IconCrop aria-hidden className="pane-icon" />
+                      Crop…
+                    </Button>
+                  )}
+                </Section>
+
+                <Section title="Transform">
+                  <div className="image-pane__grid">
+                    <ToolButton
+                      testId="image-pane-rotate-left-button"
+                      onClick={() => transform((c) => rotateQuarter(c, -1))}
+                    >
+                      <IconRotate2 aria-hidden className="pane-icon" />
+                      Rotate left
+                    </ToolButton>
+                    <ToolButton
+                      testId="image-pane-rotate-right-button"
+                      onClick={() => transform((c) => rotateQuarter(c, 1))}
+                    >
+                      <IconRotateClockwise2 aria-hidden className="pane-icon" />
+                      Rotate right
+                    </ToolButton>
+                    <ToolButton
+                      testId="image-pane-flip-horizontal-button"
+                      onClick={() => transform((c) => flip(c, "horizontal"))}
+                    >
+                      <IconFlipVertical aria-hidden className="pane-icon" />
+                      Flip H
+                    </ToolButton>
+                    <ToolButton
+                      testId="image-pane-flip-vertical-button"
+                      onClick={() => transform((c) => flip(c, "vertical"))}
+                    >
+                      <IconFlipHorizontal aria-hidden className="pane-icon" />
+                      Flip V
+                    </ToolButton>
+                    <ToolButton testId="image-pane-trim-button" onClick={trim}>
+                      <IconBorderCorners aria-hidden className="pane-icon" />
+                      Trim edges
+                    </ToolButton>
                   </div>
-                ) : null}
-                {exportFormat === "ico" ? (
-                  <p className="pane-field__hint">
-                    Icons are scaled to fit 256 × 256.
-                  </p>
-                ) : exportFormat === "gif" ? (
-                  <p className="pane-field__hint">
-                    GIF keeps up to 256 colours.
-                  </p>
-                ) : exportFormat === "svg" ? (
-                  <p className="pane-field__hint">
-                    The SVG embeds the pixels as PNG.
-                  </p>
-                ) : null}
-                <div className="image-pane__actions image-pane__actions--list">
+                </Section>
+
+                <Section title="Resize">
+                  <div className="image-pane__grid">
+                    <NumberField
+                      label="Width"
+                      testId="image-pane-resize-width-input"
+                      value={resize.w}
+                      onChange={(w) =>
+                        setResize({
+                          w: String(w),
+                          h:
+                            lockRatio && w > 0
+                              ? String(
+                                  Math.max(1, Math.round((w * height) / width)),
+                                )
+                              : resize.h,
+                        })
+                      }
+                    />
+                    <NumberField
+                      label="Height"
+                      testId="image-pane-resize-height-input"
+                      value={resize.h}
+                      onChange={(h) =>
+                        setResize({
+                          h: String(h),
+                          w:
+                            lockRatio && h > 0
+                              ? String(
+                                  Math.max(1, Math.round((h * width) / height)),
+                                )
+                              : resize.w,
+                        })
+                      }
+                    />
+                  </div>
+                  <label className="pane-field__check">
+                    <Switch
+                      size="sm"
+                      checked={lockRatio}
+                      onCheckedChange={setLockRatio}
+                      data-testid="image-pane-lock-ratio-switch"
+                    />
+                    Keep aspect ratio
+                  </label>
+                  <div className="image-pane__actions">
+                    {[0.25, 0.5, 2].map((f) => (
+                      <Button
+                        key={f}
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        data-testid={`image-pane-scale-${f * 100}-button`}
+                        onClick={() => scaleTo(f)}
+                      >
+                        {f * 100}%
+                      </Button>
+                    ))}
+                  </div>
                   <Button
                     type="button"
-                    className="image-pane__action"
                     size="sm"
-                    disabled={busy !== null}
-                    data-testid="image-pane-export-download-button"
-                    onClick={() => void runExport("download")}
+                    disabled={
+                      !resizeValid ||
+                      (resizeW === width && resizeH === height) ||
+                      busy !== null
+                    }
+                    data-testid="image-pane-resize-apply-button"
+                    onClick={() => void applyResize()}
                   >
-                    <IconDownload aria-hidden className="pane-icon" />
-                    Download
+                    Resize to {resizeValid ? `${resizeW} × ${resizeH}` : "…"}
                   </Button>
+                  {!resizeValid ? (
+                    <p className="pane-field__hint">
+                      Whole pixels from 1 to {MAX_DIMENSION}.
+                    </p>
+                  ) : null}
+                </Section>
+
+                <Section title="History">
                   <Button
                     type="button"
-                    className="image-pane__action"
                     variant="outline"
                     size="sm"
-                    disabled={busy !== null}
-                    data-testid="image-pane-export-convert-button"
-                    title={`Store this file's image as ${exportInfo.label} (clears undo history)`}
-                    onClick={() => void runExport("convert")}
+                    data-testid="image-pane-revert-button"
+                    disabled={pristine}
+                    onClick={revert}
                   >
-                    <IconRefresh aria-hidden className="pane-icon" />
-                    Convert this file
+                    <IconRestore aria-hidden className="pane-icon" />
+                    Revert to original
                   </Button>
-                  <Button
-                    type="button"
-                    className="image-pane__action"
+                </Section>
+              </TabsContent>
+
+              {/* ── Adjust ── */}
+              <TabsContent value="adjust" className="image-pane__panel">
+                <Section title="Presets">
+                  <ToggleGroup
+                    type="single"
                     variant="outline"
                     size="sm"
-                    disabled={busy !== null}
-                    data-testid="image-pane-export-save-copy-button"
-                    title={`Add ${baseName}-${exportInfo.ext}.img next to this file`}
-                    onClick={() => void runExport("copy")}
+                    className="image-pane__chips"
+                    aria-label="Look"
+                    value={activePreset ?? ""}
+                    onValueChange={(value) => {
+                      const preset = ADJUSTMENT_PRESETS.find(
+                        (p) => p.id === value,
+                      );
+                      if (preset)
+                        commitAdjust({ ...NO_ADJUSTMENTS, ...preset.adjust });
+                    }}
                   >
-                    <IconFilePlus aria-hidden className="pane-icon" />
-                    Save as new .img
+                    {ADJUSTMENT_PRESETS.map((p) => (
+                      <ToggleGroupItem
+                        key={p.id}
+                        value={p.id}
+                        data-testid={`image-pane-preset-${p.id}-button`}
+                      >
+                        {p.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </Section>
+                <Section title="Light & colour">
+                  {SLIDERS.map((s) => (
+                    <Slider
+                      key={s.key}
+                      size="sm"
+                      label={s.label}
+                      data-testid={`image-pane-${s.key}-slider`}
+                      min={s.min}
+                      max={s.max}
+                      step={1}
+                      value={adjust[s.key]}
+                      formatValue={(v) =>
+                        `${v > 0 && s.min < 0 ? "+" : ""}${v}${s.unit ?? ""}`
+                      }
+                      onValueChange={(v) => setLive({ [s.key]: v })}
+                      onValueCommit={() => commitAdjust()}
+                    />
+                  ))}
+                  <label className="pane-field__check">
+                    <Switch
+                      size="sm"
+                      checked={adjust.invert}
+                      onCheckedChange={(invert) =>
+                        commitAdjust({ ...adjustRef.current, invert })
+                      }
+                      data-testid="image-pane-invert-switch"
+                    />
+                    Invert colours
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isIdentity(adjust)}
+                    data-testid="image-pane-adjust-reset-button"
+                    onClick={() => commitAdjust(NO_ADJUSTMENTS)}
+                  >
+                    <IconRestore aria-hidden className="pane-icon" />
+                    Reset adjustments
                   </Button>
-                </div>
-              </Section>
-            </TabsContent>
-          </Tabs>
-        </aside>
+                </Section>
+              </TabsContent>
+
+              {/* ── Export ── */}
+              <TabsContent value="export" className="image-pane__panel">
+                <Section title="Convert">
+                  <div className="pane-field">
+                    <span className="pane-field__label">Format</span>
+                    <Select
+                      value={exportFormat}
+                      onValueChange={(v) => setExportFormat(v as ImageFormat)}
+                    >
+                      <SelectTrigger
+                        size="sm"
+                        className="pane-field__select"
+                        aria-label="Format"
+                        data-testid="image-pane-format-select"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {exportFormats.map((f) => (
+                          <SelectItem key={f} value={f}>
+                            {IMAGE_FORMATS[f].label} (.{IMAGE_FORMATS[f].ext})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {exportInfo.lossy ? (
+                    <Slider
+                      size="sm"
+                      label="Quality"
+                      data-testid="image-pane-quality-slider"
+                      min={10}
+                      max={100}
+                      step={1}
+                      value={quality}
+                      formatValue={(v) => `${v}%`}
+                      onValueChange={setQuality}
+                    />
+                  ) : null}
+                  {!exportInfo.alpha ? (
+                    <div className="pane-field">
+                      <span className="pane-field__label">
+                        Background (for transparency)
+                      </span>
+                      <div className="pane-field__row">
+                        <input
+                          type="color"
+                          className="pane-field__color"
+                          aria-label="Background colour"
+                          data-testid="image-pane-background-input"
+                          value={background}
+                          onChange={(e) => setBackground(e.target.value)}
+                        />
+                        <span className="pane-field__hint">{background}</span>
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportFormat === "ico" ? (
+                    <p className="pane-field__hint">
+                      Icons are scaled to fit 256 × 256.
+                    </p>
+                  ) : exportFormat === "gif" ? (
+                    <p className="pane-field__hint">
+                      GIF keeps up to 256 colours.
+                    </p>
+                  ) : exportFormat === "svg" ? (
+                    <p className="pane-field__hint">
+                      The SVG embeds the pixels as PNG.
+                    </p>
+                  ) : null}
+                  <div className="image-pane__actions image-pane__actions--list">
+                    <Button
+                      type="button"
+                      className="image-pane__action"
+                      size="sm"
+                      disabled={busy !== null}
+                      data-testid="image-pane-export-download-button"
+                      onClick={() => void runExport("download")}
+                    >
+                      <IconDownload aria-hidden className="pane-icon" />
+                      Download
+                    </Button>
+                    <Button
+                      type="button"
+                      className="image-pane__action"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy !== null}
+                      data-testid="image-pane-export-convert-button"
+                      title={`Store this file's image as ${exportInfo.label} (clears undo history)`}
+                      onClick={() => void runExport("convert")}
+                    >
+                      <IconRefresh aria-hidden className="pane-icon" />
+                      Convert this file
+                    </Button>
+                    <Button
+                      type="button"
+                      className="image-pane__action"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy !== null}
+                      data-testid="image-pane-export-save-copy-button"
+                      title={`Add ${baseName}-${exportInfo.ext}.img next to this file`}
+                      onClick={() => void runExport("copy")}
+                    >
+                      <IconFilePlus aria-hidden className="pane-icon" />
+                      Save as new .img
+                    </Button>
+                  </div>
+                </Section>
+              </TabsContent>
+            </Tabs>
+          </aside>
+        </PaneSplit>
       </div>
     </>
   );

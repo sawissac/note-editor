@@ -1,0 +1,362 @@
+@reference "../index.css";
+
+/* BookmarkPane (`.bookmark` files) — BEM blocks `bookmark-pane`,
+ * `bookmark-card` and `bookmark-dialog`.
+ *
+ * Imported from `BookmarkPane.tsx`; `@reference` resolves the app-* theme.
+ * Collections (all / favorites / unsorted / folders / tags) in the left
+ * column, cards on the right. Below `md` the column stacks above the cards.
+ * A folder row's indent comes from its inline `--depth`. */
+
+@keyframes bookmark-pane-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@layer components {
+  .bookmark-pane {
+    /* Collections | cards split: PaneSplit (pane-split.tsx), resizable. */
+    @apply bg-app-bg h-full min-h-0 outline-none;
+  }
+  /* A link from another tab is being dragged over the pane. */
+  .bookmark-pane--dropping {
+    @apply ring-app-accent ring-2 ring-inset;
+  }
+  .bookmark-pane__file-input {
+    @apply hidden;
+  }
+
+  /* ── Collections column ───────────────────────────────────────────── */
+  .bookmark-pane__side {
+    @apply bg-app-sidebar flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-2 py-3;
+  }
+  .bookmark-pane__nav {
+    @apply flex flex-col gap-px;
+  }
+  .bookmark-pane__nav-item {
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent flex h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left text-[12.5px] transition-colors duration-150 outline-none focus-visible:ring-2 relative isolate;
+  }
+  /* The selected fill is `__nav-highlight`, which slides between entries. */
+  .bookmark-pane__nav-item--selected {
+    @apply text-app-accent hover:text-app-accent font-semibold hover:bg-transparent;
+  }
+  .bookmark-pane__nav-highlight {
+    @apply bg-app-selected pointer-events-none absolute inset-0 -z-10 rounded-md;
+  }
+  /* A card is held over this entry — dropping moves it here. */
+  .bookmark-pane__nav-item--drop {
+    @apply bg-app-accent-faint ring-app-accent text-app-accent ring-1;
+  }
+  .bookmark-pane__nav-icon {
+    @apply size-4 shrink-0 opacity-80;
+  }
+  .bookmark-pane__nav-label {
+    @apply min-w-0 flex-1 truncate;
+  }
+  /* Sans + tabular figures: digits line up down the column without the
+   * monospace face sitting off-size next to the labels. */
+  .bookmark-pane__nav-count {
+    @apply text-app-dim font-description shrink-0 text-[11px] tabular-nums transition-opacity duration-150;
+  }
+  /* A folder's action buttons are showing in this spot. */
+  .bookmark-pane__nav-count--hidden {
+    @apply opacity-0;
+  }
+  /* Room for the folder actions (3 × 24px buttons), so the name truncates
+   * before them instead of running underneath. */
+  .bookmark-pane__nav-item--with-actions {
+    @apply pr-20;
+  }
+  .bookmark-pane__group {
+    @apply flex flex-col gap-1;
+  }
+  /* Heading lines up with the row icons (left, 8px). The trailing icon
+   * button's glyph sits 6px inside it, so a 2px right inset puts the glyph's
+   * edge on the count column (also 8px). */
+  .bookmark-pane__group-head {
+    @apply flex h-6 items-center justify-between gap-2 pr-0.5 pl-2;
+  }
+  .bookmark-pane__heading {
+    @apply font-title text-app-dim m-0 text-[10.5px] font-semibold tracking-[0.14em] uppercase;
+  }
+  .bookmark-pane__hint {
+    @apply font-description text-app-dim m-0 px-2 text-[11.5px];
+  }
+  .bookmark-pane__folders {
+    @apply m-0 flex list-none flex-col gap-px p-0;
+  }
+  .bookmark-pane__folder {
+    @apply relative flex items-center pl-[calc(var(--depth,0)*14px)];
+  }
+  .bookmark-pane__folder-input {
+    @apply border-app-accent bg-app-bg text-app-bright h-7 w-full min-w-0 rounded-md border px-2 text-[12.5px] outline-none;
+  }
+  /* Rename / sub-folder / delete — shown on the open folder, on hover and on
+   * keyboard focus (state set by the row). No fill of their own: they sit on
+   * the row's tint, and the count hides rather than being covered. */
+  .bookmark-pane__folder-actions {
+    @apply pointer-events-none absolute right-1 flex items-center opacity-0 transition-opacity duration-150;
+  }
+  .bookmark-pane__folder-actions--shown {
+    @apply pointer-events-auto opacity-100;
+  }
+  .bookmark-pane__tags {
+    @apply m-0 flex list-none flex-wrap gap-1 px-2 py-0;
+  }
+  .bookmark-pane__tag {
+    @apply border-app-border text-app-text hover:border-app-border-accent hover:text-app-accent focus-visible:ring-app-accent font-description flex h-6 cursor-pointer items-center gap-1 rounded-full border bg-transparent px-2 text-[11.5px] transition-colors duration-150 outline-none focus-visible:ring-2;
+  }
+  .bookmark-pane__tag--active {
+    @apply border-app-border-accent bg-app-accent-faint text-app-accent;
+  }
+  .bookmark-pane__tag-count {
+    @apply text-app-dim text-[10px] tabular-nums;
+  }
+
+  /* ── Cards column ─────────────────────────────────────────────────── */
+  .bookmark-pane__main {
+    @apply flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-y-auto px-5 pt-4 pb-8 max-md:px-4;
+  }
+  .bookmark-pane__head {
+    @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-2;
+  }
+  .bookmark-pane__head-title {
+    @apply flex min-w-0 items-baseline gap-2;
+  }
+  .bookmark-pane__title {
+    @apply font-display text-app-bright m-0 truncate text-[18px] font-semibold tracking-[-0.01em];
+  }
+  .bookmark-pane__tools {
+    @apply flex min-w-0 items-center gap-2 max-sm:w-full;
+  }
+  .bookmark-pane__filters {
+    @apply flex flex-wrap gap-1.5;
+  }
+  .bookmark-pane__filter {
+    @apply border-app-border-accent bg-app-accent-faint text-app-accent hover:bg-app-selected focus-visible:ring-app-accent flex h-6 cursor-pointer items-center gap-1 rounded-full border px-2 font-mono text-[11px] outline-none focus-visible:ring-2;
+  }
+  .bookmark-pane__filter-icon {
+    @apply size-3;
+  }
+  .bookmark-pane__notice {
+    @apply border-app-border bg-app-panel text-app-text font-description m-0 flex items-center gap-2 rounded-md border py-1 pr-1 pl-3 text-[12px];
+  }
+  .bookmark-pane__notice--error {
+    @apply border-app-error/40 text-app-error;
+  }
+  .bookmark-pane__notice-text {
+    @apply min-w-0 flex-1;
+  }
+  .bookmark-pane__list {
+    @apply m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3 p-0;
+  }
+  /* Animated list item around each card (motion: enter / exit / reflow). */
+  .bookmark-pane__item {
+    @apply grid min-w-0;
+  }
+  .bookmark-pane__list--compact {
+    @apply border-app-border bg-app-panel divide-app-border flex flex-col gap-0 divide-y overflow-hidden rounded-lg border;
+  }
+  .bookmark-pane__empty {
+    @apply flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center;
+  }
+  .bookmark-pane__empty-icon {
+    @apply text-app-dim size-10 opacity-60;
+  }
+  .bookmark-pane__empty-text {
+    @apply font-description text-app-dim m-0 max-w-sm text-[13px] leading-relaxed;
+  }
+
+  /* ── Card ─────────────────────────────────────────────────────────── */
+  /* Hover lifts the card a touch; list rows stay flat (see --compact). */
+  .bookmark-card {
+    @apply border-app-border bg-app-panel hover:border-app-border-mid relative flex min-w-0 flex-col overflow-hidden rounded-lg border transition-[border-color,box-shadow,translate,background-color] duration-200 ease-(--motion-ease-standard) hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgba(24,61,61,0.35)] motion-reduce:hover:translate-y-0;
+  }
+  .bookmark-card--compact {
+    @apply hover:bg-app-hover flex-row items-center gap-1 rounded-none border-0 py-1.5 pr-1.5 pl-3 hover:translate-y-0 hover:shadow-none;
+  }
+  .bookmark-card__favorite-icon {
+    @apply flex;
+  }
+  .bookmark-card__media {
+    @apply bg-app-hover relative block aspect-[1.91/1] overflow-hidden;
+  }
+  .bookmark-card__image {
+    @apply size-full object-cover;
+  }
+  .bookmark-card__placeholder {
+    @apply font-display text-app-dim flex size-full items-center justify-center text-[40px] font-semibold opacity-40 select-none;
+  }
+  .bookmark-card__spinner {
+    @apply bg-app-bg/60 absolute inset-0 flex items-center justify-center;
+  }
+  .bookmark-card__spinner-icon {
+    @apply text-app-accent size-4 shrink-0 animate-[bookmark-pane-spin_0.8s_linear_infinite];
+  }
+  .bookmark-card__body {
+    @apply flex min-w-0 flex-1 flex-col gap-1 px-3 pt-2.5 pb-1;
+  }
+  .bookmark-card--compact .bookmark-card__body {
+    @apply gap-0.5 p-0;
+  }
+  .bookmark-card__site {
+    @apply text-app-dim flex min-w-0 items-center gap-1.5 text-[11px];
+  }
+  .bookmark-card__logo {
+    @apply size-4 shrink-0 rounded-sm object-contain;
+  }
+  .bookmark-card__monogram {
+    @apply bg-app-accent-faint text-app-accent flex size-4 shrink-0 items-center justify-center rounded-sm font-mono text-[9px] font-bold;
+  }
+  .bookmark-card__host {
+    @apply min-w-0 truncate;
+  }
+  .bookmark-card__folder {
+    @apply flex min-w-0 shrink items-center gap-0.5 truncate before:mr-1 before:content-['·'];
+  }
+  .bookmark-card__folder-icon {
+    @apply size-3 shrink-0;
+  }
+  .bookmark-card__title {
+    @apply font-title text-app-bright hover:text-app-accent focus-visible:ring-app-accent line-clamp-2 rounded-sm text-[13.5px] leading-snug font-semibold no-underline outline-none focus-visible:ring-2;
+  }
+  .bookmark-card--compact .bookmark-card__title {
+    @apply line-clamp-1 text-[13px];
+  }
+  /* Always two lines tall in the grid — clamped when longer, padded when
+   * shorter — so every card's text block has the same rhythm. */
+  .bookmark-card__description {
+    @apply font-description text-app-dim m-0 line-clamp-2 min-h-[2lh] text-[12px] leading-snug;
+  }
+  .bookmark-card--compact .bookmark-card__description {
+    @apply line-clamp-1 min-h-0;
+  }
+  /* Pinned to the bottom of the body: cards in a grid row share a height,
+   * so tags line up across the row whatever the title/description length. */
+  .bookmark-card__tags {
+    @apply m-0 mt-auto flex list-none flex-wrap gap-1 p-0 pt-0.5;
+  }
+  .bookmark-card--compact .bookmark-card__tags {
+    @apply mt-0.5 pt-0;
+  }
+  .bookmark-card__tag {
+    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent cursor-pointer rounded-sm border-0 bg-transparent p-0 font-mono text-[11px] outline-none focus-visible:ring-2;
+  }
+  .bookmark-card__tag--active {
+    @apply text-app-accent font-semibold;
+  }
+  .bookmark-card__actions {
+    @apply text-app-dim flex items-center justify-end gap-0.5 px-1.5 pb-1.5 opacity-70 transition-opacity duration-150 focus-within:opacity-100 hover:opacity-100;
+  }
+  .bookmark-card--compact .bookmark-card__actions {
+    @apply shrink-0 p-0;
+  }
+
+  /* ── Add / edit dialog ────────────────────────────────────────────── */
+  .bookmark-dialog__form {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+  .bookmark-dialog__subtitle {
+    @apply truncate text-[11px];
+  }
+  .bookmark-dialog__body {
+    @apply flex flex-col gap-3 py-3;
+  }
+  .bookmark-dialog__field {
+    @apply flex min-w-0 flex-1 flex-col gap-1;
+  }
+  .bookmark-dialog__label {
+    @apply font-title text-app-dim text-[11px] leading-none font-semibold;
+  }
+  .bookmark-dialog__message {
+    @apply font-description text-app-dim -mt-1.5 mb-0 text-[11.5px];
+  }
+  .bookmark-dialog__message--error {
+    @apply text-app-error;
+  }
+  .bookmark-dialog__textarea {
+    @apply border-app-border bg-app-bg text-app-text placeholder:text-app-dim focus-visible:border-app-accent min-h-16 resize-y rounded-md border px-2.5 py-1.5 text-[13px] leading-snug outline-none;
+  }
+  .bookmark-dialog__row {
+    @apply flex items-end gap-2;
+  }
+  .bookmark-dialog__preview {
+    @apply border-app-border bg-app-bg flex min-w-0 items-center gap-3 rounded-md border p-2;
+  }
+  .bookmark-dialog__preview-image {
+    @apply bg-app-hover aspect-[1.91/1] w-24 shrink-0 rounded-sm object-cover;
+  }
+  .bookmark-dialog__preview-text {
+    @apply flex min-w-0 flex-1 flex-col gap-0.5;
+  }
+  .bookmark-dialog__preview-title {
+    @apply text-app-bright truncate text-[12.5px] font-semibold;
+  }
+  .bookmark-dialog__preview-description {
+    @apply font-description text-app-dim line-clamp-2 text-[11.5px] leading-snug;
+  }
+  .bookmark-dialog__tags {
+    @apply border-app-border bg-app-bg focus-within:border-app-accent flex min-h-8 flex-wrap items-center gap-1 rounded-md border px-1.5 py-1;
+  }
+  .bookmark-dialog__tag {
+    @apply bg-app-accent-faint text-app-accent flex h-6 items-center gap-0.5 rounded-full pr-1 pl-2 font-mono text-[11px];
+  }
+  .bookmark-dialog__tag-remove {
+    @apply text-app-accent hover:bg-app-selected focus-visible:ring-app-accent flex size-4 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2;
+  }
+  .bookmark-dialog__tag-icon {
+    @apply size-3;
+  }
+  .bookmark-dialog__tag-input {
+    @apply text-app-text placeholder:text-app-dim h-6 min-w-24 flex-1 border-0 bg-transparent px-1 text-[13px] outline-none;
+  }
+}
+
+/* ── bookmark-* × compacto ─────────────────────────────────────────────
+ * Unlayered so these outrank the compacto Button / Dialog utilities, which
+ * win over `@layer components`. */
+.bookmark-dialog {
+  @apply w-[min(520px,92vw)];
+}
+.bookmark-pane__danger-button {
+  @apply hover:text-app-error;
+}
+.bookmark-dialog__favorite {
+  @apply data-active:text-app-warn h-8;
+}
+/* Search and sort share one look: 36px tall, panel fill, soft shadow,
+   accent ring on focus — a matched pair rather than two stock controls. */
+.bookmark-pane__search-box {
+  @apply relative w-72 max-sm:w-full;
+}
+.bookmark-pane__search {
+  @apply border-app-border-mid bg-app-panel hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/25 h-9 rounded-lg text-[13px] shadow-xs transition-[border-color,box-shadow] duration-150 focus-visible:ring-3;
+}
+.bookmark-pane__search-key {
+  @apply font-description absolute top-1/2 right-2 -translate-y-1/2 text-[11px];
+}
+.bookmark-pane__sort {
+  @apply border-app-border-mid bg-app-panel text-app-text hover:border-app-border-accent focus-visible:ring-app-accent/25 h-9 w-44 shrink-0 rounded-lg text-[13px] shadow-xs focus-visible:ring-3 data-[size=sm]:h-9;
+}
+.bookmark-pane__sort-icon {
+  @apply text-app-dim size-4;
+}
+.bookmark-dialog__select {
+  @apply w-full;
+}
+.bookmark-card__favorite {
+  @apply mr-auto;
+}
+.bookmark-card--compact .bookmark-card__favorite {
+  @apply mr-0;
+}
+.bookmark-card--favorite .bookmark-card__favorite {
+  @apply text-app-warn;
+}
+.bookmark-pane__group-button {
+  @apply text-app-dim;
+}
+.bookmark-dialog__preview-button {
+  @apply shrink-0;
+}

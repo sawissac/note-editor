@@ -8,12 +8,13 @@
 
 @layer components {
   .image-pane {
-    @apply bg-app-bg grid h-full min-h-0 grid-rows-[minmax(18rem,1fr)_minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_19rem] md:grid-rows-1;
+    /* Viewer | tools split: PaneSplit (pane-split.tsx), resizable. */
+    @apply bg-app-bg h-full min-h-0;
   }
 
   /* ── Viewer ───────────────────────────────────────────────────────── */
   .image-pane__viewer {
-    @apply flex min-h-0 min-w-0 flex-col;
+    @apply flex h-full min-h-0 min-w-0 flex-col;
   }
   .image-pane__stage {
     @apply min-h-0 flex-1 overflow-auto;
@@ -74,7 +75,7 @@
 
   /* ── Tools ────────────────────────────────────────────────────────── */
   .image-pane__side {
-    @apply border-app-border bg-app-panel flex min-h-0 flex-col overflow-y-auto border-t md:border-t-0 md:border-l;
+    @apply bg-app-panel flex h-full min-h-0 flex-col overflow-y-auto;
   }
   .image-pane__note {
     @apply border-app-border font-description text-app-dim m-0 flex items-start gap-1.5 border-b p-3 text-[11px] leading-snug;

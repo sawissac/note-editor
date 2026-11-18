@@ -11,10 +11,25 @@ export function hasFilePayload(e: React.DragEvent) {
   return e.dataTransfer.types.includes("Files");
 }
 
+/**
+ * Ids of the rows being dragged right now. `dataTransfer.getData` is empty
+ * during `dragover`, so rows read this to pick their drop zones.
+ */
+let draggingIds: string[] = [];
+
+export function getDraggingIds() {
+  return draggingIds;
+}
+
+export function clearDraggingIds() {
+  draggingIds = [];
+}
+
 /** Puts the dragged row ids on the drag. */
 export function setNodePayload(e: React.DragEvent, ids: string[]) {
   e.dataTransfer.setData(NODE_MIME, ids.join("\n"));
   e.dataTransfer.effectAllowed = "move";
+  draggingIds = ids;
 }
 
 /** The dragged row ids, or [] when the drop is not from the tree. */
@@ -43,15 +58,25 @@ export type DropZone = DropPosition | "into";
  * Which part of a row the pointer is over. Files split in half (before /
  * after). Folders keep their middle for "drop inside"; an expanded folder's
  * bottom edge is "inside" too, since its children are drawn right below.
+ *
+ * `sibling`: the dragged rows already live next to this folder, so
+ * reordering is as likely as moving inside — the row splits in thirds
+ * (before / inside / after), the bottom third even when expanded.
  */
 export function dropZone(
   e: React.DragEvent<HTMLElement>,
   isFolder: boolean,
   expanded: boolean,
+  sibling = false,
 ): DropZone {
   const rect = e.currentTarget.getBoundingClientRect();
   const y = (e.clientY - rect.top) / rect.height;
   if (!isFolder) return y < 0.5 ? "before" : "after";
+  if (sibling) {
+    if (y < 1 / 3) return "before";
+    if (y > 2 / 3) return "after";
+    return "into";
+  }
   if (y < 0.25) return "before";
   if (y > 0.75 && !expanded) return "after";
   return "into";

@@ -61,6 +61,7 @@ const TEXT_SOURCES: ReadonlySet<FileKind> = new Set([
   "kanban",
   "calendar",
   "random",
+  "bookmark",
 ]);
 
 /** What each kind converts to, in menu order. */
@@ -78,6 +79,8 @@ const TARGETS_BY_KIND: Partial<Record<FileKind, ConvertTargetId[]>> = {
   kanban: ["csv", "md", "mermaid-gantt", "pdf"],
   calendar: ["csv", "md", "mermaid-timeline", "pdf"],
   timer: ["csv", "md", "pdf"],
+  bookmark: ["csv", "md", "pdf"],
+  pptx: ["pdf"],
   chat: ["md", "txt", "pdf"],
   sql: ["pdf"],
   regex: ["pdf"],

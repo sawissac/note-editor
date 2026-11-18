@@ -1,0 +1,83 @@
+@reference "../index.css";
+
+/* PromptPicker — BEM blocks `prompt-picker` (radio list of system prompts),
+ * and `prompt-editor` (the form that writes one into its `.prompt` file).
+ *
+ * Imported by `PromptPicker.tsx`, so `@apply` resolves the app-* theme via
+ * `@reference`. Rows match the chat setup's provider / key radios. */
+
+@layer components {
+  /* ── prompt-picker ─────────────────────────────────────────────────── */
+  .prompt-picker {
+    @apply flex flex-col gap-0.5;
+  }
+  .prompt-picker__row {
+    @apply flex min-w-0 items-center gap-0.5;
+  }
+  .prompt-picker__choice {
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/40 flex h-7 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2;
+  }
+  .prompt-picker__choice--selected {
+    @apply bg-app-selected text-app-bright font-medium;
+  }
+  .prompt-picker__radio {
+    @apply border-app-border-mid size-3 shrink-0 rounded-full border;
+  }
+  .prompt-picker__radio--on {
+    @apply border-app-accent border-[3.5px];
+  }
+  .prompt-picker__name {
+    @apply min-w-0 truncate;
+  }
+  .prompt-picker__edit {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-accent focus-visible:ring-app-accent/40 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent opacity-60 transition-[opacity,color] duration-150 outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2;
+  }
+  .prompt-picker__icon {
+    @apply size-3 shrink-0;
+  }
+  .prompt-picker__hint {
+    @apply font-description text-app-dim px-1.5 py-1 text-[11px];
+  }
+  .prompt-picker__new {
+    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent/40 mt-1 flex h-6 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-1.5 text-[11px] transition-colors duration-150 outline-none focus-visible:ring-2;
+  }
+
+  /* ── prompt-editor ─────────────────────────────────────────────────── */
+  .prompt-editor {
+    @apply flex h-full min-h-0 flex-col gap-2 p-3;
+  }
+  .prompt-editor__head {
+    @apply flex min-w-0 items-center gap-1.5;
+  }
+  .prompt-editor__icon {
+    @apply text-app-accent size-3.5 shrink-0;
+  }
+  .prompt-editor__title {
+    @apply font-title text-app-bright shrink-0 text-[12px] font-semibold;
+  }
+  .prompt-editor__path {
+    @apply text-app-dim ml-auto min-w-0 truncate font-mono text-[10px];
+  }
+  .prompt-editor__name {
+    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/30 h-8 w-full min-w-0 shrink-0 rounded-md border px-2 text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2;
+  }
+  .prompt-editor__text {
+    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/30 min-h-32 w-full min-w-0 flex-1 resize-none rounded-md border px-2 py-1.5 text-[12px] leading-relaxed transition-colors duration-150 outline-none focus-visible:ring-2;
+  }
+  .prompt-editor__error {
+    @apply font-description text-app-error m-0 text-[11px] leading-snug;
+  }
+  .prompt-editor__actions {
+    @apply flex shrink-0 items-center gap-1.5;
+  }
+  .prompt-editor__spacer {
+    @apply flex-1;
+  }
+}
+
+/* ── × compacto ────────────────────────────────────────────────────────
+ * Unlayered: compacto's Button sizes itself with
+ * Tailwind utilities, which outrank `@layer components`. */
+.prompt-editor__delete {
+  @apply text-app-error hover:bg-app-error/10 hover:text-app-error;
+}

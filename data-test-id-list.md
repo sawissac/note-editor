@@ -18,6 +18,15 @@
 ## TextPane (EditorArea)
 - `text-editor` — TextPane / Monaco plain-text editor root
 
+## MarkdownPane (EditorArea)
+- `markdown-skeleton` — MarkdownSkeleton / loading placeholder until the rich editor is ready
+
+## Loading skeletons
+- `pane-skeleton` — PaneSkeleton / per-kind placeholder while a file is read or its pane chunk loads
+- `code-skeleton` — CodeSkeleton / placeholder while Monaco downloads and boots
+- `diff-lines-skeleton` — DiffLinesSkeleton / diff rows while both files are read
+- `diagram-skeleton` — DiagramSkeleton / Mermaid preview before its first render
+
 ## MermaidPane (image download)
 - `mermaid-pane-download-png-button` — MermaidPane / download PNG button
 - `mermaid-pane-download-svg-button` — MermaidPane / download SVG button
@@ -103,17 +112,9 @@
 - `calendar-event-editor-delete-button` — EventEditor / delete
 
 ## DataPane (.json / .yaml / .toml)
-- `data-pane-status-message` — DataPane / "Valid" or first parse error (file bar)
-- `data-pane-format-button` — DataPane / Format (JSON, YAML)
+- `data-pane-status-message` — DataPane / first parse error (file bar; absent when the file parses)
+- `data-pane-format-button` — DataPane / Format (JSON, YAML, TOML)
 - `data-pane-source-input` — DataPane / Monaco source editor root
-- `data-pane-error-message` — DataPane / view-mode syntax error panel
-- `data-pane-edit-button` — DataPane / "Fix in the editor"
-
-## DataTree (DataPane view)
-- `data-tree` — DataTree / root
-- `data-tree-empty-message` — DataTree / empty file
-- `data-tree-expand-button` — DataTree / Expand all
-- `data-tree-collapse-button` — DataTree / Collapse all
 
 ## SqlPane
 - `sql-pane-run-button` — SqlPane / Run (file bar)
@@ -125,18 +126,9 @@
 - `sql-pane-result-<n>-table` — SqlPane / nth result set (statement order)
 
 ## EnvPane (.env)
-- `env-pane` — EnvPane / view root
 - `env-pane-source-input` — EnvPane / Monaco dotenv editor root
-- `env-pane-status-message` — EnvPane / "Valid" or problem count (file bar)
-- `env-pane-reveal-button` — EnvPane / Show / Hide all values
-- `env-pane-empty-message` — EnvPane / no variables
-- `env-pane-problem-list` — EnvPane / problems container
-- `env-pane-problem-<line>-item` — EnvPane / one problem
-- `env-pane-table` — EnvPane / variables table
-- `env-pane-row-<KEY>-<line>` — EnvPane / variable row
-- `env-pane-row-<KEY>-<line>-mask-button` — EnvPane / masked value (click to show)
-- `env-pane-row-<KEY>-<line>-toggle-button` — EnvPane / show / hide value
-- `env-pane-row-<KEY>-<line>-copy-button` — EnvPane / copy value
+- `env-pane-status-message` — EnvPane / problem count (file bar; absent when there are none)
+- `env-pane-format-button` — EnvPane / Format (file bar; disabled while the file has syntax errors)
 
 ## RegexPane (.regex)
 - `regex-pane-text-input` — RegexPane / Monaco test-text editor root (left)
@@ -229,11 +221,18 @@
 
 ## PaneToolbar (EditorArea)
 - `pane-download-button` — PaneToolbar / download the active file
+- `pane-save-error-message` — PaneToolbar / "Not saved" warning, shown only when a save fails
 
 ## Explorer multi-select
 - `explorer-selection-count` — Explorer footer / "N selected" when several rows are selected
 - `node-menu-clear-selection-item` — NodeMenu (multi-selection) / select only this row
 - `node-menu-delete-selection-item` — NodeMenu (multi-selection) / delete every selected row
+
+## Explorer sort
+- `explorer-sort-button` — Explorer header / "Sort all folders" dropdown trigger
+- `explorer-sort-{key}-item` — Explorer header sort dropdown / sort every folder; `{key}`: `name`, `name-desc`, `modified`, `created`, `type`
+- `node-menu-sort-trigger` — NodeMenu / "Sort contents by" (folder) or "Sort folder by" (file) submenu trigger
+- `node-menu-sort-{key}-item` — NodeMenu sort submenu / sort that folder's direct contents; same `{key}` values
 
 ## DiffPane (.diff)
 - `diff-pane-picker` — DiffPane / file picker card (shown until two files are chosen)
@@ -329,11 +328,15 @@
 
 ## ChatPane
 - `chat-pane` — ChatPane / root
-- `chat-pane-provider-trigger` / `chat-pane-provider-<gemini|openrouter>-item` — ChatPickers / provider dropdown
-- `chat-pane-key-trigger` / `chat-pane-key-<fileId>-<name>-item` / `chat-pane-key-manage-item` — ChatPickers / API key dropdown
-- `chat-pane-model-trigger` / `chat-pane-model-search-input` / `chat-pane-model-list` / `chat-pane-model-custom-item` — ChatPickers / model combobox
-- `chat-pane-settings-button` / `chat-pane-clear-button` — ChatPane / file-bar actions
-- `chat-pane-settings-content` / `chat-pane-system-input` / `chat-pane-temperature-input` — ChatPane / settings panel
+- `chat-setup-trigger` / `chat-setup-content` — ChatSetup / file-bar button (provider · key · model) and its popover
+- `chat-setup-provider-<gemini|openrouter>-item` — ChatSetup / provider radio
+- `chat-setup-key-<fileId>-<name>-item` / `chat-setup-manage-keys-button` — ChatSetup / API key radio and manage button
+- `chat-setup-model-search-input` / `chat-setup-model-list` / `chat-setup-model-custom-item` — ChatSetup / model combobox
+- `<prefix>-prompt-none-item` / `<prefix>-prompt-<fileId>-<name>-item` / `<prefix>-prompt-<fileId>-<name>-edit-button` / `<prefix>-prompt-new-button` — PromptList / system prompt radio list (prefix `chat-setup`)
+- `<prefix>-prompt-editor` / `<prefix>-prompt-name-input` / `<prefix>-prompt-text-input` / `<prefix>-prompt-save-button` / `<prefix>-prompt-cancel-button` / `<prefix>-prompt-delete-button` / `<prefix>-prompt-error-message` — PromptEditor / write a prompt into its `.prompt` file
+- `ask-ai-panel-prompt-<fileId>-<name>-button` / `ask-ai-panel-prompt-<fileId>-<name>-edit-button` / `ask-ai-panel-prompt-new-button` — AskAiPanel / workspace prompt chips (send the prompt), their edit pencil, and "+" for a new one
+- `chat-setup-temperature-input` — ChatSetup / temperature
+- `chat-pane-clear-button` — ChatPane / file-bar clear action
 - `chat-pane-message-list` — ChatPane / messages
 - `chat-pane-message-<id>-item` — ChatPane / message
 - `chat-pane-message-<id>-copy-button` / `-regenerate-button` / `-delete-button` — ChatPane / message actions
@@ -346,9 +349,9 @@
 ## AppInfoPane (`app.info`)
 - `app-info-pane` — AppInfoPane / root
 - `app-info-pane-sort-button` — AppInfoPane / by type ⇄ A→Z (file bar)
-- `app-info-pane-replay-button` — AppInfoPane / replay grid animation (file bar)
-- `app-info-pane-list` — AppInfoPane / extension grid
-- `app-info-pane-card-<ext>` — AppInfoPane / extension tile (`app-info` / `app-state` for the named files)
+- `app-info-pane-replay-button` — AppInfoPane / replay list animation (file bar)
+- `app-info-pane-list` — AppInfoPane / file-type list
+- `app-info-pane-row-<kind>` — AppInfoPane / one file type: icon, extensions, library chips
 
 ## AppStatePane (`app.state`)
 - `app-state-pane` — AppStatePane / root
@@ -372,7 +375,6 @@
 - `image-pane-import-error-message` — ImagePane / unreadable or rejected file
 - `image-pane-import-cancel-button` — ImagePane / keep current image (Replace)
 - `image-pane` — ImagePane / editor root
-- `image-pane-loading-message` — ImagePane / decoding
 - `image-pane-error-message` — ImagePane / decode failure
 - `image-pane-error-replace-button` — ImagePane / import another image after a failure
 - `image-pane-undo-button` / `image-pane-redo-button` — ImagePane / history (file bar)
@@ -404,3 +406,78 @@
 - `node-menu-convert-{target}-item` — ConvertMenu / one target: `json`, `yml`, `yaml`, `toml`, `env`, `csv`, `md`, `txt`, `pdf`, `img-{format}` (e.g. `img-png`)
 - `node-menu-convert-problem-message` — ConvertMenu / why a target is unavailable
 - `explorer-notice-dismiss-button` also shows a failed conversion (Explorer footer)
+
+## BookmarkPane
+- `bookmark-pane` — BookmarkPane / root (paste or drop a link to save it, `/` focuses search)
+- `bookmark-pane-previews-button` / `bookmark-pane-import-button` / `bookmark-pane-import-input` — BookmarkPane / fetch missing previews, import browser bookmarks.html (file bar)
+- `bookmark-pane-grid-view-button` / `bookmark-pane-list-view-button` / `bookmark-pane-add-button` — BookmarkPane / view toggle, add (file bar)
+- `bookmark-pane-all-button` / `bookmark-pane-favorites-button` / `bookmark-pane-unsorted-button` — BookmarkPane / collections (drop a card on favorites / unsorted)
+- `bookmark-pane-add-folder-button` / `bookmark-pane-folder-list` — BookmarkPane / new top-level folder, folder tree
+- `bookmark-pane-tag-list` / `bookmark-pane-tag-<tag>-button` — BookmarkPane / tag filter toggles
+- `bookmark-pane-search-input` / `bookmark-pane-sort-select` — BookmarkPane / search, sort
+- `bookmark-pane-active-tag-<tag>-button` — BookmarkPane / remove an active tag filter
+- `bookmark-pane-parse-error-message` — BookmarkPane / invalid file
+- `bookmark-pane-notice-message` / `bookmark-pane-notice-undo-button` / `bookmark-pane-notice-dismiss-button` — BookmarkPane / status notice, undo delete
+- `bookmark-pane-list` / `bookmark-pane-empty-message` / `bookmark-pane-clear-filters-button` — BookmarkPane / cards, empty state
+
+## BookmarkFolderRow
+- `bookmark-folder-row-<id>-item` / `-button` — BookmarkFolderRow / row, open folder (double-click renames; drop a card to move it)
+- `bookmark-folder-row-<id>-name-input` — BookmarkFolderRow / rename field
+- `bookmark-folder-row-<id>-add-button` / `-rename-button` / `-delete-button` — BookmarkFolderRow / sub-folder, rename, delete
+
+## BookmarkCard
+- `bookmark-card-<id>-item` — BookmarkCard / card or list row (draggable)
+- `bookmark-card-<id>-link` — BookmarkCard / title link (new tab)
+- `bookmark-card-<id>-tag-<tag>-button` — BookmarkCard / filter by tag
+- `bookmark-card-<id>-favorite-button` / `-copy-button` / `-refresh-button` / `-edit-button` / `-delete-button` — BookmarkCard / actions
+
+## BookmarkDialog
+- `bookmark-dialog` — BookmarkDialog / add / edit dialog root
+- `bookmark-dialog-url-input` / `bookmark-dialog-title-input` / `bookmark-dialog-description-input` — BookmarkDialog / fields
+- `bookmark-dialog-folder-select` / `bookmark-dialog-favorite-button` — BookmarkDialog / folder, favorite
+- `bookmark-dialog-tags-input` / `bookmark-dialog-tag-<tag>-remove-button` — BookmarkDialog / tags
+- `bookmark-dialog-preview-content` / `bookmark-dialog-preview-button` — BookmarkDialog / website preview, fetch / refresh
+- `bookmark-dialog-error-message` / `bookmark-dialog-duplicate-message` — BookmarkDialog / invalid address, already saved
+- `bookmark-dialog-cancel-button` / `bookmark-dialog-save-button` — BookmarkDialog / actions
+
+## PptxPane
+- `pptx-pane` — PptxPane / root
+- `pptx-pane-undo-button` / `pptx-pane-redo-button` — PptxPane / history (file bar)
+- `pptx-pane-add-text-button` / `pptx-pane-shape-trigger` / `pptx-pane-shape-<kind>-item` / `pptx-pane-add-image-button` — PptxPane / insert text box, shape (`rect`, `rounded`, `ellipse`, `triangle`, `diamond`, `star`, `line`, `arrow`), picture (file bar)
+- `pptx-pane-image-input` — PptxPane / hidden picture file input
+- `pptx-pane-present-button` — PptxPane / start the slide show (file bar)
+- `pptx-pane-slide-list` / `pptx-pane-add-slide-button` — PptxPane / slide thumbnails, new slide
+- `pptx-pane-workspace` — PptxPane / focusable slide area (keyboard, paste, drop pictures)
+- `pptx-pane-parse-error-message` — PptxPane / invalid file
+- `pptx-pane-notice-message` / `pptx-pane-notice-dismiss-button` — PptxPane / picture or export error
+
+## PptxSlideRow
+- `pptx-slide-row-<id>-item` / `-button` — PptxSlideRow / row, open slide (drag to reorder)
+- `pptx-slide-row-<id>-duplicate-button` / `-delete-button` — PptxSlideRow / actions on the open slide
+
+## PptxStage
+- `pptx-stage` — PptxStage / Konva canvas host
+
+## PptxTextEditor
+- `pptx-text-editor-input` — PptxTextEditor / in-place text field
+
+## PptxInspector
+- `pptx-inspector-background-picker-input` / `-hex-input` / `-swatch-<rrggbb>-button` — PptxInspector / slide background
+- `pptx-inspector-background-all-button` / `pptx-inspector-notes-input` — PptxInspector / background on every slide, speaker notes
+- `pptx-inspector-font-select` / `pptx-inspector-font-size-input` — PptxInspector / font, size
+- `pptx-inspector-style-<bold|italic|underline>-button` — PptxInspector / text style
+- `pptx-inspector-align-<left|center|right>-button` / `pptx-inspector-valign-<top|middle|bottom>-button` — PptxInspector / alignment
+- `pptx-inspector-text-color-*` / `pptx-inspector-text-fill-*` — PptxInspector / text colour, box fill (`-picker-input`, `-hex-input`, `-none-checkbox` on fill, `-swatch-<rrggbb>-button`)
+- `pptx-inspector-shape-select` — PptxInspector / shape kind
+- `pptx-inspector-fill-*` / `pptx-inspector-stroke-*` — PptxInspector / shape fill, outline (same parts as above)
+- `pptx-inspector-stroke-width-input` / `pptx-inspector-opacity-input` — PptxInspector / sliders
+- `pptx-inspector-arrange-<front|forward|backward|back>-button` — PptxInspector / stacking order
+- `pptx-inspector-x-input` / `-y-input` / `-width-input` / `-height-input` / `-rotation-input` — PptxInspector / exact box (single selection)
+- `pptx-inspector-duplicate-button` / `pptx-inspector-delete-button` — PptxInspector / selection actions
+
+## PptxShow
+- `pptx-show` — PptxShow / full-screen slide show root (click advances)
+- `pptx-show-slide-content` / `pptx-show-count-message` / `pptx-show-close-button` — PptxShow / slide, position, exit
+
+## DocxEditor (.docx)
+- `docx-editor-import-button` — DocxEditor file bar / "Import": replace the document with a DOCX file

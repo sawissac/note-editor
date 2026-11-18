@@ -57,3 +57,15 @@
     @apply bottom-0 translate-y-1/2;
   }
 }
+
+/* Selection fill — BEM block `tree-selection`.
+ *
+ * Behind the single selected explorer row. One shared motion layout element
+ * (`layoutId`), so selecting another row slides it there. A multi-selection
+ * fills each row in place instead. */
+
+@layer components {
+  .tree-selection {
+    @apply bg-app-selected pointer-events-none absolute inset-0 -z-10;
+  }
+}

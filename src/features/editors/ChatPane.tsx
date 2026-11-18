@@ -1,6 +1,5 @@
 import "@/styles/chat-pane.css";
 import {
-  IconAdjustmentsHorizontal,
   IconAlertTriangle,
   IconCheck,
   IconCopy,
@@ -29,7 +28,6 @@ import {
 } from "@/lib/chat-doc";
 import { listModels, streamChat } from "@/lib/chat-providers";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/ui-styles";
 import { extensionOf, kindOf } from "@/lib/file-types";
@@ -44,17 +42,17 @@ import {
   type MentionFile,
 } from "@/features/editors/ChatComposer";
 import { ChatMarkdown } from "@/features/editors/ChatMarkdown";
-import {
-  KeyPicker,
-  ModelPicker,
-  ProviderPicker,
-} from "@/features/editors/ChatPickers";
+import { ChatSetup } from "@/features/editors/ChatPickers";
 import { FileBarSlot } from "@/features/editors/file-bar-slot";
 import {
   type PaneProps,
   useSaveHandler,
 } from "@/features/editors/pane-context";
 import { useDebouncedSave } from "@/features/editors/use-file-content";
+import {
+  useFileEntries,
+  usePromptLibrary,
+} from "@/features/editors/use-prompts";
 
 /** One entry of a `.gemini` / `.openrouter` file in the workspace. */
 type KeyOption = {
@@ -68,7 +66,6 @@ type KeyOption = {
 /** No bytes for this long while waiting for a reply → give up. */
 const IDLE_TIMEOUT_MS = 180_000;
 
-/** Keys for `provider` found in the workspace's key files. */
 const isMac = navigator.platform.toLowerCase().includes("mac");
 
 /** Extensions a chat can reference with `@path`. */
@@ -118,39 +115,20 @@ async function resolveAttachments(
   );
 }
 
+/** Keys for `provider` found in the workspace's key files. */
 function useKeyOptions(provider: ChatProvider) {
-  const nodes = useAppSelector((s) => s.fs.nodes);
   const extension = providerInfo(provider).extension;
-  const files = React.useMemo(
-    () =>
-      Object.values(nodes).filter(
-        (n) =>
-          n.type === "file" &&
-          kindOf(n.name) === "apikeys" &&
-          extensionOf(n.name) === extension,
-      ),
-    [nodes, extension],
+  const isKeyFile = React.useCallback(
+    (name: string) =>
+      kindOf(name) === "apikeys" && extensionOf(name) === extension,
+    [extension],
   );
-  const [options, setOptions] = React.useState<KeyOption[] | null>(null);
-  React.useEffect(() => {
-    let live = true;
-    void Promise.all(
-      files.map(async (file) => {
-        const text = await storage.getContent(file.id).catch(() => null);
-        const { entries } = parseApiKeys(typeof text === "string" ? text : "");
-        const path = getPath(nodes, file.id).join("/");
-        return entries
-          .filter((e) => e.key.trim())
-          .map((e) => ({ fileId: file.id, path, name: e.name, key: e.key }));
-      }),
-    ).then((lists) => live && setOptions(lists.flat()));
-    return () => {
-      live = false;
-    };
-    // `nodes` only feeds the path labels; `files` changes with it anyway.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files]);
-  return { options, keyFiles: files };
+  const { entries, files } = useFileEntries(isKeyFile, readKeys);
+  return { options: entries as KeyOption[] | null, keyFiles: files };
+}
+
+function readKeys(text: string) {
+  return parseApiKeys(text).entries.filter((e) => e.key.trim());
 }
 
 /**
@@ -183,7 +161,6 @@ export default function ChatPane({
   const [parseError, setParseError] = React.useState(initial.error);
   const [draft, setDraft] = React.useState("");
   const [streamingId, setStreamingId] = React.useState<string | null>(null);
-  const [showSettings, setShowSettings] = React.useState(false);
   const [models, setModels] = React.useState<string[]>([]);
   const [modelsLoading, setModelsLoading] = React.useState(false);
   const composerRef = React.useRef<ChatComposerHandle>(null);
@@ -215,6 +192,14 @@ export default function ChatPane({
   React.useEffect(() => () => abortRef.current?.abort(), []);
 
   const { options, keyFiles } = useKeyOptions(doc.provider);
+  const promptLibrary = usePromptLibrary();
+  const prompts = promptLibrary.prompts;
+  const prompt = doc.promptRef
+    ? prompts?.find(
+        (p) =>
+          p.fileId === doc.promptRef!.fileId && p.name === doc.promptRef!.name,
+      )
+    : undefined;
   const mentionFiles = useMentionFiles();
   // Selections other editors sent here with "Ask AI", waiting to go along.
   const allReferences = useAppSelector((s) => s.ui.chatReferences);
@@ -227,6 +212,9 @@ export default function ChatPane({
         (o) => o.fileId === doc.keyRef!.fileId && o.name === doc.keyRef!.name,
       )
     : undefined;
+  // Read at send time, like `docRef`, so a reply uses the prompt's latest text.
+  const promptRef = React.useRef(prompt);
+  promptRef.current = prompt;
 
   // Pick the first key when none is chosen (or the chosen one is gone).
   React.useEffect(() => {
@@ -298,7 +286,7 @@ export default function ChatPane({
         provider: docRef.current.provider,
         apiKey: selected.key,
         model: docRef.current.model.trim(),
-        system: docRef.current.system,
+        system: promptRef.current?.text ?? "",
         temperature: docRef.current.temperature,
         messages: history,
         signal: controller.signal,
@@ -407,42 +395,46 @@ export default function ChatPane({
   return (
     <>
       <FileBarSlot>
-        <ProviderPicker
-          value={doc.provider}
-          disabled={Boolean(streamingId)}
-          onChange={setProvider}
-        />
-        <KeyPicker
-          options={options ?? []}
-          value={selected}
-          disabled={options === null || Boolean(streamingId)}
-          onChange={(o) =>
+        <ChatSetup
+          provider={doc.provider}
+          keys={options}
+          keyValue={selected}
+          model={doc.model}
+          models={models}
+          modelsLoading={modelsLoading}
+          prompts={prompts}
+          promptValue={prompt}
+          temperature={doc.temperature}
+          busy={Boolean(streamingId)}
+          onProvider={setProvider}
+          onKey={(o) =>
             update((d) => ({
               ...d,
               keyRef: { fileId: o.fileId, name: o.name },
             }))
           }
-          onManage={openKeys}
+          onManageKeys={openKeys}
+          onModel={(model) => update((d) => ({ ...d, model }))}
+          onPrompt={(p) =>
+            update((d) => ({
+              ...d,
+              promptRef: p ? { fileId: p.fileId, name: p.name } : null,
+            }))
+          }
+          onSavePrompt={promptLibrary.save}
+          onDeletePrompt={async (p) => {
+            await promptLibrary.remove(p);
+            if (
+              doc.promptRef?.fileId === p.fileId &&
+              doc.promptRef.name === p.name
+            ) {
+              update((d) => ({ ...d, promptRef: null }));
+            }
+          }}
+          onTemperature={(temperature) =>
+            update((d) => ({ ...d, temperature }))
+          }
         />
-        <ModelPicker
-          value={doc.model}
-          models={models}
-          loading={modelsLoading}
-          onChange={(model) => update((d) => ({ ...d, model }))}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className={cn(ui.paneToolbarBtn, "w-7 px-0")}
-          data-active={showSettings || undefined}
-          aria-label="Chat settings"
-          aria-pressed={showSettings}
-          data-testid="chat-pane-settings-button"
-          onClick={() => setShowSettings((v) => !v)}
-        >
-          <IconAdjustmentsHorizontal aria-hidden className="pane-icon" />
-        </Button>
         <Button
           type="button"
           variant="outline"
@@ -458,40 +450,6 @@ export default function ChatPane({
       </FileBarSlot>
 
       <div className="chat-pane" data-testid="chat-pane">
-        {showSettings ? (
-          <div
-            className="chat-pane__settings"
-            data-testid="chat-pane-settings-content"
-          >
-            <label className="pane-field">
-              <span className="pane-field__label">System prompt</span>
-              <textarea
-                className="pane-field__textarea"
-                data-testid="chat-pane-system-input"
-                rows={3}
-                value={doc.system}
-                placeholder="How the assistant should behave (optional)"
-                onChange={(e) =>
-                  update((d) => ({ ...d, system: e.target.value }))
-                }
-              />
-            </label>
-            <Slider
-              size="sm"
-              label="Temperature"
-              data-testid="chat-pane-temperature-input"
-              min={0}
-              max={2}
-              step={0.1}
-              value={doc.temperature}
-              formatValue={(current) => current.toFixed(1)}
-              onValueChange={(temperature) =>
-                update((d) => ({ ...d, temperature }))
-              }
-            />
-          </div>
-        ) : null}
-
         <div
           ref={listRef}
           className="chat-pane__scroll"

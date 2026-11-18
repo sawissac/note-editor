@@ -9,7 +9,12 @@
     @apply pointer-events-none fixed bottom-10 left-3 z-50 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col gap-2;
   }
   .timer-dock__toast {
-    @apply border-app-border bg-app-panel animate-in fade-in slide-in-from-bottom-2 pointer-events-auto flex flex-col gap-2 rounded-lg border p-2.5 shadow-lg;
+    /* Enter/exit motion is driven by motion/react (TimerDock.tsx). */
+    @apply border-app-border bg-app-panel pointer-events-auto flex flex-col gap-2 rounded-lg border p-2.5 shadow-lg;
+  }
+  /* Animated wrapper for the pill / Minimise button, kept at the start edge. */
+  .timer-dock__slot {
+    @apply self-start;
   }
   .timer-dock__toast--paused {
     @apply border-app-warn/50;

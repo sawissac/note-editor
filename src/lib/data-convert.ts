@@ -22,6 +22,7 @@ import {
   type ImageFormat,
   sniffImageFormat,
 } from "@/lib/image-formats";
+import { deckOutline, parsePptx } from "@/lib/pptx-doc";
 import type { FileContent } from "@/lib/storage";
 import type { Block } from "@/lib/unified-export/extract";
 
@@ -470,7 +471,8 @@ export async function convertFile(
       kind === "xlsx" ||
       kind === "kanban" ||
       kind === "calendar" ||
-      kind === "timer"
+      kind === "timer" ||
+      kind === "bookmark"
     ) {
       // CSV holds one table: the first sheet / the file's table.
       const [table] = await tablesOf(kind, input);
@@ -574,7 +576,11 @@ export async function checkTargets(
  * extraction the PDF export uses. Throws with a user-facing message.
  */
 export async function fileAsText(input: ConvertInput): Promise<string> {
-  if (typeof input.content === "string") return input.content;
   const kind = kindOf(input.name);
+  if (kind === "pptx" && typeof input.content === "string") {
+    // The file is mostly base64 pictures — hand over what the slides say.
+    return deckOutline(parsePptx(input.content));
+  }
+  if (typeof input.content === "string") return input.content;
   return blocksToMarkdown(await blocksOf(kind, input));
 }

@@ -1,5 +1,9 @@
 import "@/styles/app-info-pane.css";
-import { IconArrowsSort, IconPlayerPlay } from "@tabler/icons-react";
+import {
+  IconArrowsSort,
+  IconExternalLink,
+  IconPlayerPlay,
+} from "@tabler/icons-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +15,7 @@ import {
   type FileKind,
   KIND_LABEL,
 } from "@/lib/file-types";
+import { KIND_LIBRARIES } from "@/lib/kind-libraries";
 import * as ui from "@/lib/ui-styles";
 import { saveContent } from "@/store/actions";
 import { useAppDispatch } from "@/store";
@@ -20,44 +25,49 @@ import {
   useSaveHandler,
 } from "@/features/editors/pane-context";
 
-/** One tile in the grid: an extension, or a constant file name. */
+/** One row in the list: a file type and every name that opens it. */
 type Entry = {
-  id: string;
-  /** What the tile shows: `.md`, `app.info`, … */
-  label: string;
-  /** Name handed to `FileIcon`, so the tile gets the type's glyph + colour. */
-  iconName: string;
   kind: FileKind;
+  /** What opens it: `.md`, `.markdown`, `app.info`, … */
+  labels: string[];
+  /** Name handed to `FileIcon`, so the row gets the type's glyph + colour. */
+  iconName: string;
 };
 
-const ENTRIES: Entry[] = [
-  ...EXTENSION_KINDS.map(({ ext, kind }) => ({
-    id: ext,
-    label: `.${ext}`,
-    iconName: `file.${ext}`,
-    kind,
-  })),
-  ...Object.values(APP_FILES).map((name) => ({
-    id: name.replace(".", "-"),
-    label: name,
-    iconName: name,
-    kind: (name === APP_FILES.info ? "appinfo" : "appstate") as FileKind,
-  })),
-];
+const NAMED_FILE_KIND: Record<string, FileKind> = {
+  [APP_FILES.info]: "appinfo",
+  [APP_FILES.state]: "appstate",
+};
 
-/** Kind order follows `KIND_LABEL`, so the grid groups like the type list. */
+/** Kind order follows `KIND_LABEL`, so "By type" matches the type list. */
 const KIND_ORDER = Object.keys(KIND_LABEL) as FileKind[];
+
+const ENTRIES: Entry[] = (() => {
+  const byKind = new Map<FileKind, Entry>();
+  const add = (kind: FileKind, label: string, iconName: string) => {
+    const entry = byKind.get(kind);
+    if (entry) entry.labels.push(label);
+    else byKind.set(kind, { kind, labels: [label], iconName });
+  };
+  for (const { ext, kind } of EXTENSION_KINDS)
+    add(kind, `.${ext}`, `file.${ext}`);
+  for (const name of Object.values(APP_FILES)) {
+    add(NAMED_FILE_KIND[name], name, name);
+  }
+  return [...byKind.values()];
+})();
 
 type Sort = "type" | "name";
 
 /**
- * `app.info`: a read-only overview of what the app opens — every extension
- * as a tile (big tinted type icon) in a staggered, animated grid. The file
- * bar replays the animation and switches
- * between grouped-by-type and A→Z order. ⌘/Ctrl+S (and Download) write the
- * list into the file as JSON.
+ * `app.info`: a read-only overview of what the app opens — one row per file
+ * type with its tinted icon, the extensions that open it, and the
+ * open-source libraries its editor is built on (linked to npm). Rows rise in
+ * one by one; the file bar replays that and switches between grouped-by-type
+ * and A→Z order. ⌘/Ctrl+S (and Download) write the list into the file as
+ * JSON.
  *
- * Test ids: `app-info-pane`, `app-info-pane-list`, `app-info-pane-card-<ext>`,
+ * Test ids: `app-info-pane`, `app-info-pane-list`, `app-info-pane-row-<kind>`,
  * `app-info-pane-replay-button`, `app-info-pane-sort-button`.
  *
  * CSS block: `app-info-pane` (`src/styles/app-info-pane.css`).
@@ -77,6 +87,7 @@ export default function AppInfoPane({ id, registerSave }: PaneProps) {
             extensions: EXTENSION_KINDS.map(({ ext, kind }) => ({
               extension: ext,
               type: KIND_LABEL[kind],
+              libraries: KIND_LIBRARIES[kind].map((lib) => lib.pkg),
             })),
             namedFiles: Object.values(APP_FILES),
             creatable: CREATABLE_EXTENSIONS,
@@ -90,7 +101,9 @@ export default function AppInfoPane({ id, registerSave }: PaneProps) {
 
   const visible = React.useMemo(() => {
     return sort === "name"
-      ? [...ENTRIES].sort((a, b) => a.label.localeCompare(b.label))
+      ? [...ENTRIES].sort((a, b) =>
+          KIND_LABEL[a.kind].localeCompare(KIND_LABEL[b.kind]),
+        )
       : [...ENTRIES].sort(
           (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
         );
@@ -120,7 +133,7 @@ export default function AppInfoPane({ id, registerSave }: PaneProps) {
           size="sm"
           className={ui.paneToolbarBtn}
           data-testid="app-info-pane-replay-button"
-          title="Play the grid animation again"
+          title="Play the list animation again"
           onClick={() => setReplay((n) => n + 1)}
         >
           <IconPlayerPlay aria-hidden className="pane-icon" />
@@ -133,7 +146,8 @@ export default function AppInfoPane({ id, registerSave }: PaneProps) {
           <header className="app-info-pane__header">
             <h2 className="app-info-pane__title">What this app opens</h2>
             <p className="app-info-pane__lead">
-              Every extension below opens in its own editor. Create a file named{" "}
+              Every type below opens in its own editor, built on the libraries
+              listed beside it. Create a file named{" "}
               <code className="app-info-pane__code">app.state</code> to watch
               the live store.
             </p>
@@ -141,24 +155,61 @@ export default function AppInfoPane({ id, registerSave }: PaneProps) {
 
           <ul
             key={replay}
-            className="app-info-pane__grid"
+            className="app-info-pane__list"
             data-testid="app-info-pane-list"
-            aria-label={`${visible.length} extensions`}
+            aria-label={`${visible.length} file types`}
           >
-            {visible.map((entry, i) => (
-              <li
-                key={entry.id}
-                className="app-info-pane__card"
-                title={KIND_LABEL[entry.kind]}
-                style={{ "--app-info-pane-i": i } as React.CSSProperties}
-                data-testid={`app-info-pane-card-${entry.id}`}
-              >
-                <span className="app-info-pane__card-icon" aria-hidden>
-                  <FileIcon name={entry.iconName} unsized />
-                </span>
-                <span className="app-info-pane__card-ext">{entry.label}</span>
-              </li>
-            ))}
+            {visible.map((entry, i) => {
+              const libraries = KIND_LIBRARIES[entry.kind];
+              return (
+                <li
+                  key={entry.kind}
+                  className="app-info-pane__row"
+                  style={{ "--app-info-pane-i": i } as React.CSSProperties}
+                  data-testid={`app-info-pane-row-${entry.kind}`}
+                >
+                  <span className="app-info-pane__row-icon" aria-hidden>
+                    <FileIcon name={entry.iconName} unsized />
+                  </span>
+                  <div className="app-info-pane__row-text">
+                    <span className="app-info-pane__row-title">
+                      {KIND_LABEL[entry.kind]}
+                    </span>
+                    <span className="app-info-pane__row-names">
+                      {entry.labels.join("  ·  ")}
+                    </span>
+                  </div>
+                  <ul
+                    className="app-info-pane__libs"
+                    aria-label={`${KIND_LABEL[entry.kind]} is built with`}
+                  >
+                    {libraries.length ? (
+                      libraries.map((lib) => (
+                        <li key={lib.pkg}>
+                          <a
+                            className="app-info-pane__lib"
+                            href={`https://www.npmjs.com/package/${lib.pkg}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={`${lib.pkg} on npm`}
+                          >
+                            {lib.name}
+                            <IconExternalLink
+                              aria-hidden
+                              className="app-info-pane__lib-icon"
+                            />
+                          </a>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="app-info-pane__lib app-info-pane__lib--builtin">
+                        Built in
+                      </li>
+                    )}
+                  </ul>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>

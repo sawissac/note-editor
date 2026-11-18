@@ -7,6 +7,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { MapPin } from "lucide-react";
+import { AnimatePresence, m, type Variants } from "motion/react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ import {
   toIcs,
 } from "@/lib/calendar";
 import { cn } from "@/lib/cn";
+import { enter, exit, glide, quick } from "@/lib/motion";
 import { downloadFile } from "@/lib/storage";
 import * as ui from "@/lib/ui-styles";
 import { saveContent } from "@/store/actions";
@@ -133,6 +135,24 @@ export default function CalendarPane({
   const [editor, setEditor] = React.useState<EditorState>(null);
   const now = useNow();
   const rootRef = React.useRef<HTMLDivElement>(null);
+
+  // Which way the visible period moved, so it slides in from that side
+  // (0 = the view changed: zoom instead). Derived during render.
+  const period = `${view}:${periodKey(view, cursor)}`;
+  const [nav, setNav] = React.useState({
+    period,
+    view,
+    time: cursor.getTime(),
+    dir: 0,
+  });
+  if (nav.period !== period) {
+    setNav({
+      period,
+      view,
+      time: cursor.getTime(),
+      dir: nav.view === view ? Math.sign(cursor.getTime() - nav.time) : 0,
+    });
+  }
   const lastColor = React.useRef<EventColor>("blue");
 
   const textRef = React.useRef(serializeCalendar(initial.doc));
@@ -325,7 +345,19 @@ export default function CalendarPane({
           data-testid="calendar-pane-title"
           className="font-title text-app-bright mr-auto text-lg"
         >
-          <PeriodTitle view={view} cursor={cursor} />
+          <AnimatePresence mode="wait" initial={false} custom={nav.dir}>
+            <m.span
+              key={period}
+              className="inline-block"
+              custom={nav.dir}
+              variants={titleVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+            >
+              <PeriodTitle view={view} cursor={cursor} />
+            </m.span>
+          </AnimatePresence>
         </h2>
         <ButtonGroup aria-label="View">
           {VIEWS.map((v) => (
@@ -337,15 +369,21 @@ export default function CalendarPane({
               title={`${v.label} (${v.key.toUpperCase()})`}
               data-testid={`calendar-pane-view-${v.id}-button`}
               className={cn(
-                "h-7 px-3 text-xs",
-                view === v.id &&
-                  "bg-app-selected text-app-accent hover:bg-app-selected",
+                "relative isolate h-7 px-3 text-xs",
+                view === v.id && "text-app-accent",
               )}
               onClick={() => {
                 setEditor(null);
                 setView(v.id);
               }}
             >
+              {view === v.id ? (
+                <m.span
+                  layoutId={`calendar-view-pill-${id}`}
+                  className="bg-app-selected pointer-events-none absolute inset-0 -z-10 rounded-[inherit]"
+                  transition={glide}
+                />
+              ) : null}
               {v.label}
             </Button>
           ))}
@@ -399,69 +437,81 @@ export default function CalendarPane({
       </header>
 
       <div
-        className="min-h-0 flex-1"
+        className="relative min-h-0 flex-1 overflow-hidden"
         onPointerDown={() => {
           // Keep keyboard shortcuts live after clicking into the calendar.
           if (!rootRef.current?.contains(document.activeElement))
             rootRef.current?.focus();
         }}
       >
-        {view === "month" ? (
-          <MonthView
-            cursor={cursor}
-            now={now}
-            byDay={byDay}
-            selectedId={selectedId}
-            onSelectDay={(d) => {
-              setCursor(d);
-              setSelectedId(null);
-            }}
-            onOpenDay={openDay}
-            onCreate={(d) => {
-              const start = addMinutes(startOfDay(d), 9 * 60);
-              createEvent({
-                start: dateTimeKey(start),
-                end: dateTimeKey(addMinutes(start, 60)),
-              });
-            }}
-            onEventOpen={openEditor}
-            onEventMove={(e, days) =>
-              updateEvent(e.id, shiftEvent(e, days * 1440))
-            }
-          />
-        ) : view === "year" ? (
-          <YearView
-            cursor={cursor}
-            now={now}
-            byDay={byDay}
-            onOpenDay={openDay}
-            onOpenMonth={(m) => {
-              setCursor(m);
-              setView("month");
-            }}
-          />
-        ) : (
-          <TimeGridView
-            days={
-              view === "day"
-                ? [cursor]
-                : Array.from({ length: 7 }, (_, i) =>
-                    addDays(startOfWeek(cursor), i),
-                  )
-            }
-            now={now}
-            byDay={byDay}
-            selectedId={selectedId}
-            onSelectDay={(d) => {
-              setCursor(d);
-              setSelectedId(null);
-            }}
-            onOpenDay={openDay}
-            onEventOpen={openEditor}
-            onEventChange={updateEvent}
-            onCreate={createEvent}
-          />
-        )}
+        <AnimatePresence mode="popLayout" initial={false} custom={nav.dir}>
+          <m.div
+            key={period}
+            className="h-full"
+            custom={nav.dir}
+            variants={periodVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+          >
+            {view === "month" ? (
+              <MonthView
+                cursor={cursor}
+                now={now}
+                byDay={byDay}
+                selectedId={selectedId}
+                onSelectDay={(d) => {
+                  setCursor(d);
+                  setSelectedId(null);
+                }}
+                onOpenDay={openDay}
+                onCreate={(d) => {
+                  const start = addMinutes(startOfDay(d), 9 * 60);
+                  createEvent({
+                    start: dateTimeKey(start),
+                    end: dateTimeKey(addMinutes(start, 60)),
+                  });
+                }}
+                onEventOpen={openEditor}
+                onEventMove={(e, days) =>
+                  updateEvent(e.id, shiftEvent(e, days * 1440))
+                }
+              />
+            ) : view === "year" ? (
+              <YearView
+                cursor={cursor}
+                now={now}
+                byDay={byDay}
+                onOpenDay={openDay}
+                onOpenMonth={(m) => {
+                  setCursor(m);
+                  setView("month");
+                }}
+              />
+            ) : (
+              <TimeGridView
+                days={
+                  view === "day"
+                    ? [cursor]
+                    : Array.from({ length: 7 }, (_, i) =>
+                        addDays(startOfWeek(cursor), i),
+                      )
+                }
+                now={now}
+                byDay={byDay}
+                selectedId={selectedId}
+                onSelectDay={(d) => {
+                  setCursor(d);
+                  setSelectedId(null);
+                }}
+                onOpenDay={openDay}
+                onEventOpen={openEditor}
+                onEventChange={updateEvent}
+                onCreate={createEvent}
+              />
+            )}
+          </m.div>
+        </AnimatePresence>
       </div>
 
       <EventEditor
@@ -511,6 +561,42 @@ function shiftEvent(e: CalendarEvent, minutes: number): Partial<CalendarEvent> {
     end: dateTimeKey(addMinutes(parseLocal(e.end), minutes)),
   };
 }
+
+/** Identity of the visible period: changes when the grid shows new days. */
+function periodKey(view: View, cursor: Date) {
+  switch (view) {
+    case "day":
+      return dateKey(cursor);
+    case "week":
+      return dateKey(startOfWeek(cursor));
+    case "month":
+      return `${cursor.getFullYear()}-${cursor.getMonth()}`;
+    default:
+      return String(cursor.getFullYear());
+  }
+}
+
+/** Period grid: slides from the side it moved toward; zooms on a view change. */
+const periodVariants: Variants = {
+  enter: (dir: number) =>
+    dir === 0 ? { opacity: 0, scale: 0.985 } : { opacity: 0, x: dir * 32 },
+  center: { opacity: 1, x: 0, scale: 1, transition: enter },
+  exit: (dir: number) =>
+    dir === 0
+      ? { opacity: 0, scale: 1.01, transition: exit }
+      : { opacity: 0, x: dir * -32, transition: exit },
+};
+
+/** Header title: a short rise/fall matching the grid's direction. */
+const titleVariants: Variants = {
+  enter: (dir: number) => ({ opacity: 0, y: dir < 0 ? -6 : 6 }),
+  center: { opacity: 1, y: 0, transition: quick },
+  exit: (dir: number) => ({
+    opacity: 0,
+    y: dir < 0 ? 6 : -6,
+    transition: exit,
+  }),
+};
 
 function PeriodTitle({ view, cursor }: { view: View; cursor: Date }) {
   const year = cursor.getFullYear();
@@ -691,10 +777,11 @@ function MonthView({
               data-day={key}
               data-testid={`calendar-month-view-day-${key}`}
               className={cn(
-                "border-app-border flex min-h-0 flex-col overflow-hidden border-r border-b p-1",
+                "border-app-border relative isolate flex min-h-0 flex-col overflow-hidden border-r border-b p-1",
                 !inMonth && "bg-app-bg/60",
                 drag?.overKey === key && "bg-app-accent-faint",
               )}
+              data-selected={isCursor || undefined}
               onClick={() => onSelectDay(day)}
               onDoubleClick={(e) => {
                 if (
@@ -704,14 +791,27 @@ function MonthView({
                   onCreate(day);
               }}
             >
+              {/* Selected day: a tinted, outlined cell that fades in place
+                  (the old one fades out), so it reads as selected even on
+                  today's red disc. */}
+              <AnimatePresence initial={false}>
+                {isCursor ? (
+                  <m.div
+                    key="selection"
+                    aria-hidden
+                    className="bg-app-accent-faint ring-app-border-accent pointer-events-none absolute inset-0 -z-10 ring-1 ring-inset"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, transition: quick }}
+                    exit={{ opacity: 0, transition: exit }}
+                  />
+                ) : null}
+              </AnimatePresence>
               <div data-day-head="1" className="flex shrink-0 justify-end">
                 <button
                   type="button"
                   className={cn(
                     "rounded-full",
-                    isCursor &&
-                      !sameDay(day, now) &&
-                      "ring-app-border-mid ring-1",
+                    isCursor && !sameDay(day, now) && "ring-app-accent ring-2",
                     !inMonth && "opacity-45",
                   )}
                   data-testid={`calendar-month-view-day-${key}-button`}
@@ -725,16 +825,18 @@ function MonthView({
                 </button>
               </div>
               <div className="flex min-h-0 flex-col gap-px">
-                {shown.map((event) => (
-                  <MonthChip
-                    key={event.id}
-                    event={event}
-                    day={day}
-                    selected={event.id === selectedId}
-                    dragging={drag?.event.id === event.id}
-                    onPointerDown={(pe) => startDrag(pe, event)}
-                  />
-                ))}
+                <AnimatePresence initial={false}>
+                  {shown.map((event) => (
+                    <MonthChip
+                      key={event.id}
+                      event={event}
+                      day={day}
+                      selected={event.id === selectedId}
+                      dragging={drag?.event.id === event.id}
+                      onPointerDown={(pe) => startDrag(pe, event)}
+                    />
+                  ))}
+                </AnimatePresence>
                 {overflow ? (
                   <button
                     type="button"
@@ -775,16 +877,17 @@ function MonthChip({
   const startsToday = sameDay(start, day);
   const title = event.title || "New Event";
   return (
-    <button
+    <m.button
       type="button"
       data-event-id={event.id}
       data-testid={`calendar-month-view-event-${event.id}`}
       onPointerDown={onPointerDown}
       onClick={(e) => e.stopPropagation()}
-      className={cn(
-        "flex h-[19px] w-full shrink-0 cursor-default items-center gap-1 truncate rounded px-1 text-left text-[11px] leading-none",
-        dragging && "opacity-40",
-      )}
+      // Opacity lives here, not in a class: motion's inline style would win.
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={{ opacity: dragging ? 0.4 : 1, scale: 1, transition: quick }}
+      exit={{ opacity: 0, scale: 0.92, transition: exit }}
+      className="flex h-[19px] w-full shrink-0 cursor-default items-center gap-1 truncate rounded px-1 text-left text-[11px] leading-none"
       style={
         event.allDay
           ? eventStyle(event.color, selected)
@@ -821,7 +924,7 @@ function MonthChip({
           ) : null}
         </>
       )}
-    </button>
+    </m.button>
   );
 }
 
@@ -1517,7 +1620,9 @@ function EventEditor({
             aria-label="Location"
             value={event.location ?? ""}
             data-testid="calendar-event-editor-location-input"
-            onChange={(e) => onChange({ location: e.target.value || undefined })}
+            onChange={(e) =>
+              onChange({ location: e.target.value || undefined })
+            }
           />
           <div
             className="text-app-dim text-[11px]"

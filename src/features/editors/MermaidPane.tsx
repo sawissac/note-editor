@@ -37,6 +37,7 @@ import {
   type PaneProps,
   useSaveHandler,
 } from "@/features/editors/pane-context";
+import { DiagramSkeleton } from "@/features/editors/PaneSkeleton";
 
 type Rendered =
   | { status: "idle" }
@@ -226,6 +227,9 @@ function MermaidPreview({
     >
       {svg ? (
         <MermaidZoom svg={svg} />
+      ) : state.status === "idle" && source.trim() ? (
+        // Mermaid is still loading or drawing the first frame.
+        <DiagramSkeleton />
       ) : (
         <div className="min-h-0 flex-1 overflow-auto p-8">
           {state.status === "idle" ? (

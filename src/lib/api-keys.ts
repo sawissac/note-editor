@@ -23,7 +23,21 @@ function lineOfName(text: string, name: string) {
   return at < 0 ? 1 : text.slice(0, at).split("\n").length;
 }
 
-export function parseApiKeys(text: string): ApiKeysResult {
+/**
+ * A flat JSON object of named strings — `{ "name": "value" }` — as entries.
+ * Shared by API-key files and `.prompt` files.
+ *
+ * @param shape - The expected shape, quoted in the error for a non-object.
+ * @param valueLabel - What a value is, for "must be a string …" errors.
+ */
+export function parseNamedStrings(
+  text: string,
+  shape: string,
+  valueLabel: string,
+): {
+  entries: Array<{ name: string; value: string }>;
+  problem: ParseProblem | null;
+} {
   if (!text.trim()) return { entries: [], problem: null };
   const parsed = parseData("json", text);
   if (!parsed.ok) return { entries: [], problem: parsed.problem };
@@ -31,27 +45,35 @@ export function parseApiKeys(text: string): ApiKeysResult {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return {
       entries: [],
-      problem: {
-        message: 'Expected an object: { "name": "api-key" }',
-        line: 1,
-        column: 1,
-      },
+      problem: { message: `Expected an object: ${shape}`, line: 1, column: 1 },
     };
   }
-  const entries: ApiKeyEntry[] = [];
+  const entries: Array<{ name: string; value: string }> = [];
   let problem: ParseProblem | null = null;
-  for (const [name, key] of Object.entries(value)) {
-    if (typeof key === "string") {
-      entries.push({ name, key });
+  for (const [name, item] of Object.entries(value)) {
+    if (typeof item === "string") {
+      entries.push({ name, value: item });
     } else if (!problem) {
       problem = {
-        message: `"${name}" must be a string API key`,
+        message: `"${name}" must be a string ${valueLabel}`,
         line: lineOfName(text, name),
         column: 1,
       };
     }
   }
   return { entries, problem };
+}
+
+export function parseApiKeys(text: string): ApiKeysResult {
+  const { entries, problem } = parseNamedStrings(
+    text,
+    '{ "name": "api-key" }',
+    "API key",
+  );
+  return {
+    entries: entries.map((e) => ({ name: e.name, key: e.value })),
+    problem,
+  };
 }
 
 export function serializeApiKeys(entries: readonly ApiKeyEntry[]) {

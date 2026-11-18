@@ -6,6 +6,8 @@
 import { parseAllDocuments } from "yaml";
 import { parse as parseToml, TomlError } from "smol-toml";
 
+import { formatToml, tidyBlankLines } from "@/lib/toml-format";
+
 export type DataKind = "json" | "yaml" | "toml";
 
 export type ParseProblem = { message: string; line: number; column: number };
@@ -172,7 +174,7 @@ export function formatData(kind: DataKind, text: string): string | null {
     if (!Array.isArray(docs) || docs.some((d) => d.errors.length)) return null;
     return docs.map((d) => d.toString({ lineWidth: 0 })).join("---\n");
   }
-  return null;
+  return formatToml(text);
 }
 
 /* ───────────────────────────── dotenv ───────────────────────────── */
@@ -286,4 +288,49 @@ export function maskEnv(text: string) {
       return m[2].trim() ? `${m[1]}••••••••` : line;
     })
     .join("\n");
+}
+
+/** `KEY=value` with its parts: `export ` prefix, key, raw value. */
+const ENV_ASSIGN = /^\s*(export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=\s*(.*)$/;
+
+function envSignature(text: string) {
+  return JSON.stringify(parseEnv(text).entries.map((e) => [e.key, e.value]));
+}
+
+/**
+ * Formats a dotenv file: `KEY=value` with no spaces around `=`, comments
+ * flush left, single blank lines between groups, no trailing whitespace.
+ * Multi-line quoted values are kept as written. Returns null when the file
+ * has syntax errors (duplicate-key warnings are fine).
+ */
+export function formatEnv(text: string): string | null {
+  if (parseEnv(text).problems.some((p) => p.severity === "error")) return null;
+  const out: string[] = [];
+  let open: string | null = null;
+  for (const raw of text.replace(/\r\n?/g, "\n").split("\n")) {
+    if (open) {
+      // Continuation of a multi-line quoted value: content, keep as is.
+      out.push(raw);
+      if (findClose(raw, open) >= 0) open = null;
+      continue;
+    }
+    const t = raw.trim();
+    const m = ENV_ASSIGN.exec(raw);
+    if (!t || t.startsWith("#") || !m) {
+      out.push(t);
+      continue;
+    }
+    const [, exported, key, rest] = m;
+    const quote = rest[0];
+    let value = rest.trimEnd();
+    if (quote === '"' || quote === "'" || quote === "`") {
+      if (findClose(rest.slice(1), quote) < 0) {
+        open = quote;
+        value = rest; // trailing spaces are part of the value
+      }
+    }
+    out.push(`${exported ? "export " : ""}${key}=${value}`);
+  }
+  const formatted = tidyBlankLines(out);
+  return envSignature(formatted) === envSignature(text) ? formatted : null;
 }

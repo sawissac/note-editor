@@ -1,6 +1,5 @@
 import {
   IconArrowsMove,
-  IconCheck,
   IconCode,
   IconDeviceFloppy,
   IconDownload,
@@ -10,7 +9,6 @@ import {
   IconFilePlus,
   IconFolderPlus,
   IconHierarchy2,
-  IconLoader2,
   IconAlertTriangle,
   IconPencil,
   IconSearch,
@@ -19,6 +17,7 @@ import {
   IconTrash,
   IconUpload,
 } from "@tabler/icons-react";
+import { AnimatePresence, m, type Variants } from "motion/react";
 import * as React from "react";
 
 import { BentoLogo } from "@/components/bento-logo";
@@ -26,7 +25,6 @@ import { Kbd } from "@/components/ui/kbd";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -36,11 +34,13 @@ import { cn } from "@/lib/cn";
 import { APP_THEME } from "@/lib/color-themes";
 import { FileIcon } from "@/lib/file-icons";
 import {
+  baseNameLength,
   downloadTarget,
   type FileKind,
   KIND_LABEL,
   kindOf,
 } from "@/lib/file-types";
+import { enter, exit, quick } from "@/lib/motion";
 import { downloadFile, storage } from "@/lib/storage";
 import * as ui from "@/lib/ui-styles";
 import { saveContent } from "@/store/actions";
@@ -53,6 +53,8 @@ import { FileBarSlotProvider } from "@/features/editors/file-bar-slot";
 import { AskAiSelection } from "@/features/editors/AskAiSelection";
 import type { AskAiRequest } from "@/lib/ask-ai";
 import { LazyCodeEditor } from "@/features/editors/LazyCodeEditor";
+import { MarkdownSkeleton } from "@/features/editors/MarkdownSkeleton";
+import { PaneSkeleton } from "@/features/editors/PaneSkeleton";
 import type { PaneProps } from "@/features/editors/pane-context";
 import {
   useOpenEditorSave,
@@ -89,6 +91,11 @@ const DiffPane = React.lazy(() => import("@/features/editors/DiffPane"));
 const QrPane = React.lazy(() => import("@/features/editors/QrPane"));
 const TimerPane = React.lazy(() => import("@/features/editors/TimerPane"));
 const RandomPane = React.lazy(() => import("@/features/editors/RandomPane"));
+const BookmarkPane = React.lazy(
+  () => import("@/features/editors/BookmarkPane"),
+);
+// Konva (the slide canvas) only loads with a `.pptx` file.
+const PptxPane = React.lazy(() => import("@/features/editors/PptxPane"));
 const ChatPane = React.lazy(() => import("@/features/editors/ChatPane"));
 const ImagePane = React.lazy(() => import("@/features/editors/ImagePane"));
 // d3 only loads with the app.info / app.state panes.
@@ -100,16 +107,10 @@ const AppStatePane = React.lazy(
 /** Kinds with both an editor and a viewer. */
 const HAS_MODES: ReadonlySet<FileKind> = new Set([
   "pdf",
-  "docx",
   "xlsx",
   "csv",
   "schema",
   "mermaid",
-  "json",
-  "yaml",
-  "toml",
-  "env",
-  "apikeys",
   "random",
 ]);
 /**
@@ -119,10 +120,7 @@ const HAS_MODES: ReadonlySet<FileKind> = new Set([
 const BINARY_EDITORS: ReadonlySet<FileKind> = new Set(["pdf", "docx", "xlsx"]);
 
 function defaultMode(kind: FileKind): TabMode {
-  return kind === "csv" ||
-    kind === "schema" ||
-    kind === "mermaid" ||
-    kind === "env"
+  return kind === "csv" || kind === "schema" || kind === "mermaid"
     ? "view"
     : "edit";
 }
@@ -173,7 +171,9 @@ function FilePane({ id, name }: { id: string; name: string }) {
   };
   const dispatch = useAppDispatch();
   const kind = kindOf(name);
-  const mode = useAppSelector((s) => s.tabs.modes[id]) ?? defaultMode(kind);
+  const savedMode = useAppSelector((s) => s.tabs.modes[id]);
+  // Kinds without a viewer always edit, even if a mode was saved for them.
+  const mode = HAS_MODES.has(kind) ? (savedMode ?? defaultMode(kind)) : "edit";
   // Binary editors save explicitly, so switching edit ⇄ view re-reads the
   // stored bytes to pick up what was just saved.
   const state = useFileContent(id, BINARY_EDITORS.has(kind) ? mode : undefined);
@@ -220,13 +220,29 @@ function FilePane({ id, name }: { id: string; name: string }) {
     // Save first so the download carries the latest edits.
     await save();
     const content = await storage.getContent(id);
+    // A deck is stored as the app's JSON; hand out a real PowerPoint file.
+    if (kind === "pptx" && typeof content === "string") {
+      const [{ parsePptx }, { buildPptx, PPTX_MIME }] = await Promise.all([
+        import("@/lib/pptx-doc"),
+        import("@/lib/pptx-export"),
+      ]);
+      const title = name.slice(0, baseNameLength(name)) || "presentation";
+      downloadFile(
+        `${title}.pptx`,
+        await buildPptx(parsePptx(content), title),
+        PPTX_MIME,
+      );
+      return;
+    }
     const target = downloadTarget(name, content);
     downloadFile(target.name, content ?? "", target.mime);
   };
 
   let body: React.ReactNode;
   if (state.status === "loading") {
-    body = <PaneSkeleton />;
+    // Same skeleton the pane's Suspense shows while its chunk loads, so
+    // reading the file and loading the editor read as one continuous state.
+    body = <PaneSkeleton kind={kind} mode={mode} />;
   } else if (state.status === "error") {
     body = (
       <PaneMessage tone="error">
@@ -253,7 +269,7 @@ function FilePane({ id, name }: { id: string; name: string }) {
         body = <PdfPane {...props} mode={mode} />;
         break;
       case "docx":
-        body = <DocxPane {...props} mode={mode} />;
+        body = <DocxPane {...props} />;
         break;
       case "xlsx":
         body = <XlsxPane {...props} mode={mode} />;
@@ -276,17 +292,22 @@ function FilePane({ id, name }: { id: string; name: string }) {
       case "json":
       case "yaml":
       case "toml":
-        body = <DataPane {...props} mode={mode} kind={kind} />;
+        body = <DataPane {...props} kind={kind} />;
         break;
       case "sql":
         body = <SqlPane {...props} />;
         break;
       case "env":
-        body = <EnvPane {...props} mode={mode} />;
+        body = <EnvPane {...props} />;
         break;
       case "apikeys":
         // `.gemini` / `.openrouter`: plain JSON — `{ "name": "api-key" }`.
-        body = <DataPane {...props} mode={mode} kind="json" />;
+        // No syntax-error badge.
+        body = <DataPane {...props} kind="json" showStatus={false} />;
+        break;
+      case "prompt":
+        // `{ "name": "system prompt" }` — chats pick one by name.
+        body = <DataPane {...props} kind="json" showStatus={false} />;
         break;
       case "regex":
         body = <RegexPane {...props} />;
@@ -302,6 +323,12 @@ function FilePane({ id, name }: { id: string; name: string }) {
         break;
       case "random":
         body = <RandomPane {...props} mode={mode} />;
+        break;
+      case "bookmark":
+        body = <BookmarkPane {...props} />;
+        break;
+      case "pptx":
+        body = <PptxPane {...props} />;
         break;
       case "chat":
         body = <ChatPane {...props} />;
@@ -319,9 +346,13 @@ function FilePane({ id, name }: { id: string; name: string }) {
   }
 
   return (
-    <section
+    // Keyed per file by EditorArea, so each tab switch eases the new file in.
+    <m.section
       aria-label={name}
       data-testid="editor-pane"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={enter}
       className="flex min-h-0 flex-1 flex-col"
     >
       <PaneToolbar
@@ -353,7 +384,9 @@ function FilePane({ id, name }: { id: string; name: string }) {
             CSV keeps its in-memory text across Raw ⇄ Table. */}
         <ErrorBoundary key={BINARY_EDITORS.has(kind) ? `${id}:${mode}` : id}>
           <FileBarSlotProvider slot={barSlot}>
-            <React.Suspense fallback={<PaneSkeleton />}>{body}</React.Suspense>
+            <React.Suspense fallback={<PaneSkeleton kind={kind} mode={mode} />}>
+              {body}
+            </React.Suspense>
           </FileBarSlotProvider>
         </ErrorBoundary>
         {/* Chats take references themselves; every other editor can send
@@ -374,7 +407,7 @@ function FilePane({ id, name }: { id: string; name: string }) {
           </React.Suspense>
         ) : null}
       </div>
-    </section>
+    </m.section>
   );
 }
 
@@ -395,9 +428,9 @@ function MarkdownPane({
   useSaveHandler(registerSave, () => dispatch(saveContent(id, latest.current)));
 
   return (
-    // Own boundary: show the note's text while MDXEditor (~400 kB) loads,
-    // rather than the generic skeleton — the text is the page's LCP.
-    <React.Suspense fallback={<MarkdownFallback text={latest.current} />}>
+    // Own boundary: an editor-shaped skeleton while MDXEditor (~400 kB)
+    // loads, instead of flashing the note's raw Markdown source.
+    <React.Suspense fallback={<MarkdownSkeleton />}>
       <MarkdownEditor
         markdown={latest.current}
         isDark={isDark}
@@ -408,15 +441,6 @@ function MarkdownPane({
         }}
       />
     </React.Suspense>
-  );
-}
-
-/** Read-only plain text of a note, shown until the rich editor is ready. */
-function MarkdownFallback({ text }: { text: string }) {
-  return (
-    <div className="markdown-fallback" aria-busy="true">
-      <p className="markdown-fallback__text">{text}</p>
-    </div>
   );
 }
 
@@ -524,7 +548,8 @@ function PaneToolbar({
         className="flex min-w-0 flex-1 [scrollbar-width:none] items-center justify-end overflow-x-auto"
       />
 
-      <SaveIndicator state={saveState} />
+      {/* Every editor autosaves silently; only a failed save is shown. */}
+      <SaveError failed={saveState === "error"} />
 
       {HAS_MODES.has(kind) ? (
         <ButtonGroup role="radiogroup" aria-label="Mode">
@@ -645,39 +670,23 @@ function ModeButton({
   );
 }
 
-function SaveIndicator({ state }: { state: string | undefined }) {
-  if (state === "saving") {
-    return (
-      <span className={cn(ui.meta, "flex items-center gap-1")}>
-        <IconLoader2 className="size-3 animate-spin" /> Saving
-      </span>
-    );
-  }
-  if (state === "error") {
-    return (
-      <span className="text-app-error flex items-center gap-1 font-mono text-[11px]">
-        <IconAlertTriangle className="size-3" /> Not saved
-      </span>
-    );
-  }
-  if (state === "saved") {
-    return (
-      <span className={cn(ui.meta, "flex items-center gap-1")}>
-        <IconCheck className="text-app-success size-3" /> Saved
-      </span>
-    );
-  }
-  return null;
-}
-
-function PaneSkeleton() {
+/** "Not saved" warning, faded in when a save fails and out once one succeeds. */
+function SaveError({ failed }: { failed: boolean }) {
   return (
-    <div className="flex flex-col gap-3 p-8">
-      <Skeleton className="h-6 w-1/3" />
-      <Skeleton className="h-4 w-2/3" />
-      <Skeleton className="h-4 w-1/2" />
-      <Skeleton className="h-4 w-3/5" />
-    </div>
+    <AnimatePresence initial={false}>
+      {failed ? (
+        <m.span
+          initial={{ opacity: 0, y: 3 }}
+          animate={{ opacity: 1, y: 0, transition: quick }}
+          exit={{ opacity: 0, y: -3, transition: exit }}
+          role="alert"
+          data-testid="pane-save-error-message"
+          className="text-app-error flex items-center gap-1 font-mono text-[11px]"
+        >
+          <IconAlertTriangle className="size-3" /> Not saved
+        </m.span>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
@@ -699,6 +708,16 @@ function PaneMessage({
     </div>
   );
 }
+
+/** Start screen: logo, actions, then shortcuts settle in one after another. */
+const START_STAGGER: Variants = {
+  hidden: {},
+  shown: { transition: { staggerChildren: 0.06, delayChildren: 0.02 } },
+};
+const START_ITEM: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  shown: { opacity: 1, y: 0, transition: enter },
+};
 
 function StartScreen() {
   const dispatch = useAppDispatch();
@@ -739,8 +758,16 @@ function StartScreen() {
       data-testid="start-screen"
       className="bg-app-bg flex min-h-0 flex-1 items-center justify-center overflow-auto p-8"
     >
-      <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
-        <div className="flex flex-col items-center gap-2">
+      <m.div
+        variants={START_STAGGER}
+        initial="hidden"
+        animate="shown"
+        className="flex w-full max-w-md flex-col items-center gap-6 text-center"
+      >
+        <m.div
+          variants={START_ITEM}
+          className="flex flex-col items-center gap-2"
+        >
           <BentoLogo className="mb-1 size-12 drop-shadow-sm" />
           <h1 className="font-display text-app-bright text-[18px] font-semibold tracking-[-0.01em]">
             Nothing open
@@ -750,9 +777,12 @@ function StartScreen() {
               ? "Pick a file in the explorer, or start something new."
               : "Your workspace is empty — start something new."}
           </p>
-        </div>
+        </m.div>
 
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <m.div
+          variants={START_ITEM}
+          className="flex flex-wrap items-center justify-center gap-2"
+        >
           <Button
             type="button"
             size="sm"
@@ -786,9 +816,12 @@ function StartScreen() {
             <IconUpload className="size-3.5" />
             Import
           </Button>
-        </div>
+        </m.div>
 
-        <dl className="divide-app-border border-app-border bg-app-panel w-full divide-y overflow-hidden rounded-lg border text-left">
+        <m.dl
+          variants={START_ITEM}
+          className="divide-app-border border-app-border bg-app-panel w-full divide-y overflow-hidden rounded-lg border text-left"
+        >
           {shortcuts.map(([keys, label, Icon]) => (
             <div
               key={label}
@@ -810,8 +843,8 @@ function StartScreen() {
               </dd>
             </div>
           ))}
-        </dl>
-      </div>
+        </m.dl>
+      </m.div>
     </div>
   );
 }

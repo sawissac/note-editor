@@ -42,7 +42,29 @@
     @apply flex flex-wrap gap-1 px-2.5 pt-2;
   }
   .ask-ai-panel__chip {
-    @apply border-app-border-mid bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description cursor-pointer rounded-full border px-2 py-0.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply border-app-border-mid bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  /* A workspace prompt: joined to its pencil, like one split pill. */
+  .ask-ai-panel__chip--custom {
+    @apply max-w-48 rounded-r-none border-r-0 pr-1.5;
+  }
+  .ask-ai-panel__chip--add {
+    @apply text-app-dim border-dashed px-1.5;
+  }
+  .ask-ai-panel__chip-text {
+    @apply min-w-0 truncate;
+  }
+  .ask-ai-panel__chip-icon {
+    @apply size-3 shrink-0;
+  }
+  .ask-ai-panel__custom {
+    @apply inline-flex min-w-0;
+  }
+  .ask-ai-panel__chip-edit {
+    @apply border-app-border-mid bg-app-bg text-app-dim hover:border-app-border-accent hover:text-app-accent flex cursor-pointer items-center rounded-r-full border py-0.5 pr-1.5 pl-1 [&_svg]:size-3;
+  }
+  .ask-ai-panel__editor {
+    @apply flex h-72 min-h-0 shrink-0 flex-col;
   }
 
   .ask-ai-panel__thread {

@@ -1,0 +1,31 @@
+/* CodeSkeleton — BEM block `code-skeleton`.
+ *
+ * Placeholder for the Monaco editor (`CodeEditor`): 16px top padding, 22px
+ * rows (13px × 1.7 line height) and a line-number gutter, matching the
+ * editor's options so the swap barely shifts. Also fills Monaco's own
+ * `loading` slot, which centres its child — hence the explicit full size.
+ * Imported from `src/index.css`. */
+
+@layer components {
+  .code-skeleton {
+    @apply bg-app-bg flex h-full min-h-0 w-full flex-col self-stretch overflow-hidden py-4;
+  }
+  .code-skeleton__row {
+    @apply flex h-[22px] shrink-0 items-center;
+  }
+  .code-skeleton__gutter {
+    @apply flex w-16 shrink-0 justify-end pr-5;
+  }
+  .code-skeleton__number {
+    @apply h-2.5 w-3 opacity-60;
+  }
+  .code-skeleton__line {
+    @apply h-3 min-w-0;
+  }
+  .code-skeleton__line--indent-1 {
+    @apply ml-4;
+  }
+  .code-skeleton__line--indent-2 {
+    @apply ml-8;
+  }
+}

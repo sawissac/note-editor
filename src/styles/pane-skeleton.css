@@ -1,0 +1,423 @@
+/* PaneSkeleton — BEM block `pane-skeleton`.
+ *
+ * Loading placeholders for editor panes, shaped after the pane each one
+ * stands in for: `app-info-pane`, `app-state-pane`, `timer-pane`,
+ * `bookmark-pane`, `qr-pane`, `image-pane`, `pptx-pane`, `regex-pane`,
+ * `diff-pane`, `chat-pane`, … (paddings, column widths and the `md` split
+ * breakpoint mirror those files). Code areas use the `code-skeleton` block. Sizes of the pulsing bits come from `Skeleton`;
+ * widths that vary per line are set inline, like `markdown-skeleton`.
+ * Imported from `src/index.css`. */
+
+@layer components {
+  .pane-skeleton {
+    @apply bg-app-bg h-full min-h-0 overflow-hidden;
+  }
+
+  /* ── Shared pieces ─────────────────────────────────────────────────── */
+  /* Rounded pieces (dots, pills, the media strip) set their own radius. */
+  .pane-skeleton__bone {
+    @apply bg-app-hover shrink-0 animate-pulse rounded-md;
+  }
+  .pane-skeleton__line {
+    @apply h-3.5 shrink-0;
+  }
+  .pane-skeleton__line--title {
+    @apply h-6;
+  }
+  .pane-skeleton__line--heading {
+    @apply h-2.5;
+  }
+  .pane-skeleton__line--small {
+    @apply h-2.5;
+  }
+  .pane-skeleton__section {
+    @apply flex flex-col gap-2.5;
+  }
+  .pane-skeleton__section--grow {
+    @apply min-h-40 flex-1;
+  }
+  .pane-skeleton__list {
+    @apply border-app-border bg-app-panel divide-app-border flex flex-col divide-y overflow-hidden rounded-xl border;
+  }
+  .pane-skeleton__row {
+    @apply flex items-center gap-3 px-3 py-2.5;
+  }
+  .pane-skeleton__row--short {
+    @apply h-11 justify-between py-0;
+  }
+  .pane-skeleton__row-text {
+    @apply flex min-w-0 flex-1 flex-col gap-1.5;
+  }
+
+  /* ── Centred column (app.info, timer) ──────────────────────────────── */
+  .pane-skeleton__column {
+    @apply mx-auto flex max-w-xl flex-col gap-6 px-4 pt-8 pb-10;
+  }
+  .pane-skeleton__column--wide {
+    @apply max-w-4xl pt-10 md:px-8;
+  }
+  .pane-skeleton__header {
+    @apply flex flex-col gap-2;
+  }
+  .pane-skeleton__icon {
+    @apply size-9 shrink-0 rounded-xl;
+  }
+  .pane-skeleton__pills {
+    @apply hidden shrink-0 gap-1.5 sm:flex;
+  }
+  .pane-skeleton__pill {
+    @apply h-6 rounded-full;
+  }
+
+  /* ── Timer ─────────────────────────────────────────────────────────── */
+  .pane-skeleton__hero {
+    @apply flex flex-col items-center gap-4;
+  }
+  .pane-skeleton__ring {
+    @apply border-app-border flex aspect-square w-full max-w-[17rem] flex-col items-center justify-center gap-3 rounded-full border-[6px];
+  }
+  .pane-skeleton__clock {
+    @apply h-12 w-40 rounded-lg;
+  }
+  .pane-skeleton__controls {
+    @apply flex items-center gap-4;
+  }
+  .pane-skeleton__control {
+    @apply size-9 rounded-full;
+  }
+  .pane-skeleton__control--primary {
+    @apply size-14;
+  }
+
+  /* ── Split layouts (app.state, bookmarks) ──────────────────────────── */
+  .pane-skeleton__split {
+    @apply flex h-full min-h-0 flex-col md:flex-row;
+  }
+  .pane-skeleton__side {
+    @apply border-app-border flex h-2/5 min-h-0 shrink-0 flex-col gap-5 overflow-hidden md:h-full;
+  }
+  .pane-skeleton__side--end {
+    @apply bg-app-panel border-t p-3 md:w-80 md:border-t-0 md:border-l;
+  }
+  .pane-skeleton__side--start {
+    @apply bg-app-sidebar h-[35%] border-b px-2 py-3 md:h-full md:w-56 md:border-r md:border-b-0;
+  }
+  .pane-skeleton__main {
+    @apply flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden px-5 pt-4 max-md:px-4;
+  }
+
+  /* app.state */
+  .pane-skeleton__stage {
+    @apply relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(var(--app-border)_1px,transparent_1px)] bg-size-[20px_20px];
+  }
+  .pane-skeleton__tree {
+    @apply flex items-center gap-16;
+  }
+  .pane-skeleton__branch {
+    @apply flex flex-col gap-6;
+  }
+  .pane-skeleton__leaf {
+    @apply flex items-center gap-2;
+  }
+  .pane-skeleton__node {
+    @apply size-3 shrink-0 rounded-full;
+  }
+  .pane-skeleton__hint {
+    @apply absolute bottom-3 left-3 h-5 w-56;
+  }
+  .pane-skeleton__counts {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .pane-skeleton__count {
+    @apply h-12;
+  }
+  .pane-skeleton__block {
+    @apply min-h-24 flex-1;
+  }
+
+  /* ── Calendar (month view, its default) ────────────────────────────── */
+  .pane-skeleton__calendar {
+    @apply flex h-full min-h-0 flex-col;
+  }
+  .pane-skeleton__calendar-head {
+    @apply border-app-border flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5;
+  }
+  .pane-skeleton__calendar-tools {
+    @apply flex items-center gap-3;
+  }
+  .pane-skeleton__tool {
+    @apply h-7;
+  }
+  .pane-skeleton__weekdays {
+    @apply border-app-border grid shrink-0 grid-cols-7 border-b;
+  }
+  .pane-skeleton__weekday {
+    @apply flex justify-end px-2 py-2;
+  }
+  .pane-skeleton__month {
+    @apply grid min-h-0 flex-1 grid-cols-7 grid-rows-6;
+  }
+  .pane-skeleton__day {
+    @apply border-app-border flex min-h-0 flex-col items-end gap-1.5 overflow-hidden border-r border-b p-1;
+  }
+  .pane-skeleton__day-number {
+    @apply m-0.5 size-5 rounded-full;
+  }
+  .pane-skeleton__chip {
+    @apply h-3.5 self-start;
+  }
+
+  /* bookmarks */
+  .pane-skeleton__nav {
+    @apply flex flex-col gap-1;
+  }
+  .pane-skeleton__nav-item {
+    @apply flex h-7 items-center gap-2 px-2;
+  }
+  .pane-skeleton__nav-icon {
+    @apply size-4 shrink-0;
+  }
+  .pane-skeleton__toolbar {
+    @apply flex items-center justify-between gap-4;
+  }
+  .pane-skeleton__search {
+    @apply h-7 w-48;
+  }
+  .pane-skeleton__cards {
+    @apply grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3;
+  }
+  .pane-skeleton__card {
+    @apply border-app-border bg-app-panel flex flex-col overflow-hidden rounded-lg border;
+  }
+  .pane-skeleton__media {
+    @apply aspect-[1.91/1] rounded-none;
+  }
+  .pane-skeleton__card-body {
+    @apply flex flex-col gap-2 px-3 pt-3 pb-3;
+  }
+
+  /* ── Shared: stacked strips, settings fields ───────────────────────── */
+  .pane-skeleton__stack {
+    @apply flex h-full min-h-0 flex-col;
+  }
+  .pane-skeleton__strip {
+    @apply border-app-border flex shrink-0 items-center gap-1.5 border-b px-3 py-1.5;
+  }
+  .pane-skeleton__tool--grow {
+    @apply min-w-0 flex-1;
+  }
+  .pane-skeleton__field {
+    @apply h-8 w-full;
+  }
+  .pane-skeleton__field--grow {
+    @apply h-9 w-auto min-w-0 flex-1;
+  }
+  .pane-skeleton__pair {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .pane-skeleton__section--padded {
+    @apply shrink-0 p-3;
+  }
+  .pane-skeleton__switch {
+    @apply h-5 w-9 rounded-full;
+  }
+  .pane-skeleton__number {
+    @apply h-2.5 w-3 shrink-0 opacity-60;
+  }
+  .pane-skeleton__chevron {
+    @apply size-3 shrink-0 rounded-sm;
+  }
+  .pane-skeleton__gap {
+    @apply h-2 shrink-0;
+  }
+
+  /* ── Code beside a preview (mermaid, random, regex) ────────────────── */
+  .pane-skeleton__columns {
+    @apply flex h-full min-h-0;
+  }
+  .pane-skeleton__code {
+    @apply border-app-border h-full min-h-0 shrink-0 overflow-hidden border-r;
+  }
+  .pane-skeleton__area {
+    @apply flex h-full min-h-0 min-w-0 flex-1 flex-col;
+  }
+
+  /* csv table */
+  .pane-skeleton__table {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+  .pane-skeleton__table-row {
+    @apply border-app-border grid h-9 shrink-0 grid-cols-5 border-b;
+  }
+  .pane-skeleton__table-row--head {
+    @apply bg-app-sidebar;
+  }
+  .pane-skeleton__cell {
+    @apply flex min-w-0 items-center px-3;
+  }
+
+  /* xlsx grid */
+  .pane-skeleton__sheet-row {
+    @apply border-app-border grid h-7 shrink-0 grid-cols-[2.5rem_repeat(6,minmax(0,1fr))] border-b;
+  }
+  .pane-skeleton__sheet-cell {
+    @apply border-app-border flex min-w-0 items-center border-r px-2;
+  }
+  .pane-skeleton__sheet-cell--head {
+    @apply bg-app-sidebar justify-center;
+  }
+
+  /* mermaid diagram */
+  .pane-skeleton__diagram {
+    @apply bg-app-bg flex h-full min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden p-8;
+  }
+  .pane-skeleton__flow {
+    @apply flex flex-col items-center;
+  }
+  .pane-skeleton__box {
+    @apply h-10;
+  }
+  .pane-skeleton__edge {
+    @apply bg-app-border h-8 w-px;
+  }
+  .pane-skeleton__fork {
+    @apply flex gap-10;
+  }
+
+  /* random picker */
+  .pane-skeleton__stage-area {
+    @apply relative flex h-full min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden p-6;
+  }
+  .pane-skeleton__chips {
+    @apply flex max-w-md flex-wrap justify-center gap-2 pb-12;
+  }
+  .pane-skeleton__token {
+    @apply h-7 rounded-full;
+  }
+  .pane-skeleton__dock {
+    @apply absolute bottom-4 left-1/2 h-11 w-64 -translate-x-1/2 rounded-xl;
+  }
+
+  /* sql */
+  .pane-skeleton__source {
+    @apply border-app-border h-3/5 shrink-0 overflow-hidden border-b;
+  }
+  .pane-skeleton__results {
+    @apply bg-app-panel flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-4;
+  }
+
+  /* regex */
+  .pane-skeleton__panels {
+    @apply bg-app-panel flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden;
+  }
+  .pane-skeleton__panel {
+    @apply border-app-border flex min-h-0 flex-1 basis-0 flex-col border-t;
+  }
+  .pane-skeleton__panel-head {
+    @apply border-app-border bg-app-sidebar flex h-9 shrink-0 items-center gap-1.5 border-b px-2;
+  }
+  .pane-skeleton__panel-body {
+    @apply flex flex-col gap-2 p-3;
+  }
+
+  /* diff */
+  .pane-skeleton__heads {
+    @apply border-app-border bg-app-sidebar divide-app-border grid shrink-0 grid-cols-2 divide-x border-b;
+  }
+  .pane-skeleton__head {
+    @apply flex h-8 min-w-0 items-center gap-2 px-3;
+  }
+  .pane-skeleton__badge {
+    @apply h-4 w-14 shrink-0;
+  }
+  .pane-skeleton__diff {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden py-1;
+  }
+  .pane-skeleton__diff-row {
+    @apply divide-app-border grid h-[22px] shrink-0 grid-cols-2 divide-x;
+  }
+  .pane-skeleton__diff-side {
+    @apply flex min-w-0 items-center gap-3 px-3;
+  }
+  .pane-skeleton__diff-side--removed {
+    @apply bg-app-error/10;
+  }
+  .pane-skeleton__diff-side--added {
+    @apply bg-app-success/10;
+  }
+
+  /* pdf / docx */
+  .pane-skeleton__desk {
+    @apply bg-app-sidebar flex min-h-0 flex-1 justify-center overflow-hidden px-4 pt-6;
+  }
+  .pane-skeleton__page {
+    @apply border-app-border bg-app-panel flex aspect-[1/1.414] w-full max-w-2xl shrink-0 flex-col gap-3 rounded-sm border px-[8%] py-[10%];
+  }
+
+  /* kanban */
+  .pane-skeleton__board {
+    @apply bg-app-panel flex h-full min-h-0 items-start gap-3 overflow-hidden p-4;
+  }
+  .pane-skeleton__lane {
+    @apply border-app-border bg-app-sidebar flex w-72 shrink-0 flex-col gap-1.5 rounded-lg border p-2;
+  }
+  .pane-skeleton__ticket {
+    @apply border-app-border bg-app-panel flex flex-col gap-2 rounded-md border p-2.5;
+  }
+  .pane-skeleton__lane-slot {
+    @apply h-9 w-72 rounded-lg;
+  }
+
+  /* qr */
+  .pane-skeleton__qr {
+    @apply aspect-square w-full max-w-[min(26rem,100%)] rounded-lg;
+  }
+
+  /* image */
+  .pane-skeleton__canvas {
+    @apply flex min-h-0 flex-1 items-center justify-center overflow-hidden p-12;
+  }
+  .pane-skeleton__picture {
+    @apply aspect-[4/3] w-full max-w-lg rounded-none;
+  }
+  .pane-skeleton__status {
+    @apply border-app-border bg-app-panel flex h-7 shrink-0 items-center gap-3 border-t px-3;
+  }
+  .pane-skeleton__tabs {
+    @apply border-app-border -mx-3 flex shrink-0 gap-2 border-b px-3 pb-3;
+  }
+
+  /* pptx */
+  .pane-skeleton__thumbs {
+    @apply border-app-border bg-app-panel hidden w-40 shrink-0 flex-col gap-2 overflow-hidden border-r p-2 md:flex;
+  }
+  .pane-skeleton__thumb-row {
+    @apply flex gap-1;
+  }
+  .pane-skeleton__thumb {
+    @apply aspect-video min-w-0 flex-1;
+  }
+  .pane-skeleton__workspace {
+    @apply bg-app-hover flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden p-8;
+  }
+  .pane-skeleton__slide {
+    @apply border-app-border bg-app-bg flex aspect-video w-full max-w-3xl flex-col justify-center gap-3 border px-[8%];
+  }
+
+  /* chat */
+  .pane-skeleton__messages {
+    @apply mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 overflow-hidden px-3 py-4;
+  }
+  .pane-skeleton__bubble {
+    @apply h-9 self-end rounded-lg;
+  }
+  .pane-skeleton__reply {
+    @apply flex flex-col gap-2;
+  }
+  .pane-skeleton__composer {
+    @apply border-app-border bg-app-panel mx-auto flex w-full max-w-3xl shrink-0 items-end gap-2 border-t px-2 py-2 md:rounded-t-lg md:border-x;
+  }
+  .pane-skeleton__send {
+    @apply size-9 rounded-md;
+  }
+}

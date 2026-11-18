@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 
 import App from "@/App";
+import { MotionProvider } from "@/components/motion-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { applyAppTheme } from "@/lib/color-themes";
 import { createAppStore } from "@/store";
@@ -45,9 +46,11 @@ async function boot() {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <Provider store={store}>
-        <TooltipProvider>
-          <App />
-        </TooltipProvider>
+        <MotionProvider>
+          <TooltipProvider>
+            <App />
+          </TooltipProvider>
+        </MotionProvider>
       </Provider>
     </StrictMode>,
   );

@@ -58,7 +58,8 @@ const ResizablePanel = Panel;
 /**
  * The draggable rule between two panels.
  *
- * Renders as a 1px line but claims a 12px invisible hit area through an
+ * Renders as a 1px line (vertical between side-by-side panels, horizontal
+ * between stacked ones) but claims a 12px invisible hit area through an
  * `::after` overlay — a literal 1px drag target is unusable with a mouse and
  * impossible with a trackpad. Highlights to the accent on hover, drag and
  * keyboard focus.
@@ -77,6 +78,10 @@ function ResizableHandle({
         "transition-colors duration-(--motion-duration-fast)",
         "hover:bg-app-accent/60 focus-visible:bg-app-accent data-[active]:bg-app-accent",
         "after:absolute after:inset-y-0 after:left-1/2 after:w-3 after:-translate-x-1/2",
+        // In a vertical group the rule runs sideways: full width, 1px tall,
+        // with the hit area stretched across instead of down.
+        "aria-[orientation=horizontal]:h-px aria-[orientation=horizontal]:w-full",
+        "aria-[orientation=horizontal]:after:inset-x-0 aria-[orientation=horizontal]:after:inset-y-auto aria-[orientation=horizontal]:after:top-1/2 aria-[orientation=horizontal]:after:left-0 aria-[orientation=horizontal]:after:h-3 aria-[orientation=horizontal]:after:w-full aria-[orientation=horizontal]:after:translate-x-0 aria-[orientation=horizontal]:after:-translate-y-1/2",
         className,
       )}
       {...props}

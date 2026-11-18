@@ -1,7 +1,8 @@
 /**
  * `.chat` files: one conversation with an AI model, stored as JSON. The API
  * key is never written here — only a reference to an entry in a `.gemini` or
- * `.openrouter` key file of the workspace.
+ * `.openrouter` key file of the workspace. The system prompt is likewise a
+ * reference to an entry of a `.prompt` file.
  */
 
 export type ChatProvider = "gemini" | "openrouter";
@@ -39,13 +40,16 @@ export type ChatKeyRef = {
   name: string;
 };
 
+/** An entry of a `.prompt` file, by file id and entry name. */
+export type ChatPromptRef = ChatKeyRef;
+
 export type ChatDoc = {
   version: 1;
   provider: ChatProvider;
   model: string;
   keyRef: ChatKeyRef | null;
-  /** System prompt; empty for none. */
-  system: string;
+  /** System prompt from a `.prompt` file; `null` for none. */
+  promptRef: ChatPromptRef | null;
   temperature: number;
   messages: ChatMessage[];
 };
@@ -85,7 +89,7 @@ export function emptyChat(): ChatDoc {
     provider: "gemini",
     model: providerInfo("gemini").defaultModel,
     keyRef: null,
-    system: "",
+    promptRef: null,
     temperature: 1,
     messages: [],
   };
@@ -106,6 +110,10 @@ export function parseChat(text: string): ChatDoc {
   const provider: ChatProvider =
     obj.provider === "openrouter" ? "openrouter" : "gemini";
   const ref = obj.keyRef as Record<string, unknown> | null | undefined;
+  const promptRef = obj.promptRef as
+    | Record<string, unknown>
+    | null
+    | undefined;
   const messages: ChatMessage[] = [];
   for (const item of Array.isArray(obj.messages) ? obj.messages : []) {
     if (typeof item !== "object" || item === null) continue;
@@ -135,7 +143,13 @@ export function parseChat(text: string): ChatDoc {
       typeof ref.name === "string"
         ? { fileId: ref.fileId, name: ref.name }
         : null,
-    system: typeof obj.system === "string" ? obj.system : base.system,
+    promptRef:
+      promptRef &&
+      typeof promptRef === "object" &&
+      typeof promptRef.fileId === "string" &&
+      typeof promptRef.name === "string"
+        ? { fileId: promptRef.fileId, name: promptRef.name }
+        : null,
     temperature:
       typeof obj.temperature === "number" && Number.isFinite(obj.temperature)
         ? Math.min(2, Math.max(0, obj.temperature))

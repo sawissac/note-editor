@@ -10,8 +10,9 @@ export type FsNode = {
   createdAt: number;
   updatedAt: number;
   /**
-   * Manual position among its siblings, set by drag-to-reorder. Rows without
-   * one sort by name after the ordered ones. Folders still come first.
+   * Manual position among its siblings, set by drag-to-reorder or "Sort
+   * by". Files and folders share one sequence; rows without one come after
+   * the ordered ones (folders first, then by name).
    */
   order?: number;
 };

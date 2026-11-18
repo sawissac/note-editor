@@ -1136,17 +1136,24 @@ function DocxEditorToolbar({
             )}
           </ToolbarIconButton>
           <Separator orientation="vertical" className="mx-1 h-4 self-center" />
-          <ToolbarIconButton
-            label="Import DOCX"
-            disabled={editor.isImporting}
-            onClick={onUploadClick}
-          >
-            {editor.isImporting ? (
-              <InlineSpinner className="size-4" />
-            ) : (
-              <IconUpload className="size-4" />
-            )}
-          </ToolbarIconButton>
+          <ToolbarTooltip label="Replace this document with a DOCX file">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={editor.isImporting}
+              onClick={onUploadClick}
+              className="font-title text-[11px] font-semibold tracking-[0.06em] uppercase"
+              data-testid="docx-editor-import-button"
+            >
+              {editor.isImporting ? (
+                <InlineSpinner className="size-4" />
+              ) : (
+                <IconUpload className="size-4" />
+              )}
+              Import
+            </Button>
+          </ToolbarTooltip>
           {/* Download lives in the app's file bar. */}
           </ToolbarGroups>
         </FileBarSlot>

@@ -19,12 +19,13 @@
 
 @layer components {
   .app-state-pane {
-    @apply bg-app-bg grid h-full min-h-0 grid-rows-[minmax(18rem,1fr)_minmax(0,16rem)] md:grid-cols-[minmax(0,1fr)_20rem] md:grid-rows-1;
+    /* Graph | details split: PaneSplit (pane-split.tsx), resizable. */
+    @apply bg-app-bg h-full min-h-0;
   }
 
   /* ── Graph ────────────────────────────────────────────────────────── */
   .app-state-pane__stage {
-    @apply relative min-h-0 overflow-hidden bg-[radial-gradient(var(--app-border)_1px,transparent_1px)] bg-size-[20px_20px];
+    @apply relative h-full min-h-0 overflow-hidden bg-[radial-gradient(var(--app-border)_1px,transparent_1px)] bg-size-[20px_20px];
   }
   .app-state-pane__graph {
     @apply block size-full cursor-grab touch-none select-none active:cursor-grabbing;
@@ -100,7 +101,7 @@
 
   /* ── Side panel ───────────────────────────────────────────────────── */
   .app-state-pane__side {
-    @apply border-app-border bg-app-panel divide-app-border flex min-h-0 flex-col divide-y overflow-y-auto border-t md:border-t-0 md:border-l;
+    @apply bg-app-panel divide-app-border flex h-full min-h-0 flex-col divide-y overflow-y-auto;
   }
   .app-state-pane__section {
     @apply flex flex-col gap-2.5 p-3;

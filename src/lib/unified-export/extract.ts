@@ -8,12 +8,18 @@ import Papa from "papaparse";
 
 import { type FileContent, storage } from "@/lib/storage";
 import type { FileKind } from "@/lib/file-types";
+import {
+  BOOKMARK_TABLE_HEADER,
+  bookmarkRows,
+  parseBookmarks,
+} from "@/lib/bookmark-doc";
 import { formatTime, parseCalendar, parseLocal } from "@/lib/calendar";
 import { maskApiKeys } from "@/lib/api-keys";
 import { maskEnv } from "@/lib/data-formats";
 import { comparisonPatch, parseDiffFile } from "@/lib/diff-doc";
 import { parseKanban } from "@/lib/kanban";
 import { parseChat } from "@/lib/chat-doc";
+import { parsePptx, SLIDE_HEIGHT, SLIDE_WIDTH } from "@/lib/pptx-doc";
 import { parseQr, qrData, renderQrPng } from "@/lib/qr-doc";
 import { formatDuration, parseTimers } from "@/lib/timer-doc";
 import { renderMermaidPng } from "@/lib/mermaid-render";
@@ -119,6 +125,10 @@ export async function toBlocks(
       return qrBlocks(text);
     case "timer":
       return timerBlocks(text);
+    case "bookmark":
+      return bookmarkBlocks(text);
+    case "pptx":
+      return pptxBlocks(text);
     case "chat":
       return chatBlocks(text);
     case "json":
@@ -127,6 +137,8 @@ export async function toBlocks(
     case "sql":
     case "regex":
       return codeFileBlocks(text, kind);
+    case "prompt":
+      return codeFileBlocks(text, "json");
     case "diff":
       return diffBlocks(text, pathOf);
     case "env":
@@ -591,10 +603,16 @@ async function qrBlocks(text: string): Promise<Block[]> {
   try {
     doc = parseQr(text);
   } catch (error) {
-    return [{ type: "note", text: `Not a valid QR design (${(error as Error).message}).` }];
+    return [
+      {
+        type: "note",
+        text: `Not a valid QR design (${(error as Error).message}).`,
+      },
+    ];
   }
   const data = qrData(doc.content);
-  if (!data) return [{ type: "note", text: "This QR code encodes nothing yet." }];
+  if (!data)
+    return [{ type: "note", text: "This QR code encodes nothing yet." }];
   try {
     const png = await renderQrPng(doc, 600);
     return [
@@ -611,7 +629,12 @@ function timerBlocks(text: string): Block[] {
   try {
     doc = parseTimers(text);
   } catch (error) {
-    return [{ type: "note", text: `Not a valid timer list (${(error as Error).message}).` }];
+    return [
+      {
+        type: "note",
+        text: `Not a valid timer list (${(error as Error).message}).`,
+      },
+    ];
   }
   if (!doc.timers.length) return [{ type: "note", text: "No timers." }];
   return [
@@ -627,23 +650,92 @@ function timerBlocks(text: string): Block[] {
   ];
 }
 
+function bookmarkBlocks(text: string): Block[] {
+  let doc;
+  try {
+    doc = parseBookmarks(text);
+  } catch (error) {
+    return [
+      {
+        type: "note",
+        text: `Not a valid bookmark file (${(error as Error).message}).`,
+      },
+    ];
+  }
+  if (!doc.bookmarks.length) return [{ type: "note", text: "No bookmarks." }];
+  return [
+    {
+      type: "table",
+      header: BOOKMARK_TABLE_HEADER,
+      rows: bookmarkRows(doc).slice(0, MAX_TABLE_ROWS),
+    },
+  ];
+}
+
+/** One picture per slide, each followed by its speaker notes. */
+async function pptxBlocks(text: string): Promise<Block[]> {
+  let doc;
+  try {
+    doc = parsePptx(text);
+  } catch (error) {
+    return [
+      {
+        type: "note",
+        text: `Not a valid slide deck (${(error as Error).message}).`,
+      },
+    ];
+  }
+  try {
+    // Konva loads only when a deck is actually exported.
+    const { renderDeckPngs } = await import("@/lib/pptx-render");
+    const pages = await renderDeckPngs(doc, 2);
+    return pages.flatMap((data, i): Block[] => {
+      const notes = doc.slides[i].notes.trim();
+      return [
+        {
+          type: "image",
+          data,
+          format: "png",
+          width: SLIDE_WIDTH * PX_TO_PT,
+          height: SLIDE_HEIGHT * PX_TO_PT,
+          widthFraction: 1,
+        },
+        ...(notes
+          ? [{ type: "paragraph", text: `Notes: ${notes}` } as const]
+          : []),
+        { type: "gap" },
+      ];
+    });
+  } catch (error) {
+    return [missingImage(" (slides)", error)];
+  }
+}
+
 async function chatBlocks(text: string): Promise<Block[]> {
   let doc;
   try {
     doc = parseChat(text);
   } catch (error) {
-    return [{ type: "note", text: `Not a valid chat (${(error as Error).message}).` }];
+    return [
+      { type: "note", text: `Not a valid chat (${(error as Error).message}).` },
+    ];
   }
   const messages = doc.messages.filter((m) => !m.error && m.content.trim());
   if (!messages.length) return [{ type: "note", text: "No messages." }];
   const blocks: Block[] = [];
-  if (doc.system.trim()) {
-    blocks.push({ type: "paragraph", text: `System: ${doc.system.trim()}` }, { type: "gap" });
+  if (doc.promptRef) {
+    blocks.push(
+      { type: "paragraph", text: `System prompt: ${doc.promptRef.name}` },
+      { type: "gap" },
+    );
   }
   for (const m of messages) {
     blocks.push({
       type: "paragraph",
-      text: m.role === "user" ? "You" : `Assistant${m.model ? ` (${m.model})` : ""}`,
+      text:
+        m.role === "user"
+          ? "You"
+          : `Assistant${m.model ? ` (${m.model})` : ""}`,
     });
     blocks.push(...(await markdownBlocks(m.content)), { type: "gap" });
   }

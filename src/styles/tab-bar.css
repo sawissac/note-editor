@@ -1,0 +1,88 @@
+/* Tab bar — BEM block `tab-bar`.
+ *
+ * Motion pieces of the open-files strip (src/features/tabs/TabBar.tsx).
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. */
+
+@layer components {
+  /* Animated wrapper per tab: grows from 0 width on open, shrinks on close,
+     glides on reorder. Overflow is clipped only while it resizes (set by
+     motion), so the sliding indicator is never cut off between tabs. */
+  .tab-bar__slot {
+    @apply flex shrink-0 items-stretch;
+  }
+  /* Accent bar on the active tab; a shared layout element that slides from
+     the previously active tab to the new one. */
+  .tab-bar__indicator {
+    @apply bg-app-accent pointer-events-none absolute inset-x-0 top-0 h-0.5;
+  }
+  /* The scrolling row of tabs. Its ends fade out (a mask, so tab text and
+     the active tab's fill both dissolve into the bar) on whichever side
+     has tabs hidden past it. */
+  .tab-bar__strip {
+    @apply flex h-full min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden;
+    scrollbar-width: none;
+    --tab-bar-fade-start: 0px;
+    --tab-bar-fade-end: 0px;
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--tab-bar-fade-start),
+      #000 calc(100% - var(--tab-bar-fade-end)),
+      transparent
+    );
+    transition:
+      --tab-bar-fade-start var(--motion-duration-fast) ease-out,
+      --tab-bar-fade-end var(--motion-duration-fast) ease-out;
+  }
+  .tab-bar__strip::-webkit-scrollbar {
+    @apply hidden;
+  }
+  .tab-bar__strip--fade-start {
+    --tab-bar-fade-start: 2.5rem;
+  }
+  .tab-bar__strip--fade-end {
+    --tab-bar-fade-end: 2.5rem;
+  }
+  /* Arrow column beside the strip, only while that end has hidden tabs: it
+     takes its own space so it never covers a tab. No divider — the strip's fade
+     separates them. The outer inset matches the pane toolbar's `px-3`, so
+     the arrows line up with the toolbar buttons below. */
+  /* Animated wrapper (Unfold): width 0 ↔ auto as the arrow comes and goes.
+     The padding lives on the inner column so it can fold to zero too. */
+  .tab-bar__scroll-slot {
+    @apply flex shrink-0 items-stretch;
+  }
+  .tab-bar__scroll {
+    @apply flex shrink-0 items-center;
+  }
+  .tab-bar__scroll--start {
+    @apply pr-1 pl-3;
+  }
+  .tab-bar__scroll--end {
+    @apply pr-3 pl-1;
+  }
+  .tab-bar__scroll-button {
+    @apply text-app-text shadow-sm;
+  }
+  .tab-bar__scroll-icon {
+    @apply size-4;
+  }
+}
+
+/* Lets the fade widths animate (a plain custom property would snap). */
+@property --tab-bar-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --tab-bar-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* ── tab-bar × compacto ────────────────────────────────────────────────
+ * Unlayered so it outranks the compacto Button's own size utility. */
+.tab-bar__scroll-button {
+  @apply size-7;
+}

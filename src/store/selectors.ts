@@ -3,22 +3,23 @@ import { createSelector } from "@reduxjs/toolkit";
 import type { FsNode } from "@/store/fs-slice";
 import type { RootState } from "@/store";
 
-const collator = new Intl.Collator(undefined, {
+export const collator = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: "base",
 });
 
 /**
- * Folders first, then manual `order` (set by drag-to-reorder), then name.
- * Rows that were never reordered sort after the ordered ones.
+ * Manual `order` (set by drag-to-reorder or "Sort by") wins, so files and
+ * folders can be mixed freely; rows that were never ordered come after the
+ * ordered ones. Without any order: folders first, then name.
  */
 export function compareNodes(a: FsNode, b: FsNode) {
-  if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
   if (a.order !== undefined || b.order !== undefined) {
     if (a.order === undefined) return 1;
     if (b.order === undefined) return -1;
     if (a.order !== b.order) return a.order - b.order;
   }
+  if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
   return collator.compare(a.name, b.name);
 }
 

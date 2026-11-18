@@ -7,7 +7,7 @@ import {
   IconFoldUp,
   IconFolderPlus,
   IconPencil,
-  IconSortAscendingLetters,
+  IconArrowsSort,
   IconSelect,
   IconTrash,
   IconUpload,
@@ -18,6 +18,9 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
 import { ConvertMenu } from "@/features/explorer/ConvertMenu";
 import { convertTargetsOf } from "@/lib/convert-targets";
@@ -28,6 +31,8 @@ import {
   duplicateNode,
   expandAll,
   openFile,
+  SORT_OPTIONS,
+  sortChildren,
 } from "@/store/actions";
 import { type FsNode, fsActions } from "@/store/fs-slice";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -134,13 +139,23 @@ export function NodeMenu({ node }: { node: FsNode }) {
           </ContextMenuItem>
         </>
       ) : null}
-      <ContextMenuItem
-        data-testid="node-menu-sort-by-name-item"
-        onSelect={() => dispatch(fsActions.orderCleared(folderId))}
-      >
-        <IconSortAscendingLetters />
-        {node.type === "folder" ? "Sort contents by name" : "Sort folder by name"}
-      </ContextMenuItem>
+      <ContextMenuSub>
+        <ContextMenuSubTrigger data-testid="node-menu-sort-trigger">
+          <IconArrowsSort />
+          {node.type === "folder" ? "Sort contents by" : "Sort folder by"}
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent>
+          {SORT_OPTIONS.map((option) => (
+            <ContextMenuItem
+              key={option.key}
+              data-testid={`node-menu-sort-${option.key}-item`}
+              onSelect={() => dispatch(sortChildren(folderId, option.key))}
+            >
+              {option.label}
+            </ContextMenuItem>
+          ))}
+        </ContextMenuSubContent>
+      </ContextMenuSub>
       <ContextMenuSeparator />
       <ContextMenuItem
         onSelect={() =>
