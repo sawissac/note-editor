@@ -67,7 +67,7 @@ import { getPdfSourceUrl, loadSharedPdfEngine } from "@/lib/pdf-thumbnail-utils"
 import { cn } from "@/lib/utils"
 import {
   allowTouchScrollInPointerMode,
-  PdfTouchZoom,
+  PdfTouchGestures,
 } from "@/components/extend/pdf-editor-shared"
 import { Button } from "@/components/ui/button"
 import {
@@ -2453,7 +2453,7 @@ function PDFViewerInner({
             <PDFViewerViewportBridge viewportElementRef={viewportElementRef} />
             <PDFViewerSelectionCopyShortcut documentId={documentId} />
             <PDFViewerSelectionReleaseGuard documentId={documentId} />
-            <PdfTouchZoom documentId={documentId}>
+            <PdfTouchGestures documentId={documentId}>
               <GlobalPointerProvider documentId={documentId}>
                 <PDFViewerScroller
                   basePageRotations={basePageRotations}
@@ -2462,7 +2462,7 @@ function PDFViewerInner({
                   renderPage={renderPage}
                 />
               </GlobalPointerProvider>
-            </PdfTouchZoom>
+            </PdfTouchGestures>
             <CopyToClipboard />
           </PDFViewerScrollAreaViewport>
         </div>

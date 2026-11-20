@@ -280,7 +280,7 @@ import {
   type PdfEditorSelectionPage,
   type PdfEditorSelectionPayload,
   allowTouchScrollInPointerMode,
-  PdfTouchZoom,
+  PdfTouchGestures,
 } from "@/components/extend/pdf-editor-shared"
 import { PdfEditorWorkspace } from "@/components/extend/pdf-editor-workspace"
 import { ToastPrimitive, ToastProvider } from "@/components/extend/ui-toast"
@@ -3602,14 +3602,14 @@ function PdfEditorInner({
                     <PdfEditorViewportBridge
                       viewportElementRef={viewportElementRef}
                     />
-                    <PdfTouchZoom documentId={documentId}>
+                    <PdfTouchGestures documentId={documentId}>
                       <GlobalPointerProvider documentId={documentId}>
                         <Scroller
                           documentId={documentId}
                           renderPage={renderPage}
                         />
                       </GlobalPointerProvider>
-                    </PdfTouchZoom>
+                    </PdfTouchGestures>
                     <CopyToClipboard />
                   </PdfEditorViewport>
                 )}

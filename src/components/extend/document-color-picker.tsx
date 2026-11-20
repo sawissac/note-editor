@@ -416,7 +416,7 @@ function VerticalSlider({
       aria-valuenow={ariaValueNow}
       aria-valuetext={ariaValueText}
       className={cn(
-        "relative w-3 shrink-0 touch-none self-stretch rounded-full",
+        "relative w-3 shrink-0 touch-none self-stretch rounded-full pointer-coarse:w-5",
         cossInputKeyboardFocusRing
       )}
       onPointerDown={(event) => {

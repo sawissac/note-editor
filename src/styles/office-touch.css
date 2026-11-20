@@ -1,13 +1,21 @@
 @reference "../index.css";
 
 /* Office editors (Word / Excel / CSV — src/components/extend/docx-*,
- * xlsx-*, csv-viewer) — BEM blocks `docx-editor` (the page column) and
- * `xlsx-context-menu` (the grid's right-click / long-press menu).
+ * xlsx-*, csv-viewer) — BEM blocks `docx-editor` (the page column),
+ * `xlsx-formula-bar` and `xlsx-context-menu` (the grid's right-click / long-press menu).
  *
  * Imported from the components themselves. Touch sizing uses the
  * `pointer-coarse:` variant so desktop density is unchanged. */
 
 @layer components {
+  /* ── xlsx-formula-bar ────────────────────────────────────────────────
+   * Cell reference · fx · formula field, joined into one strip. On touch
+   * it is the main way into a cell (no double-click), so it gets a
+   * finger-height row. */
+  .xlsx-formula-bar {
+    @apply flex h-8 w-full items-stretch overflow-hidden rounded-md border border-app-border bg-app-bg text-[12px] transition-colors focus-within:border-app-accent focus-within:ring-2 focus-within:ring-app-accent/20 pointer-coarse:h-10;
+  }
+
   /* ── docx-editor ─────────────────────────────────────────────────────
    * The centred column holding the rendered pages. On touch a long press
    * on page text is the editor's own selection / context-menu gesture

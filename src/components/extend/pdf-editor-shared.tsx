@@ -80,7 +80,7 @@ const TOUCH_SELECT_SLOP_PX = 8
  *   link, focus a form field), and so do drags that start on a
  *   `touch-action: none` element (a selected annotation's move/resize box).
  */
-export function PdfTouchZoom({
+export function PdfTouchGestures({
   documentId,
   children,
 }: {

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { FileBarSlot } from "@/features/editors/file-bar-slot"
 import { ToolbarGroups } from "@/components/ui/toolbar-group"
+import "@/styles/office-touch.css"
 import {
   useRegisterDocumentBytes,
   useReportDocumentChange,
@@ -1872,7 +1873,7 @@ function EditorToolbar({
               reference, the fx marker, and the formula field taking the rest. */}
           <div
             data-slot="formula-bar"
-            className="flex h-8 w-full items-stretch overflow-hidden rounded-md border border-app-border bg-app-bg text-[12px] transition-colors focus-within:border-app-accent focus-within:ring-2 focus-within:ring-app-accent/20"
+            className="xlsx-formula-bar"
           >
             <input
               aria-label="Cell reference"
