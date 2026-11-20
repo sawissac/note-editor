@@ -10,6 +10,7 @@ import type {
 import { PdfAnnotationSubtype } from "@embedpdf/models"
 import type { CaptureAreaEvent } from "@embedpdf/plugin-capture/react"
 import { InteractionManagerPlugin } from "@embedpdf/plugin-interaction-manager"
+import { useInteractionManagerCapability } from "@embedpdf/plugin-interaction-manager/react"
 import { ZoomGestureWrapper } from "@embedpdf/plugin-zoom/react"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
@@ -57,11 +58,27 @@ export async function allowTouchScrollInPointerMode(
     })
 }
 
+/** Hold this long without moving to start a text selection by touch. */
+const TOUCH_SELECT_HOLD_MS = 450
+/** Movement (px) that turns a press into a scroll instead of a hold. */
+const TOUCH_SELECT_SLOP_PX = 8
+
 /**
- * Pinch-to-zoom for the document on touch devices (EmbedPDF's own gesture
- * wrapper: live CSS scale while pinching, committed to the zoom plugin on
- * release). Rendered only for a coarse primary pointer so the desktop layout
- * and ctrl/⌘+wheel behaviour stay exactly as they were.
+ * Touch gestures for the document surface, mounted only for a coarse primary
+ * pointer so the desktop layout and ctrl/⌘+wheel behaviour stay as they were:
+ *
+ * - Pinch-to-zoom — EmbedPDF's own gesture wrapper (live CSS scale while
+ *   pinching, committed to the zoom plugin on release).
+ * - Scroll vs. select in the default pointer mode — with
+ *   {@link allowTouchScrollInPointerMode} a drag scrolls natively, but the
+ *   pointer moves still reach the selection plugin before the browser takes
+ *   over, leaving a stray text selection behind. Touch/pen moves are held back
+ *   from the plugin unless the finger first rests in place
+ *   ({@link TOUCH_SELECT_HOLD_MS}); after such a hold the drag selects text
+ *   and the page does not scroll — the iPadOS "press and hold, then drag"
+ *   gesture. Taps pass through untouched (select an annotation, follow a
+ *   link, focus a form field), and so do drags that start on a
+ *   `touch-action: none` element (a selected annotation's move/resize box).
  */
 export function PdfTouchZoom({
   documentId,
@@ -78,8 +95,107 @@ export function PdfTouchZoom({
       enableWheel={false}
       data-slot="pdf-touch-zoom"
     >
-      {children}
+      <PdfTouchSelectGuard documentId={documentId}>{children}</PdfTouchSelectGuard>
     </ZoomGestureWrapper>
+  )
+}
+
+function PdfTouchSelectGuard({
+  documentId,
+  children,
+}: {
+  documentId: string
+  children: React.ReactNode
+}) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const { provides: interaction } = useInteractionManagerCapability()
+  React.useEffect(() => {
+    const element = ref.current
+    if (!element || !interaction) return
+    const scope = interaction.forDocument(documentId)
+    type Press = {
+      x: number
+      y: number
+      held: boolean
+      passthrough: boolean
+      timer: number
+    }
+    const presses = new Map<number, Press>()
+    const release = (pointerId: number) => {
+      const press = presses.get(pointerId)
+      if (!press) return
+      window.clearTimeout(press.timer)
+      presses.delete(pointerId)
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") return
+      if (scope.getActiveMode() !== "pointerMode") return
+      const target = event.target as Element | null
+      const press: Press = {
+        x: event.clientX,
+        y: event.clientY,
+        held: false,
+        passthrough: Boolean(
+          target?.closest?.('[style*="touch-action: none"]')
+        ),
+        timer: 0,
+      }
+      if (!press.passthrough) {
+        press.timer = window.setTimeout(() => {
+          press.held = presses.size === 1
+        }, TOUCH_SELECT_HOLD_MS)
+      }
+      presses.set(event.pointerId, press)
+      // A second finger means pinch/scroll — never a selection.
+      if (presses.size > 1) {
+        presses.forEach((other) => {
+          window.clearTimeout(other.timer)
+          other.held = false
+        })
+      }
+    }
+    const onPointerMove = (event: PointerEvent) => {
+      const press = presses.get(event.pointerId)
+      if (!press || press.passthrough) return
+      if (press.held && presses.size === 1) return
+      if (
+        Math.hypot(event.clientX - press.x, event.clientY - press.y) >
+        TOUCH_SELECT_SLOP_PX
+      ) {
+        window.clearTimeout(press.timer)
+      }
+      event.stopPropagation()
+    }
+    const onPointerEnd = (event: PointerEvent) => release(event.pointerId)
+    // After a hold the drag selects: keep the browser from scrolling.
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1 || !event.cancelable) return
+      for (const press of presses.values()) {
+        if (press.held) {
+          event.preventDefault()
+          return
+        }
+      }
+    }
+    element.addEventListener("pointerdown", onPointerDown, true)
+    element.addEventListener("pointermove", onPointerMove, true)
+    element.addEventListener("pointerup", onPointerEnd, true)
+    element.addEventListener("pointercancel", onPointerEnd, true)
+    element.addEventListener("touchmove", onTouchMove, { passive: false })
+    return () => {
+      element.removeEventListener("pointerdown", onPointerDown, true)
+      element.removeEventListener("pointermove", onPointerMove, true)
+      element.removeEventListener("pointerup", onPointerEnd, true)
+      element.removeEventListener("pointercancel", onPointerEnd, true)
+      element.removeEventListener("touchmove", onTouchMove)
+      presses.forEach((press) => window.clearTimeout(press.timer))
+      presses.clear()
+    }
+  }, [documentId, interaction])
+  return (
+    <div ref={ref} data-slot="pdf-touch-surface">
+      {children}
+    </div>
   )
 }
 
