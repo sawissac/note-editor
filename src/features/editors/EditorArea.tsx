@@ -500,7 +500,8 @@ function PaneToolbar({
   const path = getPath(nodes, id);
 
   return (
-    <div className="border-app-border bg-app-bg flex h-9 shrink-0 items-center gap-2 border-b px-3">
+    // Touch: one step taller, so the finger-sized (36px) buttons get a margin.
+    <div className="border-app-border bg-app-bg flex h-9 shrink-0 items-center gap-2 border-b px-3 pointer-coarse:h-11">
       <nav
         aria-label="Path"
         className="flex min-w-0 shrink items-center gap-1 text-[12px]"
@@ -520,7 +521,7 @@ function PaneToolbar({
                   type="button"
                   title={`Show “${part}” in the explorer`}
                   aria-label={`Show folder ${part} in the explorer`}
-                  className="text-app-dim hover:text-app-accent truncate"
+                  className="text-app-dim hover:text-app-accent truncate pointer-coarse:min-h-9 pointer-coarse:px-1"
                   onClick={() => {
                     // Reveal the folder in the explorer.
                     let cur = nodes[id];

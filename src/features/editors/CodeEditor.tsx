@@ -6,6 +6,7 @@ import * as React from "react";
 
 import { CODE_SELECTION_EVENT, type CodeSelection } from "@/lib/ask-ai";
 import { APP_THEME, type ColorTheme } from "@/lib/color-themes";
+import { isCoarsePointer } from "@/lib/use-media-query";
 import {
   type MermaidSnippet,
   MERMAID_SNIPPETS,
@@ -235,6 +236,18 @@ export default function CodeEditor({
     });
     editor.onDidScrollChange(() => reportSelection());
     editor.onDidBlurEditorWidget(() => clearTimeout(selectionTimer));
+    // Touch has no hover, and a marker's message only shows in the hover:
+    // tapping an underlined problem opens it instead.
+    if (isCoarsePointer()) {
+      editor.onDidChangeCursorPosition((e) => {
+        const model = editor.getModel();
+        if (!model || e.source !== "mouse") return;
+        const hit = monaco.editor
+          .getModelMarkers({ resource: model.uri })
+          .some((m) => monaco.Range.containsPosition(m, e.position));
+        if (hit) editor.trigger("touch", "editor.action.showHover", {});
+      });
+    }
     editor.addAction({
       id: "app.askAi",
       label: "Ask AI about selection",
@@ -338,6 +351,7 @@ export default function CodeEditor({
           cursorSmoothCaretAnimation: "on",
           tabSize: 2,
           unicodeHighlight: { ambiguousCharacters: false },
+          ...(isCoarsePointer() ? TOUCH_OPTIONS : null),
           ...(singleLine ? SINGLE_LINE_OPTIONS : null),
         }}
       />
@@ -346,6 +360,22 @@ export default function CodeEditor({
 }
 
 const THEME_NAME = "app-light";
+
+/**
+ * Finger-friendly Monaco when the primary pointer is touch (iPad): scrollbars
+ * wide enough to grab, fold arrows always shown (they normally appear on
+ * gutter hover), and no drag-to-move-text, so a press-and-drag over a
+ * selection extends / scrolls instead of picking the text up. Monaco handles
+ * touch scrolling itself (its gesture layer); nothing around it blocks it.
+ */
+const TOUCH_OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
+  scrollbar: {
+    verticalScrollbarSize: 14,
+    horizontalScrollbarSize: 14,
+  },
+  showFoldingControls: "always",
+  dragAndDrop: false,
+};
 
 /**
  * Monaco as a text field. Sized for a 32px-tall parent (one 22px line plus

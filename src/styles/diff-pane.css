@@ -38,7 +38,7 @@
     @apply border-app-border bg-app-sidebar divide-app-border grid shrink-0 grid-cols-2 divide-x border-b;
   }
   .diff-pane__head {
-    @apply flex h-8 min-w-0 items-center gap-2 px-3;
+    @apply flex h-8 min-w-0 items-center gap-2 px-3 pointer-coarse:h-10;
   }
   .diff-pane__head-label {
     @apply font-title shrink-0 rounded-sm px-1 text-[9px] leading-4 font-semibold tracking-[0.1em] uppercase;
@@ -50,7 +50,7 @@
     @apply bg-app-success/10 text-app-success;
   }
   .diff-pane__head-file {
-    @apply font-title text-app-bright hover:text-app-accent focus-visible:ring-app-accent flex min-w-0 items-center gap-1.5 rounded-sm border-0 bg-transparent p-0 text-[12px] font-semibold outline-none focus-visible:ring-2;
+    @apply font-title text-app-bright hover:text-app-accent focus-visible:ring-app-accent flex min-w-0 items-center gap-1.5 rounded-sm border-0 bg-transparent p-0 text-[12px] font-semibold outline-none focus-visible:ring-2 pointer-coarse:self-stretch;
   }
   .diff-pane__head-icon {
     @apply size-3.5;
@@ -148,7 +148,7 @@
     @apply border-app-border m-0 max-h-80 min-h-24 list-none overflow-auto border-t p-1;
   }
   .diff-picker__option {
-    @apply text-app-text hover:bg-app-hover focus-visible:bg-app-hover flex h-8 w-full items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left outline-none;
+    @apply text-app-text hover:bg-app-hover focus-visible:bg-app-hover flex h-8 w-full items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left outline-none pointer-coarse:h-10;
   }
   .diff-picker__option--picked {
     @apply bg-app-selected text-app-bright hover:bg-app-selected;
@@ -196,4 +196,9 @@
  * Unlayered so it outranks the compacto Button's own hover colour. */
 .diff-picker__slot-clear {
   @apply hover:text-app-error;
+}
+/* Square icon button in the file bar; 36px wide on touch to match the
+ * touch layer's height floor. */
+.diff-pane__bar-button {
+  @apply w-7 px-0 pointer-coarse:w-9;
 }

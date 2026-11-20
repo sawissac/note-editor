@@ -27,6 +27,7 @@ import { cn } from "@/lib/cn";
 import { renderMermaidPng, renderMermaidSvg } from "@/lib/mermaid-render";
 import { downloadFile } from "@/lib/storage";
 import * as ui from "@/lib/ui-styles";
+import { BREAKPOINT, useMediaQuery } from "@/lib/use-media-query";
 import { saveContent } from "@/store/actions";
 import { useAppDispatch } from "@/store";
 import type { TabMode } from "@/store/tabs-slice";
@@ -99,7 +100,8 @@ const FIT_PADDING = 32;
 
 /**
  * Pan / zoom stage for the rendered SVG: wheel or pinch to zoom at the
- * cursor, drag to pan, double-click to zoom in. Opens fitted to the pane
+ * cursor, drag (one finger on touch) to pan, double-click / double-tap to
+ * zoom in. Opens fitted to the pane
  * (never above 100%); the transform survives re-renders while editing.
  */
 function MermaidZoom({ svg }: { svg: string }) {
@@ -360,6 +362,9 @@ export default function MermaidPane({
     (value) => void dispatch(saveContent(id, value)),
   );
   useSaveHandler(registerSave, () => dispatch(saveContent(id, text)));
+  // A tablet held upright is too narrow for source | preview side by side:
+  // stack them (source above). Orientation only, so both stay mounted.
+  const stacked = useMediaQuery(`${BREAKPOINT.compact} and ${BREAKPOINT.coarse}`);
 
   const actions = (
     <FileBarSlot>
@@ -379,7 +384,7 @@ export default function MermaidPane({
   return (
     <>
       {actions}
-      <ResizableGroup orientation="horizontal">
+      <ResizableGroup orientation={stacked ? "vertical" : "horizontal"}>
         <ResizablePanel defaultSize="50%" minSize="240px">
           <LazyCodeEditor
             path={`${id}.mermaid`}

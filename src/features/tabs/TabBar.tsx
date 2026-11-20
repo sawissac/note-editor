@@ -141,7 +141,7 @@ export function TabBar() {
   return (
     <div
       data-testid="tab-bar"
-      className="border-app-border bg-app-sidebar flex h-9 shrink-0 items-stretch border-b"
+      className="tab-bar"
     >
       {!sidebarOpen && hasNodes ? (
         <Button
@@ -150,13 +150,14 @@ export function TabBar() {
           size="icon-sm"
           aria-label="Show sidebar"
           title="Show sidebar"
+          data-testid="tab-bar-show-sidebar-button"
           onClick={() => dispatch(uiActions.sidebarSet(true))}
-          className="text-app-dim hover:text-app-accent my-0.5 ml-1"
+          className="tab-bar__sidebar-button"
         >
-          <IconLayoutSidebarLeftExpand className="size-4" />
+          <IconLayoutSidebarLeftExpand className="tab-bar__sidebar-icon" />
         </Button>
       ) : null}
-      <div className="flex min-w-0 flex-1 items-stretch">
+      <div className="tab-bar__body">
         <AnimatePresence initial={false}>
           {overflow.left ? (
             <ScrollButton
@@ -329,11 +330,9 @@ function Tab({
             }
           }}
           className={cn(
-            "group border-app-border text-app-dim relative flex max-w-56 min-w-28 shrink-0 cursor-pointer items-center gap-1.5 border-r pr-1 pl-3 text-[12px] select-none",
-            "hover:bg-app-hover hover:text-app-text transition-colors duration-(--motion-duration-fast)",
-            "focus-visible:ring-app-accent focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset",
-            active && "bg-app-bg text-app-bright hover:bg-app-bg",
-            dragOver && "bg-app-accent-faint",
+            "tab-bar__tab group",
+            active && "tab-bar__tab--active",
+            dragOver && "tab-bar__tab--drop-target",
           )}
         >
           {active ? (
@@ -345,7 +344,7 @@ function Tab({
             />
           ) : null}
           <FileIcon name={node.name} />
-          <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          <span className="tab-bar__name">{node.name}</span>
           <Button
             type="button"
             variant="ghost"
@@ -363,18 +362,17 @@ function Tab({
               dispatch(tabsActions.closed(id));
             }}
             className={cn(
-              "text-app-dim size-5 rounded-sm",
-              !active && "opacity-0 group-hover:opacity-100",
-              saveState === "saving" && "opacity-100",
+              "tab-bar__close",
+              !active && saveState !== "saving" && "tab-bar__close--idle",
             )}
           >
             {saveState === "saving" ? (
-              <IconPoint className="text-app-accent size-3 group-hover:hidden" />
+              <IconPoint className="tab-bar__saving-icon" />
             ) : null}
             <IconX
               className={cn(
-                "size-3.5",
-                saveState === "saving" && "hidden group-hover:block",
+                "tab-bar__close-icon",
+                saveState === "saving" && "tab-bar__close-icon--saving",
               )}
             />
           </Button>

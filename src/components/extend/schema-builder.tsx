@@ -4,14 +4,10 @@ import {
   DndContext,
   DragOverlay,
   getFirstCollision,
-  KeyboardSensor,
   MeasuringStrategy,
-  PointerSensor,
   pointerWithin,
   rectIntersection,
   useDroppable,
-  useSensor,
-  useSensors,
   type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
@@ -38,6 +34,7 @@ import {
 import { useTheme } from "next-themes"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
+import { useDragSensors } from "@/lib/dnd-sensors"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -161,10 +158,20 @@ const TABLE_HEAD_ROW =
 const TABLE_HEAD_CELL = "h-7 px-2.5 text-left font-semibold"
 const ADD_ROW_BUTTON =
   "h-7 w-full justify-start gap-1.5 rounded-none px-2.5 text-xs font-normal text-app-dim"
+/* Row grip: a hover-revealed nub on the row's left edge with a mouse. On
+ * touch there is no hover, so it is always shown, finger-sized and tucked
+ * inside the key cell (whose input makes room via KEY_INPUT_WITH_GRIP);
+ * press and hold it to drag the row (dnd-kit TouchSensor). */
 const DRAG_HANDLE =
-  "absolute top-1/2 left-0 z-50 grid size-4.5 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded border bg-background text-muted-foreground opacity-0 shadow-xs transition-[opacity,color] outline-none hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+  "absolute top-1/2 left-0 z-50 grid size-4.5 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded border bg-background text-muted-foreground opacity-0 shadow-xs transition-[opacity,color] outline-none hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing pointer-coarse:left-0.5 pointer-coarse:size-8 pointer-coarse:translate-x-0 pointer-coarse:border-transparent pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none"
+const DRAG_HANDLE_ICON = "size-3 pointer-coarse:size-4"
+/** Key / value input in a cell that also holds the grip. */
+const KEY_INPUT_WITH_GRIP = "font-mono text-[12.5px] pointer-coarse:pl-9"
+/** Hover-revealed delete; always shown (a touch dimmer) on touch. */
 const ROW_DELETE_BUTTON =
-  "text-app-dim opacity-0 transition-[opacity,color,background-color] hover:bg-app-error/10 hover:text-app-error focus-visible:opacity-100"
+  "text-app-dim opacity-0 transition-[opacity,color,background-color] hover:bg-app-error/10 hover:text-app-error focus-visible:opacity-100 pointer-coarse:opacity-80"
+/** Actions column: fits the 36px touch floor of the delete button. */
+const ACTIONS_COL = "w-8 pointer-coarse:w-10"
 
 const SCALAR_TYPES: SchemaBuilderScalarType[] = [
   "string",
@@ -1021,16 +1028,7 @@ function resolveCrossContainerPropertyInsertionId(
     : getNextPropertyInsertionId(properties, overLocation)
 }
 function useSchemaBuilderSensors() {
-  return useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 6,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
+  return useDragSensors({ coordinateGetter: sortableKeyboardCoordinates }, 6)
 }
 function useStableCallback<Args extends unknown[], Result>(
   callback: (...args: Args) => Result
@@ -1277,7 +1275,7 @@ function InlineTextInput({
   return (
     <input
       className={cn(
-        "h-8 w-full min-w-0 bg-transparent px-2.5 text-[13px] outline-none placeholder:text-muted-foreground/45 focus:bg-background focus:shadow-[inset_0_0_0_1px_var(--ring)]",
+        "h-8 w-full min-w-0 bg-transparent px-2.5 text-[13px] outline-none pointer-coarse:h-9 placeholder:text-muted-foreground/45 focus:bg-background focus:shadow-[inset_0_0_0_1px_var(--ring)]",
         className
       )}
       onInput={handleInput}
@@ -1329,7 +1327,7 @@ function EnumEditor({
           <colgroup>
             <col className="w-[30%]" />
             <col />
-            <col className="w-8" />
+            <col className={ACTIONS_COL} />
           </colgroup>
           {/* Always nested under its property row, whose label says what
               these are — the header stays for screen readers only. */}
@@ -1424,13 +1422,13 @@ const SortableEnumRow = React.memo(function SortableEnumRow({
           {...attributes}
           {...listeners}
         >
-          <IconGripVertical className="size-3" />
+          <IconGripVertical className={DRAG_HANDLE_ICON} />
         </button>
         <div className="min-w-0">
           <InlineTextInput
             value={value.value}
             placeholder="value"
-            className="font-mono text-[12.5px]"
+            className={KEY_INPUT_WITH_GRIP}
             spellCheck={false}
             onChange={(event) =>
               onValueChange(value.id, (current) => ({
@@ -1622,7 +1620,7 @@ function SchemaBuilderTable({
           <col className="w-[30%]" />
           <col className="w-36" />
           <col />
-          <col className="w-8" />
+          <col className={ACTIONS_COL} />
         </colgroup>
         {/* Nested tables repeat the same columns; only the top one shows
             its header (screen readers still get every header). */}
@@ -1753,13 +1751,13 @@ const SortablePropertyRows = React.memo(function SortablePropertyRows({
             {...attributes}
             {...listeners}
           >
-            <IconGripVertical className="size-3" />
+            <IconGripVertical className={DRAG_HANDLE_ICON} />
           </button>
           <div className="min-w-0">
             <InlineTextInput
               value={property.key}
               placeholder={depth ? "nested_key" : "property_key"}
-              className="font-mono text-[12.5px]"
+              className={KEY_INPUT_WITH_GRIP}
               spellCheck={false}
               onChange={(event) =>
                 handlePropertyChange({
@@ -1811,7 +1809,7 @@ const SortablePropertyRows = React.memo(function SortablePropertyRows({
                 onNestedEditorOpenChange(property.id, open)
               }
             >
-              <div className="group/collapsible-trigger-row flex h-7 w-full items-center transition-colors focus-within:bg-muted/50 hover:bg-muted/50">
+              <div className="group/collapsible-trigger-row flex h-7 w-full pointer-coarse:h-9 items-center transition-colors focus-within:bg-muted/50 hover:bg-muted/50">
                 <CollapsibleTrigger
                   className="flex h-full min-w-0 flex-1 items-center gap-1.5 px-2.5 text-left text-[11.5px] font-medium text-muted-foreground transition-colors outline-none group-hover/collapsible-trigger-row:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   type="button"
@@ -2386,7 +2384,8 @@ export function SchemaBuilderPanel({
       {/* Inside the app the Form / JSON switch joins the file bar; standalone
           it renders as its own slim bar. */}
       <FileBarSlot className="flex min-h-10 items-center gap-3 border-b px-3">
-        <TabsList className="h-7">
+        {/* Grows on touch with the 36px trigger floor (touch.css). */}
+        <TabsList className="h-7 pointer-coarse:h-auto">
           <TabsTrigger value="form" className="h-6 px-2 text-xs">
             <IconTable className="size-3.5" />
             Form

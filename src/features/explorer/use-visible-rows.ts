@@ -22,16 +22,28 @@ export function useVisibleRows() {
     const rows: TreeRow[] = [];
     const createIn =
       draft?.mode === "create" ? (draft.parentId ?? "") : undefined;
+    const afterId = draft?.mode === "create" ? draft.afterId : undefined;
 
     const walk = (parentKey: string, depth: number) => {
-      if (createIn === parentKey) {
-        rows.push({ kind: "draft", parentId: parentKey || null, depth });
-      }
-      for (const node of childrenMap.get(parentKey) ?? []) {
+      const children = childrenMap.get(parentKey) ?? [];
+      const draftHere = createIn === parentKey;
+      // Below the selected sibling (and its open subtree), else on top.
+      const below =
+        draftHere && afterId && children.some((n) => n.id === afterId)
+          ? afterId
+          : undefined;
+      const draftRow = {
+        kind: "draft",
+        parentId: parentKey || null,
+        depth,
+      } as const;
+      if (draftHere && !below) rows.push(draftRow);
+      for (const node of children) {
         rows.push({ kind: "node", node, depth });
         if (node.type === "folder" && expanded[node.id]) {
           walk(node.id, depth + 1);
         }
+        if (node.id === below) rows.push(draftRow);
       }
     };
     walk("", 0);

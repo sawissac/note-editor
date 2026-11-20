@@ -3,10 +3,6 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -56,6 +52,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { useDragSensors } from "@/lib/dnd-sensors";
 import { cn } from "@/lib/cn";
 import { FileIcon } from "@/lib/file-icons";
 import { type FileKind, KIND_LABEL, kindOf } from "@/lib/file-types";
@@ -262,11 +259,9 @@ export function UnifiedExportDialog() {
   const selected = rows.filter((r) => checked.has(r.node.id));
   const running = status.state === "running";
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
+  const sensors = useDragSensors(
+    { coordinateGetter: sortableKeyboardCoordinates },
+    4,
   );
 
   const move = (id: string, delta: number) => {

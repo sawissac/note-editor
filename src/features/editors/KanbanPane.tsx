@@ -6,12 +6,8 @@ import {
   type DragOverEvent,
   DragOverlay,
   type DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
   pointerWithin,
   rectIntersection,
-  useSensor,
-  useSensors,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -52,6 +48,8 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { useDragSensors } from "@/lib/dnd-sensors";
+import { isCoarsePointer } from "@/lib/use-media-query";
 import { COLOR_HEX, dateKey, EVENT_COLORS, parseLocal } from "@/lib/calendar";
 import { cn } from "@/lib/cn";
 import {
@@ -229,13 +227,11 @@ export default function KanbanPane({ id, content, registerSave }: PaneProps) {
 
   /* ───────────── Drag and drop ───────────── */
 
-  const sensors = useSensors(
-    // 5px of travel before a press becomes a drag, so clicks still open cards.
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  // Mouse: 5px of travel first, so clicks still open cards. Touch: press
+  // and hold, so a swipe still scrolls the board.
+  const sensors = useDragSensors({
+    coordinateGetter: sortableKeyboardCoordinates,
+  });
 
   const onDragStart = ({ active: item }: DragStartEvent) => {
     const cols = columnsRef.current;
@@ -864,6 +860,11 @@ function CardEditor({
         align="start"
         className="w-80 p-3 select-text"
         data-testid="kanban-card-editor"
+        // A tap that opens the card should not also raise the on-screen
+        // keyboard; the fields are a tap away.
+        onOpenAutoFocus={(e) => {
+          if (isCoarsePointer()) e.preventDefault();
+        }}
       >
         <div className="flex flex-col gap-2.5">
           <textarea
@@ -944,7 +945,7 @@ function CardEditor({
             />
           </div>
           <div
-            className="flex items-center gap-1.5"
+            className="flex items-center gap-1.5 pointer-coarse:gap-2"
             role="radiogroup"
             aria-label="Label colour"
           >
@@ -956,7 +957,7 @@ function CardEditor({
               title="No label"
               data-testid="kanban-card-editor-color-none-button"
               className={cn(
-                "border-app-border-mid ring-app-dim ring-offset-app-panel size-5 rounded-full border border-dashed ring-offset-2",
+                "border-app-border-mid ring-app-dim ring-offset-app-panel size-5 rounded-full border border-dashed ring-offset-2 pointer-coarse:size-7",
                 !card.color && "ring-2",
               )}
               onClick={() => onChange({ color: undefined })}
@@ -970,7 +971,7 @@ function CardEditor({
                 aria-label={c}
                 data-testid={`kanban-card-editor-color-${c}-button`}
                 className={cn(
-                  "ring-offset-app-panel size-5 rounded-full ring-offset-2 transition-transform hover:scale-110",
+                  "ring-offset-app-panel size-5 rounded-full ring-offset-2 transition-transform hover:scale-110 pointer-coarse:size-7",
                   card.color === c && "ring-2",
                 )}
                 style={{

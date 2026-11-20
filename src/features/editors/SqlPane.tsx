@@ -1,3 +1,4 @@
+import "@/styles/sql-pane.css";
 import {
   IconAlertTriangle,
   IconLoader2,
@@ -131,13 +132,13 @@ export default function SqlPane({
             <IconPlayerPlay className="size-3.5" />
           )}
           Run
-          <span className="text-app-dim">{mod}↵</span>
+          <span className="sql-pane__shortcut">{mod}↵</span>
         </Button>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className={cn(ui.paneToolbarBtn, "w-7 px-0")}
+          className={cn(ui.paneToolbarBtn, "sql-pane__results-toggle")}
           data-active={showResults || undefined}
           aria-pressed={showResults}
           aria-label={showResults ? "Hide results" : "Show results"}

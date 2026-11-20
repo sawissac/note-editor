@@ -1,7 +1,8 @@
 @reference "../index.css";
 
 /* PromptPicker — BEM blocks `prompt-picker` (radio list of system prompts),
- * and `prompt-editor` (the form that writes one into its `.prompt` file).
+ * `prompt-chips` (one-click prompts above a message box) and
+ * `prompt-editor` (the form that writes one into its `.prompt` file).
  *
  * Imported by `PromptPicker.tsx`, so `@apply` resolves the app-* theme via
  * `@reference`. Rows match the chat setup's provider / key radios. */
@@ -15,7 +16,7 @@
     @apply flex min-w-0 items-center gap-0.5;
   }
   .prompt-picker__choice {
-    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/40 flex h-7 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2;
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/40 flex h-7 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2 pointer-coarse:h-10 pointer-coarse:text-[13px];
   }
   .prompt-picker__choice--selected {
     @apply bg-app-selected text-app-bright font-medium;
@@ -30,7 +31,7 @@
     @apply min-w-0 truncate;
   }
   .prompt-picker__edit {
-    @apply text-app-dim hover:bg-app-hover hover:text-app-accent focus-visible:ring-app-accent/40 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent opacity-60 transition-[opacity,color] duration-150 outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2;
+    @apply text-app-dim hover:bg-app-hover hover:text-app-accent focus-visible:ring-app-accent/40 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent opacity-60 transition-[opacity,color] duration-150 outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 pointer-coarse:size-10 pointer-coarse:opacity-100;
   }
   .prompt-picker__icon {
     @apply size-3 shrink-0;
@@ -39,7 +40,37 @@
     @apply font-description text-app-dim px-1.5 py-1 text-[11px];
   }
   .prompt-picker__new {
-    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent/40 mt-1 flex h-6 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-1.5 text-[11px] transition-colors duration-150 outline-none focus-visible:ring-2;
+    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent/40 mt-1 flex h-6 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-1.5 text-[11px] transition-colors duration-150 outline-none focus-visible:ring-2 pointer-coarse:h-9 pointer-coarse:text-[12px];
+  }
+
+  /* ── prompt-chips ──────────────────────────────────────────────────── */
+  .prompt-chips {
+    @apply flex flex-wrap gap-1 pointer-coarse:gap-1.5;
+  }
+  .prompt-chips__chip {
+    @apply border-app-border-mid bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description inline-flex min-w-0 cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:min-h-9 pointer-coarse:px-3 pointer-coarse:text-[12px];
+  }
+  /* A workspace prompt: joined to its pencil, like one split pill. */
+  .prompt-chips__chip--custom {
+    @apply max-w-48 rounded-r-none border-r-0 pr-1.5;
+  }
+  .prompt-chips__chip--add {
+    @apply text-app-dim border-dashed px-1.5;
+  }
+  .prompt-chips__chip--labelled {
+    @apply pr-2;
+  }
+  .prompt-chips__pair {
+    @apply inline-flex min-w-0;
+  }
+  .prompt-chips__text {
+    @apply min-w-0 truncate;
+  }
+  .prompt-chips__edit {
+    @apply border-app-border-mid bg-app-bg text-app-dim hover:border-app-border-accent hover:text-app-accent flex cursor-pointer items-center rounded-r-full border py-0.5 pr-1.5 pl-1 transition-colors duration-150 pointer-coarse:min-h-9 pointer-coarse:pr-3 pointer-coarse:pl-2;
+  }
+  .prompt-chips__icon {
+    @apply size-3 shrink-0 pointer-coarse:size-3.5;
   }
 
   /* ── prompt-editor ─────────────────────────────────────────────────── */
@@ -59,10 +90,10 @@
     @apply text-app-dim ml-auto min-w-0 truncate font-mono text-[10px];
   }
   .prompt-editor__name {
-    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/30 h-8 w-full min-w-0 shrink-0 rounded-md border px-2 text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2;
+    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/30 h-8 w-full min-w-0 shrink-0 rounded-md border px-2 text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2 pointer-coarse:h-10 pointer-coarse:text-[14px];
   }
   .prompt-editor__text {
-    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/30 min-h-32 w-full min-w-0 flex-1 resize-none rounded-md border px-2 py-1.5 text-[12px] leading-relaxed transition-colors duration-150 outline-none focus-visible:ring-2;
+    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/30 min-h-32 w-full min-w-0 flex-1 resize-none rounded-md border px-2 py-1.5 text-[12px] leading-relaxed transition-colors duration-150 outline-none focus-visible:ring-2 pointer-coarse:text-[14px];
   }
   .prompt-editor__error {
     @apply font-description text-app-error m-0 text-[11px] leading-snug;

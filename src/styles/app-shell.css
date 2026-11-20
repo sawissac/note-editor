@@ -1,0 +1,30 @@
+/* App shell — BEM blocks `app-shell` and `app-drawer`.
+ *
+ * `app-shell`: the root column (workspace + status bar). Uses the dynamic
+ * viewport height so iPadOS Safari's collapsing toolbar never hides the
+ * status bar, and pads itself out of the notch / home-indicator areas when
+ * installed to the home screen (`viewport-fit=cover` in index.html).
+ *
+ * `app-drawer`: the explorer as an overlay panel on layouts too narrow to
+ * dock it (src/App.tsx `ExplorerDrawer`). Imported from `src/index.css`. */
+
+@layer components {
+  .app-shell {
+    @apply flex h-dvh flex-col;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .app-drawer {
+    @apply fixed inset-0 z-40;
+  }
+  .app-drawer__scrim {
+    @apply absolute inset-0 cursor-default border-0 bg-black/30 p-0;
+  }
+  .app-drawer__panel {
+    @apply border-app-border bg-app-sidebar absolute inset-y-0 left-0 flex w-[min(22rem,88vw)] flex-col border-r shadow-2xl;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+}

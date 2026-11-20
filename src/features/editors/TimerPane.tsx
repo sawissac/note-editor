@@ -3,10 +3,6 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -35,6 +31,7 @@ import {
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { useDragSensors } from "@/lib/dnd-sensors";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/ui-styles";
 import {
@@ -145,12 +142,11 @@ export default function TimerPane({ id, content, registerSave }: PaneProps) {
     update((d) => ({ ...d, timers: [...d.timers, timer] }));
     if (!selectedId) setSelectedId(timer.id);
   };
-  const sensors = useSensors(
-    // A few px of travel first, so clicking the grip still focuses it.
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
+  // A few px of mouse travel first, so clicking the grip still focuses it;
+  // on touch, press and hold the grip.
+  const sensors = useDragSensors(
+    { coordinateGetter: sortableKeyboardCoordinates },
+    4,
   );
   // True from drag start until just after the drop, so the Space key that
   // picks up / drops a row is not also read as play / pause.
@@ -264,7 +260,7 @@ export default function TimerPane({ id, content, registerSave }: PaneProps) {
           type="button"
           variant="outline"
           size="sm"
-          className={cn(ui.paneToolbarBtn, "w-7 px-0")}
+          className={cn(ui.paneToolbarBtn, "w-7 px-0 pointer-coarse:w-9")}
           data-active={doc.sound || undefined}
           aria-pressed={doc.sound}
           aria-label={

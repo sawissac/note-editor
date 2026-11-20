@@ -1,0 +1,93 @@
+@reference "../index.css";
+
+/* CalendarPane (`.calendar` files) — BEM blocks `calendar-pane`,
+ * `calendar-month`, `calendar-chip`, `calendar-time-grid`, `calendar-event`,
+ * `calendar-year` and `calendar-editor`.
+ *
+ * Imported from `CalendarPane.tsx`; `@reference` resolves the app-* theme.
+ * Event colours and per-event geometry (top / height / column) are inline
+ * styles set by the pane. On a touch screen the chips grow to finger size,
+ * the selected event shows a resize grip, and a long-press never opens the
+ * iOS callout — it lifts the event or creates one (see `trackPress`). */
+
+@layer components {
+  .calendar-pane {
+    @apply bg-app-panel flex h-full min-h-0 flex-col outline-none select-none;
+    -webkit-touch-callout: none;
+  }
+
+  /* ── Month ────────────────────────────────────────────────────────── */
+  /* The date disc in a day cell; it opens that day. A touch screen gets an
+   * invisible ring around the 24px disc, so the tap target is ~36px. */
+  .calendar-month__day-button {
+    @apply relative rounded-full pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5 pointer-coarse:after:content-[''];
+  }
+  .calendar-month__day-button--selected {
+    @apply ring-app-accent ring-2;
+  }
+  .calendar-month__day-button--outside {
+    @apply opacity-45;
+  }
+  /* "N more" under a day's chips; opens the day. */
+  .calendar-month__more {
+    @apply text-app-dim hover:bg-app-hover hover:text-app-bright truncate rounded px-1 text-left text-[11px] pointer-coarse:min-h-6 pointer-coarse:text-xs;
+  }
+
+  /* An event on a month day: a dot + title + start time, or a tinted bar
+   * for all-day events. Height matches `chipHeight()` in the pane. */
+  .calendar-chip {
+    @apply flex h-[19px] w-full shrink-0 cursor-default items-center gap-1 truncate rounded px-1 text-left text-[11px] leading-none pointer-coarse:h-6 pointer-coarse:text-xs;
+  }
+
+  /* ── Day / week ───────────────────────────────────────────────────── */
+  .calendar-time-grid__allday-event {
+    @apply h-[19px] shrink-0 cursor-default truncate rounded border-l-[3px] px-1 text-left text-[11px] font-medium pointer-coarse:h-6 pointer-coarse:text-xs;
+  }
+
+  /* A timed event block. Position and colour are inline. */
+  .calendar-event {
+    @apply absolute z-10 overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight;
+  }
+  .calendar-event--selected {
+    @apply z-20;
+  }
+  /* Being moved or resized: the preview stands in for it. */
+  .calendar-event--faded {
+    @apply opacity-30;
+  }
+  /* Bottom edge: drag to change the end time. */
+  .calendar-event__resize {
+    @apply absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize;
+  }
+  /* Touch, selected event: a taller strip with a visible grip that resizes
+   * straight away (no hold) — the strip claims the finger, so the time grid
+   * does not scroll under it. */
+  .calendar-event__resize--grip {
+    @apply h-3.5 touch-none after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-6 after:-translate-x-1/2 after:rounded-full after:bg-current after:opacity-70 after:content-[''];
+  }
+
+  /* ── Year ─────────────────────────────────────────────────────────── */
+  .calendar-year__months {
+    @apply grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-x-8 gap-y-6 pointer-coarse:grid-cols-[repeat(auto-fill,minmax(250px,1fr))];
+  }
+  .calendar-year__blank {
+    @apply h-6 pointer-coarse:h-8;
+  }
+  .calendar-year__day {
+    @apply hover:bg-app-hover text-app-bright relative mx-auto flex size-6 items-center justify-center rounded-full text-[11px] tabular-nums pointer-coarse:size-8 pointer-coarse:text-xs;
+  }
+  .calendar-year__day--today {
+    @apply font-semibold text-white hover:bg-transparent;
+  }
+
+  /* ── Event editor ─────────────────────────────────────────────────── */
+  .calendar-editor__swatches {
+    @apply flex items-center gap-1.5 pointer-coarse:gap-2;
+  }
+  .calendar-editor__swatch {
+    @apply ring-offset-app-panel size-5 rounded-full ring-offset-2 transition-transform hover:scale-110 pointer-coarse:size-7;
+  }
+  .calendar-editor__swatch--selected {
+    @apply ring-2;
+  }
+}

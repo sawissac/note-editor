@@ -95,6 +95,7 @@ export function NodeMenu({ node }: { node: FsNode }) {
               mode: "create",
               nodeType: "file",
               parentId: folderId,
+              afterId: node.type === "file" ? node.id : undefined,
             }),
           )
         }
@@ -109,6 +110,7 @@ export function NodeMenu({ node }: { node: FsNode }) {
               mode: "create",
               nodeType: "folder",
               parentId: folderId,
+              afterId: node.type === "file" ? node.id : undefined,
             }),
           )
         }

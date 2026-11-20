@@ -99,7 +99,7 @@
     @apply border-app-border bg-app-panel divide-app-border m-0 flex list-none flex-col divide-y overflow-hidden rounded-lg border p-0;
   }
   .timer-pane__row {
-    @apply hover:bg-app-hover relative flex h-11 cursor-pointer items-center gap-2 pr-1.5 pl-1 transition-colors duration-150;
+    @apply hover:bg-app-hover relative flex h-11 cursor-pointer items-center gap-2 pr-1.5 pl-1 transition-colors duration-150 pointer-coarse:h-12;
   }
   .timer-pane__row--selected {
     @apply bg-app-selected hover:bg-app-selected;
@@ -111,8 +111,10 @@
   .timer-pane__row--dragging {
     @apply bg-app-panel ring-app-border-accent z-10 cursor-grabbing shadow-lg ring-1;
   }
+  /* Mouse: drag at once. Touch: press and hold, then drag (useDragSensors);
+   * a quick swipe from the grip still scrolls the pane. */
   .timer-pane__row-handle {
-    @apply text-app-dim relative -mr-1 cursor-grab touch-none active:cursor-grabbing;
+    @apply text-app-dim relative -mr-1 cursor-grab active:cursor-grabbing;
   }
   .timer-pane__row--past {
     @apply opacity-55;
@@ -140,7 +142,7 @@
     @apply size-3;
   }
   .timer-pane__row-label {
-    @apply text-app-bright placeholder:text-app-dim hover:border-app-border focus-visible:border-app-accent focus-visible:bg-app-bg relative h-7 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-[13px] font-medium outline-none;
+    @apply text-app-bright placeholder:text-app-dim hover:border-app-border focus-visible:border-app-accent focus-visible:bg-app-bg relative h-7 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-[13px] font-medium outline-none pointer-coarse:h-9;
   }
   .timer-pane__row-time {
     @apply text-app-bright relative flex shrink-0 items-center gap-1.5 font-mono text-[13px] font-semibold tabular-nums;
@@ -157,8 +159,10 @@
   .timer-pane__part {
     @apply flex items-center;
   }
+  /* Touch: no hover to hint that the digits are editable, so they keep a
+   * faint field outline and a finger-sized box. */
   .timer-pane__number {
-    @apply text-app-bright hover:border-app-border focus-visible:border-app-accent focus-visible:bg-app-bg h-7 w-8 [appearance:textfield] rounded-md border border-transparent bg-transparent px-0.5 text-right font-mono text-[12px] tabular-nums outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
+    @apply text-app-bright hover:border-app-border focus-visible:border-app-accent focus-visible:bg-app-bg pointer-coarse:border-app-border pointer-coarse:focus-visible:border-app-accent pointer-coarse:h-9 pointer-coarse:w-9 h-7 w-8 [appearance:textfield] rounded-md border border-transparent bg-transparent px-0.5 text-right font-mono text-[12px] tabular-nums outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
   }
   .timer-pane__unit {
     @apply text-app-dim mr-0.5 font-mono text-[10px];

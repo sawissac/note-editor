@@ -1,4 +1,5 @@
 import * as React from "react"
+import type { PluginRegistry } from "@embedpdf/core"
 import type { DocumentPermissions } from "@embedpdf/core/react"
 import type {
   PdfAnnotationObject,
@@ -8,9 +9,12 @@ import type {
 } from "@embedpdf/models"
 import { PdfAnnotationSubtype } from "@embedpdf/models"
 import type { CaptureAreaEvent } from "@embedpdf/plugin-capture/react"
+import { InteractionManagerPlugin } from "@embedpdf/plugin-interaction-manager"
+import { ZoomGestureWrapper } from "@embedpdf/plugin-zoom/react"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { isCoarsePointer, useCoarsePointer } from "@/lib/use-media-query"
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
 import {
@@ -23,6 +27,61 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { IconLayoutSidebar, IconLayoutSidebarRight, IconArrowBackUp, IconArrowForwardUp, IconCircleMinus, IconCirclePlus, IconRotateClockwise, IconSearch, IconDots, IconDownload, IconUpload, IconPrinter, IconMaximize, IconMinimize, IconHandStop, IconPointer, IconCamera, IconZoomInArea, IconBook, IconFile, IconArrowsHorizontal, IconArrowsVertical, IconHighlight, IconUnderline, IconStrikethrough, IconWaveSine, IconPencil, IconBrush, IconTypography, IconMessage2, IconNote, IconSquare, IconCircle, IconLine, IconArrowUpRight, IconVectorSpline, IconPolygon, IconPhoto, IconRubberStamp, IconLink, IconCursorText, IconReplace, IconTrash, IconLayersUnion, IconLayersSubtract, IconLock, IconLockOpen, IconMessageCircle, IconMessages, IconCheck, IconX, IconPlus, IconMinus, IconCopy, IconEyeOff, IconEye, IconSquareDashed, IconSignature, IconForms, IconSquareCheck, IconCircleDot, IconSelect, IconList, IconListTree, IconPaperclip, IconLayoutGrid, IconAdjustmentsHorizontal, IconInfoCircle, IconShieldLock, IconFileText, IconChevronDown, IconChevronUp, IconChevronLeft, IconChevronRight, IconStack2, IconFilePlus, IconScissors, IconArrowMerge, IconRefresh, IconDeviceFloppy, IconKeyboard, IconPalette, IconBold, IconItalic, IconAlignLeft, IconAlignCenter, IconAlignRight, IconAlignBoxTopCenter, IconAlignBoxCenterMiddle, IconAlignBoxBottomCenter, IconFlag, IconClipboard, IconKey, IconExternalLink, IconArrowsMove, IconAlertTriangle, IconArrowUp, IconArrowDown, IconEdit, IconSparkles } from "@tabler/icons-react"
+
+/* -------------------------------------------------------------------------- */
+/* Touch                                                                      */
+/* -------------------------------------------------------------------------- */
+/**
+ * EmbedPDF's default "pointerMode" claims raw touch, which puts
+ * `touch-action: none` on every page and on the scroller content, so a finger
+ * (or Apple Pencil) drag selects text instead of scrolling the document. On
+ * touch-first devices re-register the mode without raw touch: one-finger drags
+ * scroll natively, taps still select annotations / follow links, and the
+ * annotation tools (ink, shapes, markup…) keep their own raw-touch modes so
+ * drawing still works. Call from `<EmbedPDF onInitialized>` (before the
+ * pointer providers mount). Desktop is untouched.
+ */
+export async function allowTouchScrollInPointerMode(
+  registry: PluginRegistry
+): Promise<void> {
+  if (!isCoarsePointer()) return
+  registry
+    .getPlugin<InteractionManagerPlugin>(InteractionManagerPlugin.id)
+    ?.provides()
+    .registerMode({
+      id: "pointerMode",
+      scope: "page",
+      exclusive: false,
+      cursor: "auto",
+      wantsRawTouch: false,
+    })
+}
+
+/**
+ * Pinch-to-zoom for the document on touch devices (EmbedPDF's own gesture
+ * wrapper: live CSS scale while pinching, committed to the zoom plugin on
+ * release). Rendered only for a coarse primary pointer so the desktop layout
+ * and ctrl/⌘+wheel behaviour stay exactly as they were.
+ */
+export function PdfTouchZoom({
+  documentId,
+  children,
+}: {
+  documentId: string
+  children: React.ReactNode
+}) {
+  const coarse = useCoarsePointer()
+  if (!coarse) return <>{children}</>
+  return (
+    <ZoomGestureWrapper
+      documentId={documentId}
+      enableWheel={false}
+      data-slot="pdf-touch-zoom"
+    >
+      {children}
+    </ZoomGestureWrapper>
+  )
+}
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */

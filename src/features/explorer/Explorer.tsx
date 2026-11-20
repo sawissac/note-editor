@@ -17,6 +17,7 @@ import {
 import { AnimatePresence, m, type Variants } from "motion/react";
 import * as React from "react";
 
+import { BentoLogo } from "@/components/bento-logo";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
@@ -68,7 +69,6 @@ import {
 import { NameInput } from "@/features/explorer/NameInput";
 import {
   IndentGuides,
-  ROW_HEIGHT,
   rowPadding,
   TreeRow,
 } from "@/features/explorer/TreeRow";
@@ -348,8 +348,10 @@ export function Explorer() {
 
   return (
     <Sidebar data-testid="explorer" texture="none" className="h-full">
-      <SidebarHeader className="h-9 gap-1 pr-1.5 pl-3">
-        <SidebarTitle className={ui.label}>Bento</SidebarTitle>
+      <SidebarHeader className="explorer-header">
+        <SidebarTitle className="explorer-header__title">
+          <BentoLogo title="Bento" className="explorer-header__logo" />
+        </SidebarTitle>
         <ButtonGroup aria-label="Create">
           <HeaderAction label="New file" onClick={() => startCreate("file")}>
             <IconFilePlus />
@@ -568,8 +570,8 @@ function DraftRow({
       aria-level={depth + 1}
       aria-selected
       data-testid="tree-draft-row"
-      className="bg-app-selected relative flex items-center gap-1.5 pr-1"
-      style={{ paddingLeft: rowPadding(depth), height: ROW_HEIGHT }}
+      className="tree-row tree-row--draft"
+      style={{ paddingLeft: rowPadding(depth) }}
     >
       <IndentGuides depth={depth} />
       <span className="size-4 shrink-0" />
@@ -599,7 +601,7 @@ function SortAction() {
               size="icon-sm"
               aria-label="Sort all folders"
               data-testid="explorer-sort-button"
-              className="text-app-dim hover:text-app-accent size-6 bg-transparent [&_svg:not([class*='size-'])]:size-3.5"
+              className="explorer-header__action"
             >
               <IconArrowsSort />
             </Button>

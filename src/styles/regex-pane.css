@@ -145,7 +145,7 @@
     @apply m-0 list-none p-0;
   }
   .regex-pane__part {
-    @apply border-app-border hover:bg-app-hover focus-visible:bg-app-selected flex w-full items-baseline gap-3 border-0 border-b bg-transparent px-3 py-1.5 text-left outline-none;
+    @apply border-app-border hover:bg-app-hover focus-visible:bg-app-selected flex w-full items-baseline gap-3 border-0 border-b bg-transparent px-3 py-1.5 text-left outline-none pointer-coarse:py-2.5;
   }
   /* The first column — same width in the header and in every row. */
   .regex-pane__part-key {
@@ -184,7 +184,7 @@
     @apply border-app-border border-b;
   }
   .regex-pane__match {
-    @apply hover:bg-app-hover focus-visible:bg-app-selected flex w-full items-baseline gap-2 border-0 bg-transparent px-3 py-1.5 text-left outline-none;
+    @apply hover:bg-app-hover focus-visible:bg-app-selected flex w-full items-baseline gap-2 border-0 bg-transparent px-3 py-1.5 text-left outline-none pointer-coarse:py-2.5;
   }
   .regex-pane__match-index {
     @apply tint-current text-app-accent min-w-5 shrink-0 rounded-sm border px-1 text-center font-mono text-[10px] tabular-nums;
@@ -255,7 +255,7 @@
     @apply border-app-border divide-app-border m-0 flex list-none flex-col divide-y overflow-hidden rounded-md border p-0;
   }
   .regex-pane__recipe {
-    @apply hover:bg-app-accent-faint focus-visible:bg-app-selected flex w-full flex-col gap-0.5 border-0 bg-transparent px-2.5 py-1.5 text-left transition-colors duration-200 outline-none;
+    @apply hover:bg-app-accent-faint focus-visible:bg-app-selected flex w-full flex-col gap-0.5 border-0 bg-transparent px-2.5 py-1.5 text-left transition-colors duration-200 outline-none pointer-coarse:py-2.5;
   }
   .regex-pane__recipe-name {
     @apply font-title text-app-bright text-[12px] font-semibold;

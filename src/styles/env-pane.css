@@ -1,0 +1,44 @@
+@reference "../index.css";
+
+/* EnvPane (dotenv files) — BEM block `env-pane`.
+ *
+ * Imported from `EnvPane.tsx`. Monaco shows each problem's message only on
+ * hover over the squiggle, which a finger cannot do — so the problem count in
+ * the file bar opens a list of them; tapping one jumps to its line. */
+
+@layer components {
+  /* File-bar problem count: the popover trigger. */
+  .env-pane__problems {
+    @apply hover:bg-app-hover focus-visible:ring-app-accent flex h-7 shrink-0 items-center gap-1 rounded-md border-0 bg-transparent px-1.5 text-[11px] outline-none focus-visible:ring-2 pointer-coarse:h-9 pointer-coarse:px-2;
+  }
+  .env-pane__problems--tone-error {
+    @apply text-app-error;
+  }
+  .env-pane__problems--tone-warn {
+    @apply text-app-warn;
+  }
+  .env-pane__icon {
+    @apply size-3.5 shrink-0;
+  }
+  .env-pane__problem-list {
+    @apply m-0 flex list-none flex-col p-0;
+  }
+  .env-pane__problem {
+    @apply hover:bg-app-hover focus-visible:bg-app-selected flex w-full items-baseline gap-2 rounded-md border-0 bg-transparent px-2 py-1.5 text-left outline-none pointer-coarse:py-2.5;
+  }
+  .env-pane__problem-line {
+    @apply text-app-dim w-8 shrink-0 font-mono text-[11px] tabular-nums;
+  }
+  .env-pane__problem-message {
+    @apply font-description text-app-text min-w-0 flex-1 text-[12px] leading-snug;
+  }
+  .env-pane__problem-message--tone-error {
+    @apply text-app-error;
+  }
+}
+
+/* ── env-pane × compacto ───────────────────────────────────────────────
+ * Unlayered so it outranks PopoverContent's own width and padding. */
+.env-pane__popover {
+  @apply w-80 p-1;
+}

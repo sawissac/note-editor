@@ -291,7 +291,7 @@ export function starterDeck(): PptxDoc {
             y: 290,
             width: 800,
             height: 60,
-            text: "Double-click to edit the subtitle",
+            text: "Double-click (or double-tap) to edit the subtitle",
             fontSize: 24,
             color: "#475569",
             align: "center",

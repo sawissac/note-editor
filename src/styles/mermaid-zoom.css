@@ -10,9 +10,11 @@
   .mermaid-zoom {
     @apply relative min-h-0 flex-1 overflow-hidden;
   }
-  /* Size comes from the library's inline wrapperStyle (100% × 100%). */
+  /* Size comes from the library's inline wrapperStyle (100% × 100%).
+   * `touch-none`: one finger pans, two pinch — the library's own touch
+   * handling, not the browser's scroll / zoom. */
   .mermaid-zoom__viewport {
-    @apply cursor-grab active:cursor-grabbing;
+    @apply cursor-grab touch-none active:cursor-grabbing;
   }
   /* Sized to the diagram's own viewBox so zoom 100% = Mermaid's size. */
   .mermaid-zoom__diagram {
@@ -23,9 +25,9 @@
     @apply border-app-border bg-app-panel absolute right-3 bottom-3 flex items-center gap-0.5 rounded-md border p-0.5 shadow-sm;
   }
   .mermaid-zoom__button {
-    @apply text-app-dim hover:bg-app-hover hover:text-app-accent focus-visible:ring-app-accent/30 flex size-7 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 outline-none focus-visible:ring-2 [&_svg]:size-4;
+    @apply text-app-dim hover:bg-app-hover hover:text-app-accent focus-visible:ring-app-accent/30 flex size-7 cursor-pointer pointer-coarse:size-10 items-center justify-center rounded border-0 bg-transparent p-0 outline-none focus-visible:ring-2 [&_svg]:size-4;
   }
   .mermaid-zoom__level {
-    @apply text-app-dim hover:bg-app-hover hover:text-app-accent min-w-12 cursor-pointer rounded border-0 bg-transparent px-1 py-1 text-center font-mono text-[11px] tabular-nums;
+    @apply text-app-dim hover:bg-app-hover hover:text-app-accent min-w-12 cursor-pointer rounded border-0 bg-transparent px-1 py-1 text-center pointer-coarse:min-h-10 pointer-coarse:min-w-14 font-mono text-[11px] tabular-nums;
   }
 }

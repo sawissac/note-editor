@@ -1,0 +1,30 @@
+@reference "../index.css";
+
+/* Office editors (Word / Excel / CSV — src/components/extend/docx-*,
+ * xlsx-*, csv-viewer) — BEM blocks `docx-editor` (the page column) and
+ * `xlsx-context-menu` (the grid's right-click / long-press menu).
+ *
+ * Imported from the components themselves. Touch sizing uses the
+ * `pointer-coarse:` variant so desktop density is unchanged. */
+
+@layer components {
+  /* ── docx-editor ─────────────────────────────────────────────────────
+   * The centred column holding the rendered pages. On touch a long press
+   * on page text is the editor's own selection / context-menu gesture
+   * (document-touch.ts), so iOS must not raise its callout or magnifier. */
+  .docx-editor__pages {
+    @apply mx-auto flex min-h-full justify-center pointer-coarse:[-webkit-touch-callout:none];
+  }
+
+  /* ── xlsx-context-menu ───────────────────────────────────────────────
+   * Rows of the grid's context menu (insert / delete rows & columns, …).
+   * Rendered by react-xlsx inside its own popup, so these are plain
+   * buttons rather than compacto menu items: give them the same 40px
+   * finger floor as the compacto menus. */
+  .xlsx-context-menu__item {
+    @apply flex min-h-8 w-full cursor-default items-center gap-2 rounded-sm px-2 py-1 text-left text-base text-foreground outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-64 sm:min-h-7 sm:text-sm pointer-coarse:min-h-10;
+  }
+  .xlsx-context-menu__item--destructive {
+    @apply text-destructive;
+  }
+}

@@ -18,17 +18,17 @@
     @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/30 min-h-16 w-full min-w-0 resize-y rounded-md border px-2 py-1.5 text-[12px] leading-snug transition-colors duration-150 outline-none focus-visible:ring-2;
   }
   .pane-field__color {
-    @apply border-app-border-mid bg-app-bg hover:border-app-border-accent focus-visible:ring-app-accent/30 h-8 w-10 shrink-0 cursor-pointer rounded-md border p-0.5 outline-none focus-visible:ring-2;
+    @apply border-app-border-mid bg-app-bg hover:border-app-border-accent focus-visible:ring-app-accent/30 h-8 w-10 shrink-0 cursor-pointer rounded-md border p-0.5 outline-none focus-visible:ring-2 pointer-coarse:h-9 pointer-coarse:w-11;
   }
   /* Controls side by side inside one field. */
   .pane-field__row {
     @apply flex min-w-0 items-center gap-2;
   }
   .pane-field__check {
-    @apply font-description text-app-text flex cursor-pointer items-center gap-2 text-[12px] select-none;
+    @apply font-description text-app-text flex cursor-pointer items-center gap-2 text-[12px] select-none pointer-coarse:min-h-9 pointer-coarse:gap-2.5 pointer-coarse:text-[13px];
   }
   .pane-field__checkbox {
-    @apply accent-app-accent size-3.5 cursor-pointer;
+    @apply accent-app-accent size-3.5 cursor-pointer pointer-coarse:size-5;
   }
   .pane-field__hint {
     @apply font-description text-app-dim text-[11px] leading-snug;

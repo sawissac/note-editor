@@ -5,10 +5,10 @@
 
 @layer components {
   .ask-ai {
-    @apply bg-app-accent text-app-bg hover:bg-app-accent/90 focus-visible:ring-app-accent/30 font-title fixed z-50 flex h-7 cursor-pointer items-center gap-1 rounded-md border-0 px-2.5 text-[11px] font-semibold shadow-md outline-none focus-visible:ring-2;
+    @apply bg-app-accent text-app-bg hover:bg-app-accent/90 focus-visible:ring-app-accent/30 font-title fixed z-50 flex h-7 cursor-pointer items-center gap-1 rounded-md border-0 px-2.5 text-[11px] font-semibold shadow-md outline-none focus-visible:ring-2 pointer-coarse:h-9 pointer-coarse:min-w-26 pointer-coarse:justify-center pointer-coarse:gap-1.5 pointer-coarse:px-3 pointer-coarse:text-[12px];
   }
   .ask-ai__icon {
-    @apply size-3.5;
+    @apply size-3.5 pointer-coarse:size-4;
   }
 }
 
@@ -35,33 +35,12 @@
     @apply text-app-dim min-w-0 flex-1 truncate font-mono text-[10px];
   }
   .ask-ai-panel__icon-button {
-    @apply text-app-dim hover:bg-app-hover hover:text-app-bright flex size-6 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 [&_svg]:size-3.5;
+    @apply text-app-dim hover:bg-app-hover hover:text-app-bright flex size-6 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 [&_svg]:size-3.5 pointer-coarse:size-9 pointer-coarse:[&_svg]:size-4;
   }
 
+  /* Holds the prompt chips (block `prompt-chips`). */
   .ask-ai-panel__quick {
-    @apply flex flex-wrap gap-1 px-2.5 pt-2;
-  }
-  .ask-ai-panel__chip {
-    @apply border-app-border-mid bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  /* A workspace prompt: joined to its pencil, like one split pill. */
-  .ask-ai-panel__chip--custom {
-    @apply max-w-48 rounded-r-none border-r-0 pr-1.5;
-  }
-  .ask-ai-panel__chip--add {
-    @apply text-app-dim border-dashed px-1.5;
-  }
-  .ask-ai-panel__chip-text {
-    @apply min-w-0 truncate;
-  }
-  .ask-ai-panel__chip-icon {
-    @apply size-3 shrink-0;
-  }
-  .ask-ai-panel__custom {
-    @apply inline-flex min-w-0;
-  }
-  .ask-ai-panel__chip-edit {
-    @apply border-app-border-mid bg-app-bg text-app-dim hover:border-app-border-accent hover:text-app-accent flex cursor-pointer items-center rounded-r-full border py-0.5 pr-1.5 pl-1 [&_svg]:size-3;
+    @apply px-2.5 pt-2;
   }
   .ask-ai-panel__editor {
     @apply flex h-72 min-h-0 shrink-0 flex-col;
@@ -81,20 +60,20 @@
   }
 
   .ask-ai-panel__actions {
-    @apply flex shrink-0 flex-wrap gap-1 px-2.5 pt-1;
+    @apply flex shrink-0 flex-wrap gap-1 px-2.5 pt-1 pointer-coarse:gap-1.5;
   }
   .ask-ai-panel__action {
-    @apply border-app-border bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description flex h-6 cursor-pointer items-center gap-1 rounded border px-2 text-[11px] [&_svg]:size-3.5;
+    @apply border-app-border bg-app-bg text-app-text hover:border-app-border-accent hover:text-app-accent font-description flex h-6 cursor-pointer items-center gap-1 rounded border px-2 text-[11px] [&_svg]:size-3.5 pointer-coarse:h-9 pointer-coarse:px-3 pointer-coarse:text-[12px];
   }
 
   .ask-ai-panel__form {
     @apply flex shrink-0 items-end gap-1.5 p-2;
   }
   .ask-ai-panel__input {
-    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim focus-visible:border-app-accent focus-visible:ring-app-accent/30 font-description field-sizing-content max-h-32 min-h-8 min-w-0 flex-1 resize-none rounded-md border px-2.5 py-1.5 text-[12px] leading-[1.45] outline-none focus-visible:ring-2 disabled:opacity-50;
+    @apply border-app-border-mid bg-app-bg text-app-bright placeholder:text-app-dim focus-visible:border-app-accent focus-visible:ring-app-accent/30 font-description field-sizing-content max-h-32 min-h-8 min-w-0 flex-1 resize-none rounded-md border px-2.5 py-1.5 text-[12px] leading-[1.45] outline-none focus-visible:ring-2 disabled:opacity-50 pointer-coarse:min-h-10 pointer-coarse:py-2.5 pointer-coarse:text-[14px];
   }
   .ask-ai-panel__send {
-    @apply bg-app-accent text-app-bg hover:bg-app-accent/90 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:size-4;
+    @apply bg-app-accent text-app-bg hover:bg-app-accent/90 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:size-4 pointer-coarse:size-10;
   }
   .ask-ai-panel__send--stop {
     @apply bg-app-error hover:bg-app-error/90;

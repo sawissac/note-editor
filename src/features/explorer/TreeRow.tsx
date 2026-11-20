@@ -42,7 +42,6 @@ import {
 import { NameInput } from "@/features/explorer/NameInput";
 import { NodeMenu } from "@/features/explorer/NodeMenu";
 
-export const ROW_HEIGHT = 26;
 const INDENT = 12;
 
 /** Opens the row's context menu from its ⋯ button, at the button. */
@@ -218,18 +217,15 @@ export function TreeRow({
               onExternalDrop(Array.from(e.dataTransfer.files), dropFolderId);
             }
           }}
-          style={{ paddingLeft: rowPadding(depth), height: ROW_HEIGHT }}
+          style={{ paddingLeft: rowPadding(depth) }}
           className={cn(
-            "group relative isolate flex cursor-pointer items-center gap-1.5 pr-1 text-[12px] text-app-text outline-none select-none",
-            "transition-colors duration-(--motion-duration-fast) hover:bg-app-hover",
-            active && "text-app-bright",
-            selected && "text-app-bright",
+            "tree-row group",
+            (active || selected) && "tree-row--selected",
             // A multi-selection fills every row in place; a single selection
             // uses the sliding fill below.
-            selected && multi && "bg-app-selected",
-            focused && multi && "ring-1 ring-app-border-mid ring-inset",
-            (isDropTarget || menuOpen) &&
-              "bg-app-accent-faint ring-1 ring-app-border-accent ring-inset",
+            selected && multi && "tree-row--multi-selected",
+            focused && multi && "tree-row--focused",
+            (isDropTarget || menuOpen) && "tree-row--drop-target",
           )}
         >
           {/* Single selection: one shared fill that slides from the previously
@@ -278,11 +274,12 @@ export function TreeRow({
               </span>
               <ButtonGroup
                 aria-label={`${node.name} actions`}
-                className="opacity-0 group-hover:opacity-100 group-data-selected:opacity-100"
+                className="tree-row__actions"
               >
                 {isFolder ? (
                   <>
                     <RowAction
+                      create
                       label="New file"
                       onClick={() =>
                         dispatch(
@@ -297,6 +294,7 @@ export function TreeRow({
                       <IconFilePlus />
                     </RowAction>
                     <RowAction
+                      create
                       label="New folder"
                       onClick={() =>
                         dispatch(
@@ -366,11 +364,18 @@ function RenameInput({
   );
 }
 
+/**
+ * Small icon button in a row's hover toolbar. `create` marks the folder's
+ * "New file / New folder" shortcuts, which touch layouts drop (they stay in
+ * the context menu) so the row keeps room for its name.
+ */
 function RowAction({
   label,
   onClick,
   children,
+  create = false,
 }: {
+  create?: boolean;
   label: string;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
@@ -388,7 +393,10 @@ function RowAction({
             onClick(e);
           }}
           onDoubleClick={(e) => e.stopPropagation()}
-          className="size-5 rounded-sm bg-app-bg text-app-dim hover:text-app-accent [&_svg:not([class*='size-'])]:size-3"
+          className={cn(
+            "tree-row__action",
+            create && "tree-row__action--create",
+          )}
         >
           {children}
         </Button>

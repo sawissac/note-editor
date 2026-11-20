@@ -39,6 +39,10 @@
   .app-state-pane__node {
     @apply cursor-pointer outline-none [&:focus-visible_circle]:stroke-app-accent [&:focus-visible_circle]:[stroke-width:3];
   }
+  /* Invisible finger-sized target around each dot. */
+  .app-state-pane__hit {
+    @apply fill-transparent [pointer-events:all];
+  }
   /* Halo in the background colour, so links passing under a label stay
    * out of the way of the text. */
   .app-state-pane__text {

@@ -39,6 +39,7 @@ import {
 } from "@/lib/diff-doc";
 import { baseNameLength } from "@/lib/file-types";
 import { FileIcon } from "@/lib/file-icons";
+import { BREAKPOINT, useMediaQuery } from "@/lib/use-media-query";
 import { downloadFile, storage } from "@/lib/storage";
 import { openFile, saveContent } from "@/store/actions";
 import type { FsNode } from "@/store/fs-slice";
@@ -65,6 +66,15 @@ const SIDE_MOD: Record<Side, string> = {
 };
 
 const other = (side: Side): Side => (side === "left" ? "right" : "left");
+
+/**
+ * Split needs about two 380px columns; below `md` (phones, iPad split-view)
+ * the diff shows unified whatever the saved layout says.
+ */
+function useShownLayout(layout: DiffLayout) {
+  const wide = useMediaQuery(BREAKPOINT.md);
+  return { shown: wide ? layout : ("unified" as const), narrow: !wide };
+}
 
 /** Files larger than this get no change count in the picker. */
 const COUNT_LIMIT = 200_000;
@@ -208,6 +218,7 @@ function PairDiff({
   const [loaded, setLoaded] = React.useState<Loaded>({ status: "loading" });
   const [copied, setCopied] = React.useState(false);
   const { layout, ignoreWhitespace } = doc;
+  const { shown, narrow } = useShownLayout(layout);
   const leftPath = getPath(nodes, left.id).join("/");
   const rightPath = getPath(nodes, right.id).join("/");
 
@@ -287,7 +298,8 @@ function PairDiff({
       <FileBarSlot>
         {stats ? <DiffStats {...stats} /> : null}
         <LayoutSwitch
-          layout={layout}
+          layout={shown}
+          narrow={narrow}
           onLayout={(next) => onChange({ ...doc, layout: next })}
         />
         <ButtonGroup aria-label="Diff">
@@ -400,7 +412,7 @@ function PairDiff({
           <FileDiff
             fileDiff={loaded.fileDiff}
             className="diff-pane__diff"
-            options={diffOptions(layout, isDark, true)}
+            options={diffOptions(shown, isDark, true)}
           />
         )}
       </div>
@@ -797,12 +809,13 @@ function PatchView({
     }
   }, [patch]);
   const stats = countChanges(parsed.files);
+  const { shown, narrow } = useShownLayout(layout);
 
   return (
     <div className="diff-pane">
       <FileBarSlot>
         <DiffStats {...stats} />
-        <LayoutSwitch layout={layout} onLayout={onLayout} />
+        <LayoutSwitch layout={shown} narrow={narrow} onLayout={onLayout} />
       </FileBarSlot>
       <div className="diff-pane__body" data-testid="diff-pane-view">
         {parsed.files.length === 0 ? (
@@ -817,7 +830,7 @@ function PatchView({
               key={`${fileDiff.prevName ?? ""}:${fileDiff.name}:${i}`}
               fileDiff={fileDiff}
               className="diff-pane__diff diff-pane__diff--stacked"
-              options={diffOptions(layout, isDark, false)}
+              options={diffOptions(shown, isDark, false)}
             />
           ))
         )}
@@ -899,7 +912,7 @@ function BarButton({
       aria-pressed={pressed}
       data-active={pressed || undefined}
       disabled={disabled}
-      className={cn(ui.paneToolbarBtn, "w-7 px-0")}
+      className={cn(ui.paneToolbarBtn, "diff-pane__bar-button")}
       data-testid={testId}
       onClick={onClick}
     >
@@ -910,9 +923,12 @@ function BarButton({
 
 function LayoutSwitch({
   layout,
+  narrow,
   onLayout,
 }: {
   layout: DiffLayout;
+  /** Too narrow for split: it is offered but disabled. */
+  narrow: boolean;
   onLayout: (layout: DiffLayout) => void;
 }) {
   const options: Array<[DiffLayout, string, typeof IconColumns2]> = [
@@ -935,8 +951,13 @@ function LayoutSwitch({
         <ToggleGroupItem
           key={value}
           value={value}
+          disabled={narrow && value === "split"}
           aria-label={hint}
-          title={hint}
+          title={
+            narrow && value === "split"
+              ? "Split needs a wider window — showing unified"
+              : hint
+          }
           data-testid={`diff-pane-layout-${value}-button`}
         >
           <Glyph className="diff-pane__icon" />

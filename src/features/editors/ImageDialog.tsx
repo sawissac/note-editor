@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/ui-styles";
+import { useCoarsePointer } from "@/lib/use-media-query";
 
 type Source = "upload" | "link";
 
@@ -66,6 +67,7 @@ export function ImageDialog() {
   const [title, setTitle] = React.useState("");
   const [rejected, setRejected] = React.useState<string | null>(null);
   const [previewFailed, setPreviewFailed] = React.useState(false);
+  const coarse = useCoarsePointer();
 
   // Reset the form each time the dialog opens (new image or edit).
   React.useEffect(() => {
@@ -214,7 +216,11 @@ export function ImageDialog() {
                     <IconPhoto className="size-5" />
                   </span>
                   <span className="font-title text-[12px] font-semibold text-app-bright">
-                    {isDragActive ? "Drop the image" : "Click or drop an image"}
+                    {isDragActive
+                      ? "Drop the image"
+                      : coarse
+                        ? "Tap to choose an image"
+                        : "Click or drop an image"}
                   </span>
                   <span className={ui.help}>PNG, JPG, GIF, WebP or SVG · up to 10 MB</span>
                 </div>

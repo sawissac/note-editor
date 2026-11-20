@@ -5,13 +5,13 @@
 
 @layer components {
   .status-bar {
-    @apply border-app-border bg-app-sidebar text-app-dim flex h-7 shrink-0 items-center gap-3 border-t px-2;
+    @apply border-app-border bg-app-sidebar text-app-dim flex h-7 shrink-0 items-center gap-3 border-t px-2 pointer-coarse:h-10 pointer-coarse:px-3;
   }
   .status-bar__item {
     @apply flex min-w-0 items-center gap-1 truncate font-mono text-[11px];
   }
   .status-bar__icon {
-    @apply size-3 shrink-0;
+    @apply size-3 shrink-0 pointer-coarse:size-3.5;
   }
   .status-bar__spacer {
     @apply flex-1;

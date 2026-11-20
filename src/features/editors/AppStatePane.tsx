@@ -22,6 +22,7 @@ import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import * as ui from "@/lib/ui-styles";
+import { useCoarsePointer } from "@/lib/use-media-query";
 import { saveContent } from "@/store/actions";
 import type { FsNode } from "@/store/fs-slice";
 import { type RootState, useAppDispatch, useAppStore } from "@/store";
@@ -346,6 +347,14 @@ export default function AppStatePane({ id, registerSave }: PaneProps) {
               return `translate(${p.y},${p.x})`;
             });
           g.append("circle").attr("r", 5);
+          // Invisible hit area: a 5px dot is too small for a finger. A rect,
+          // not a circle, so `select("circle")` and the focus ring skip it.
+          g.append("rect")
+            .attr("class", "app-state-pane__hit")
+            .attr("x", -ROW_H / 2)
+            .attr("y", -ROW_H / 2)
+            .attr("width", ROW_H)
+            .attr("height", ROW_H);
           const text = g
             .append("text")
             .attr("class", "app-state-pane__text")
@@ -435,6 +444,7 @@ export default function AppStatePane({ id, registerSave }: PaneProps) {
       .call(behavior.transform, zoomIdentity.translate(tx, ty).scale(k));
   };
 
+  const coarse = useCoarsePointer();
   const files = Object.values(state.fs.nodes);
   const counts = [
     {
@@ -533,7 +543,9 @@ export default function AppStatePane({ id, registerSave }: PaneProps) {
             </svg>
             <p className="app-state-pane__hint">
               {frozen ? "Paused · " : "Live · "}
-              click to open · drag to pan · scroll to zoom
+              {coarse
+                ? "tap to open · drag to pan · pinch to zoom"
+                : "click to open · drag to pan · scroll to zoom"}
             </p>
           </div>
 

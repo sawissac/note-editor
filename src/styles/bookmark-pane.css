@@ -35,7 +35,7 @@
     @apply flex flex-col gap-px;
   }
   .bookmark-pane__nav-item {
-    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent flex h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left text-[12.5px] transition-colors duration-150 outline-none focus-visible:ring-2 relative isolate;
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent flex h-7 pointer-coarse:h-9 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-2 text-left text-[12.5px] transition-colors duration-150 outline-none focus-visible:ring-2 relative isolate;
   }
   /* The selected fill is `__nav-highlight`, which slides between entries. */
   .bookmark-pane__nav-item--selected {
@@ -63,10 +63,10 @@
   .bookmark-pane__nav-count--hidden {
     @apply opacity-0;
   }
-  /* Room for the folder actions (3 × 24px buttons), so the name truncates
-   * before them instead of running underneath. */
+  /* Room for the folder actions (3 × 24px buttons, 36px on touch), so the
+   * name truncates before them instead of running underneath. */
   .bookmark-pane__nav-item--with-actions {
-    @apply pr-20;
+    @apply pr-20 pointer-coarse:pr-28;
   }
   .bookmark-pane__group {
     @apply flex flex-col gap-1;
@@ -75,7 +75,7 @@
    * button's glyph sits 6px inside it, so a 2px right inset puts the glyph's
    * edge on the count column (also 8px). */
   .bookmark-pane__group-head {
-    @apply flex h-6 items-center justify-between gap-2 pr-0.5 pl-2;
+    @apply flex h-6 pointer-coarse:h-9 items-center justify-between gap-2 pr-0.5 pl-2;
   }
   .bookmark-pane__heading {
     @apply font-title text-app-dim m-0 text-[10.5px] font-semibold tracking-[0.14em] uppercase;
@@ -90,10 +90,11 @@
     @apply relative flex items-center pl-[calc(var(--depth,0)*14px)];
   }
   .bookmark-pane__folder-input {
-    @apply border-app-accent bg-app-bg text-app-bright h-7 w-full min-w-0 rounded-md border px-2 text-[12.5px] outline-none;
+    @apply border-app-accent bg-app-bg text-app-bright h-7 pointer-coarse:h-9 w-full min-w-0 rounded-md border px-2 text-[12.5px] outline-none;
   }
   /* Rename / sub-folder / delete — shown on the open folder, on hover and on
-   * keyboard focus (state set by the row). No fill of their own: they sit on
+   * keyboard focus (state set by the row). On touch: tap a folder to open it
+   * and its actions appear. No fill of their own: they sit on
    * the row's tint, and the count hides rather than being covered. */
   .bookmark-pane__folder-actions {
     @apply pointer-events-none absolute right-1 flex items-center opacity-0 transition-opacity duration-150;
@@ -105,7 +106,7 @@
     @apply m-0 flex list-none flex-wrap gap-1 px-2 py-0;
   }
   .bookmark-pane__tag {
-    @apply border-app-border text-app-text hover:border-app-border-accent hover:text-app-accent focus-visible:ring-app-accent font-description flex h-6 cursor-pointer items-center gap-1 rounded-full border bg-transparent px-2 text-[11.5px] transition-colors duration-150 outline-none focus-visible:ring-2;
+    @apply border-app-border text-app-text hover:border-app-border-accent hover:text-app-accent focus-visible:ring-app-accent font-description flex h-6 pointer-coarse:h-8 pointer-coarse:px-2.5 cursor-pointer items-center gap-1 rounded-full border bg-transparent px-2 text-[11.5px] transition-colors duration-150 outline-none focus-visible:ring-2;
   }
   .bookmark-pane__tag--active {
     @apply border-app-border-accent bg-app-accent-faint text-app-accent;
@@ -134,7 +135,7 @@
     @apply flex flex-wrap gap-1.5;
   }
   .bookmark-pane__filter {
-    @apply border-app-border-accent bg-app-accent-faint text-app-accent hover:bg-app-selected focus-visible:ring-app-accent flex h-6 cursor-pointer items-center gap-1 rounded-full border px-2 font-mono text-[11px] outline-none focus-visible:ring-2;
+    @apply border-app-border-accent bg-app-accent-faint text-app-accent hover:bg-app-selected focus-visible:ring-app-accent flex h-6 pointer-coarse:h-8 pointer-coarse:px-2.5 cursor-pointer items-center gap-1 rounded-full border px-2 font-mono text-[11px] outline-none focus-visible:ring-2;
   }
   .bookmark-pane__filter-icon {
     @apply size-3;
@@ -240,14 +241,16 @@
   .bookmark-card--compact .bookmark-card__tags {
     @apply mt-0.5 pt-0;
   }
+  /* Bare text on a mouse; a finger gets a padded box to hit. */
   .bookmark-card__tag {
-    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent cursor-pointer rounded-sm border-0 bg-transparent p-0 font-mono text-[11px] outline-none focus-visible:ring-2;
+    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent cursor-pointer rounded-sm border-0 bg-transparent p-0 font-mono text-[11px] outline-none focus-visible:ring-2 pointer-coarse:px-1 pointer-coarse:py-1.5 pointer-coarse:text-xs;
   }
   .bookmark-card__tag--active {
     @apply text-app-accent font-semibold;
   }
+  /* Recessive until the card is hovered; always full strength on touch. */
   .bookmark-card__actions {
-    @apply text-app-dim flex items-center justify-end gap-0.5 px-1.5 pb-1.5 opacity-70 transition-opacity duration-150 focus-within:opacity-100 hover:opacity-100;
+    @apply text-app-dim flex items-center justify-end gap-0.5 px-1.5 pb-1.5 opacity-70 transition-opacity duration-150 focus-within:opacity-100 hover:opacity-100 pointer-coarse:opacity-100;
   }
   .bookmark-card--compact .bookmark-card__actions {
     @apply shrink-0 p-0;
@@ -300,10 +303,10 @@
     @apply border-app-border bg-app-bg focus-within:border-app-accent flex min-h-8 flex-wrap items-center gap-1 rounded-md border px-1.5 py-1;
   }
   .bookmark-dialog__tag {
-    @apply bg-app-accent-faint text-app-accent flex h-6 items-center gap-0.5 rounded-full pr-1 pl-2 font-mono text-[11px];
+    @apply bg-app-accent-faint text-app-accent flex h-6 pointer-coarse:h-8 items-center gap-0.5 rounded-full pr-1 pl-2 font-mono text-[11px];
   }
   .bookmark-dialog__tag-remove {
-    @apply text-app-accent hover:bg-app-selected focus-visible:ring-app-accent flex size-4 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2;
+    @apply text-app-accent hover:bg-app-selected focus-visible:ring-app-accent flex size-4 pointer-coarse:size-6 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2;
   }
   .bookmark-dialog__tag-icon {
     @apply size-3;
@@ -333,8 +336,9 @@
 .bookmark-pane__search {
   @apply border-app-border-mid bg-app-panel hover:border-app-border-accent focus-visible:border-app-accent focus-visible:ring-app-accent/25 h-9 rounded-lg text-[13px] shadow-xs transition-[border-color,box-shadow] duration-150 focus-visible:ring-3;
 }
+/* The "/" shortcut hint; no hardware keyboard to press it on touch. */
 .bookmark-pane__search-key {
-  @apply font-description absolute top-1/2 right-2 -translate-y-1/2 text-[11px];
+  @apply font-description absolute top-1/2 right-2 -translate-y-1/2 text-[11px] pointer-coarse:hidden;
 }
 .bookmark-pane__sort {
   @apply border-app-border-mid bg-app-panel text-app-text hover:border-app-border-accent focus-visible:ring-app-accent/25 h-9 w-44 shrink-0 rounded-lg text-[13px] shadow-xs focus-visible:ring-3 data-[size=sm]:h-9;

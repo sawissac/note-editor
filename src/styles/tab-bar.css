@@ -4,6 +4,44 @@
  * Imported from `src/index.css`, so `@apply` resolves the app-* theme. */
 
 @layer components {
+  /* The bar itself: 36px, 44px on touch screens. */
+  .tab-bar {
+    @apply border-app-border bg-app-sidebar flex h-9 shrink-0 items-stretch border-b pointer-coarse:h-11;
+  }
+  .tab-bar__sidebar-button {
+    @apply text-app-dim hover:text-app-accent my-0.5 ml-1 self-center;
+  }
+  .tab-bar__sidebar-icon {
+    @apply size-4 pointer-coarse:size-5;
+  }
+  .tab-bar__body {
+    @apply flex min-w-0 flex-1 items-stretch;
+  }
+  /* One open file. Touch: wider minimum and larger text — a finger needs
+     room to land between the name and the close button. */
+  .tab-bar__tab {
+    @apply border-app-border text-app-dim hover:bg-app-hover hover:text-app-text focus-visible:ring-app-accent relative flex max-w-56 min-w-28 shrink-0 cursor-pointer items-center gap-1.5 border-r pr-1 pl-3 text-[12px] transition-colors duration-(--motion-duration-fast) select-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset pointer-coarse:max-w-64 pointer-coarse:min-w-36 pointer-coarse:gap-2 pointer-coarse:text-[13px];
+  }
+  .tab-bar__tab--active {
+    @apply bg-app-bg text-app-bright hover:bg-app-bg;
+  }
+  /* Another tab is dragged over this one. */
+  .tab-bar__tab--drop-target {
+    @apply bg-app-accent-faint;
+  }
+  .tab-bar__name {
+    @apply min-w-0 flex-1 truncate;
+  }
+  .tab-bar__saving-icon {
+    @apply text-app-accent size-3 group-hover:hidden;
+  }
+  .tab-bar__close-icon {
+    @apply size-3.5;
+  }
+  /* While saving, the dot shows and the × waits for hover. */
+  .tab-bar__close-icon--saving {
+    @apply hidden group-hover:block;
+  }
   /* Animated wrapper per tab: grows from 0 width on open, shrinks on close,
      glides on reorder. Overflow is clipped only while it resizes (set by
      motion), so the sliding indicator is never cut off between tabs. */
@@ -85,4 +123,13 @@
  * Unlayered so it outranks the compacto Button's own size utility. */
 .tab-bar__scroll-button {
   @apply size-7;
+}
+/* Close (×): 20px with a mouse; on touch the 36px floor from touch.css
+ * applies. Inactive tabs hide it until hover — except on touch, where
+ * there is no hover to reveal it. */
+.tab-bar__close {
+  @apply text-app-dim size-5 rounded-sm;
+}
+.tab-bar__close--idle {
+  @apply opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100;
 }

@@ -19,7 +19,17 @@ export type FsNode = {
 
 /** The one inline-name input the tree can show at a time. */
 export type Draft =
-  | { mode: "create"; nodeType: NodeType; parentId: string | null }
+  | {
+      mode: "create";
+      nodeType: NodeType;
+      parentId: string | null;
+      /**
+       * Sibling the new row sits right below, both while naming and once
+       * created. Defaults to the selected row when it lives in `parentId`;
+       * absent = top of the folder.
+       */
+      afterId?: string;
+    }
   | { mode: "rename"; id: string };
 
 export type FsState = {
@@ -150,14 +160,25 @@ const fsSlice = createSlice({
       state.anchorId ??= action.payload.focusId;
     },
     draftStarted(state, action: PayloadAction<Draft>) {
-      state.draft = action.payload;
-      if (action.payload.mode === "create" && action.payload.parentId) {
-        state.expanded[action.payload.parentId] = true;
+      const draft = action.payload;
+      if (draft.mode === "create" && draft.afterId === undefined) {
+        const sel = state.selectedId
+          ? state.nodes[state.selectedId]
+          : undefined;
+        state.draft =
+          sel && sel.parentId === draft.parentId
+            ? { ...draft, afterId: sel.id }
+            : draft;
+      } else {
+        state.draft = draft;
       }
-      if (action.payload.mode === "rename") {
-        state.selectedId = action.payload.id;
-        state.selectedIds = [action.payload.id];
-        state.anchorId = action.payload.id;
+      if (draft.mode === "create" && draft.parentId) {
+        state.expanded[draft.parentId] = true;
+      }
+      if (draft.mode === "rename") {
+        state.selectedId = draft.id;
+        state.selectedIds = [draft.id];
+        state.anchorId = draft.id;
       }
     },
     draftCancelled(state) {

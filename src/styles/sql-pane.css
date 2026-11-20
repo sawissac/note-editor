@@ -1,0 +1,21 @@
+@reference "../index.css";
+
+/* SqlPane (`.sql` files) — BEM block `sql-pane`.
+ *
+ * Imported from `SqlPane.tsx`. Only the file-bar controls are BEM so far;
+ * the results grid still uses inline utilities.
+ *
+ * Unlayered on purpose: these restyle compacto Buttons, whose own size
+ * utilities sit in Tailwind's utilities layer. */
+
+/* Square results show/hide toggle; 36px wide on touch to match the touch
+ * layer's 36px height floor. */
+.sql-pane__results-toggle {
+  @apply w-7 px-0 pointer-coarse:w-9;
+}
+
+/* The ⌘↵ hint inside Run. Hidden on touch: there is usually no keyboard,
+ * and the file bar is tighter there. */
+.sql-pane__shortcut {
+  @apply text-app-dim pointer-coarse:hidden;
+}

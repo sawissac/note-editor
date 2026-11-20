@@ -121,6 +121,105 @@ export function PromptList({
 }
 
 /**
+ * One-click prompts above a message box: each prompt of the workspace's
+ * `.prompt` files is a chip that sends its text, joined to a pencil that
+ * edits it, then a dashed "+" for a new one.
+ *
+ * `defaults` are built-in questions shown only while the workspace has no
+ * prompts — once a `.prompt` file holds one, the workspace's own replace
+ * them. Nothing default shows while the files are still being read, so the
+ * built-ins never flash in and out.
+ *
+ * Styles: BEM block `prompt-chips` (`src/styles/prompt-picker.css`).
+ *
+ * @param props.prompts - Entries of the `.prompt` files; `null` while read.
+ * @param props.defaults - Built-in questions for a workspace without prompts.
+ * @param props.disabled - Sending is unavailable (no key, a reply running);
+ *   editing stays available.
+ * @param props.onSend - A chip was pressed: send this text.
+ * @param props.onEdit - The pencil of a prompt was pressed.
+ * @param props.onNew - "+" was pressed.
+ * @param props.testIdPrefix - Prefix for the chips' test ids.
+ */
+export function PromptChips({
+  prompts,
+  defaults = [],
+  disabled = false,
+  onSend,
+  onEdit,
+  onNew,
+  testIdPrefix,
+}: {
+  prompts: PromptChoice[] | null;
+  defaults?: readonly string[];
+  disabled?: boolean;
+  onSend: (text: string) => void;
+  onEdit: (prompt: PromptChoice) => void;
+  onNew: () => void;
+  testIdPrefix: string;
+}) {
+  const builtIns = prompts?.length === 0 ? defaults : [];
+  // Alone in the row, "+" says what it does.
+  const lonely = prompts?.length === 0 && !defaults.length;
+  return (
+    <div className="prompt-chips" role="group" aria-label="Prompts">
+      {builtIns.map((q) => (
+        <button
+          key={q}
+          type="button"
+          className="prompt-chips__chip"
+          disabled={disabled}
+          data-testid={`${testIdPrefix}-quick-${q.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-button`}
+          onClick={() => onSend(q)}
+        >
+          {q}
+        </button>
+      ))}
+      {(prompts ?? []).map((p) => (
+        <span key={`${p.fileId}/${p.name}`} className="prompt-chips__pair">
+          <button
+            type="button"
+            className="prompt-chips__chip prompt-chips__chip--custom"
+            title={p.text}
+            disabled={disabled || !p.text.trim()}
+            data-testid={`${testIdPrefix}-prompt-${p.fileId}-${p.name}-button`}
+            onClick={() => onSend(p.text)}
+          >
+            <IconScript aria-hidden className="prompt-chips__icon" />
+            <span className="prompt-chips__text">{p.name}</span>
+          </button>
+          <button
+            type="button"
+            className="prompt-chips__edit"
+            aria-label={`Edit prompt ${p.name}`}
+            title="Edit"
+            data-testid={`${testIdPrefix}-prompt-${p.fileId}-${p.name}-edit-button`}
+            onClick={() => onEdit(p)}
+          >
+            <IconPencil aria-hidden className="prompt-chips__icon" />
+          </button>
+        </span>
+      ))}
+      <button
+        type="button"
+        className={cn(
+          "prompt-chips__chip",
+          "prompt-chips__chip--add",
+          lonely && "prompt-chips__chip--labelled",
+        )}
+        aria-label="New prompt"
+        title="New prompt"
+        data-testid={`${testIdPrefix}-prompt-new-button`}
+        onClick={onNew}
+      >
+        <IconPlus aria-hidden className="prompt-chips__icon" />
+        {lonely ? "New prompt" : null}
+      </button>
+    </div>
+  );
+}
+
+/**
  * Form to write a system prompt: name and text, saved into its `.prompt`
  * file. Editing an existing prompt also offers Delete.
  *

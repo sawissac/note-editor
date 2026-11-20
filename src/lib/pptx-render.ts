@@ -9,6 +9,7 @@
 import Konva from "konva";
 
 import { sniffImageFormat } from "@/lib/image-formats";
+import { isCoarsePointer } from "@/lib/use-media-query";
 import {
   type PptxDoc,
   type ShapeElement,
@@ -29,7 +30,10 @@ import {
 export type ImageStore = Map<string, HTMLImageElement>;
 
 export type DrawOptions = {
-  /** Show "Double-click to add text" in empty text boxes (editor only). */
+  /**
+   * Show "Double-click to add text" ("Double-tap …" on touch screens) in
+   * empty text boxes (editor only).
+   */
   placeholders?: boolean;
   /** Text box being typed into: its text is hidden under the editor field. */
   editingId?: string | null;
@@ -37,7 +41,8 @@ export type DrawOptions = {
 
 /** Longest side a picture is stored at; bigger ones are scaled down. */
 const MAX_PICTURE_SIDE = 1920;
-const PLACEHOLDER_TEXT = "Double-click to add text";
+const placeholderText = () =>
+  isCoarsePointer() ? "Double-tap to add text" : "Double-click to add text";
 const PLACEHOLDER_COLOR = "#94a3b8";
 
 /* ──────────────────────────────── Pictures ─────────────────────────────── */
@@ -210,7 +215,7 @@ export function syncElementNode(
       ...textAttrs(el),
       width: w,
       height: h,
-      text: empty ? PLACEHOLDER_TEXT : el.text,
+      text: empty ? placeholderText() : el.text,
       fill: empty ? PLACEHOLDER_COLOR : el.color,
       visible: options.editingId !== el.id,
     });

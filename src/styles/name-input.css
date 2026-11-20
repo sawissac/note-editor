@@ -15,7 +15,7 @@
     @apply border-app-border-mid bg-app-panel absolute top-full right-0 left-0 z-30 mt-0.5 overflow-hidden rounded-md border p-0.5;
   }
   .name-input__option {
-    @apply text-app-text flex h-6 cursor-pointer items-center gap-1.5 rounded-sm px-1.5 text-[12px];
+    @apply text-app-text flex h-6 cursor-pointer items-center gap-1.5 rounded-sm px-1.5 text-[12px] pointer-coarse:h-9 pointer-coarse:text-[13px];
   }
   .name-input__option--selected {
     @apply bg-app-selected text-app-bright;
@@ -59,7 +59,7 @@
  * The field is the compacto Input; unlayered so its compact explorer-row
  * size outranks Input's own utilities (no `!`). */
 .name-input__field {
-  @apply h-6 rounded-sm py-0 pl-1.5 leading-6 focus:ring-2;
+  @apply h-6 rounded-sm py-0 pl-1.5 leading-6 focus:ring-2 pointer-coarse:h-8 pointer-coarse:min-h-8 pointer-coarse:leading-8;
 }
 .name-input__field--invalid {
   @apply border-app-error hover:border-app-error focus:border-app-error focus:ring-app-error/20;

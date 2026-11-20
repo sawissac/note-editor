@@ -32,6 +32,7 @@ import { cn } from "@/lib/cn";
 import * as ui from "@/lib/ui-styles";
 import { extensionOf, kindOf } from "@/lib/file-types";
 import { storage } from "@/lib/storage";
+import { useCoarsePointer } from "@/lib/use-media-query";
 import { createAtPath, openFile, saveContent } from "@/store/actions";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { uiActions } from "@/store/ui-slice";
@@ -44,12 +45,14 @@ import {
 import { ChatMarkdown } from "@/features/editors/ChatMarkdown";
 import { ChatSetup } from "@/features/editors/ChatPickers";
 import { FileBarSlot } from "@/features/editors/file-bar-slot";
+import { PromptChips, PromptEditor } from "@/features/editors/PromptPicker";
 import {
   type PaneProps,
   useSaveHandler,
 } from "@/features/editors/pane-context";
 import { useDebouncedSave } from "@/features/editors/use-file-content";
 import {
+  type PromptChoice,
   useFileEntries,
   usePromptLibrary,
 } from "@/features/editors/use-prompts";
@@ -194,6 +197,11 @@ export default function ChatPane({
   const { options, keyFiles } = useKeyOptions(doc.provider);
   const promptLibrary = usePromptLibrary();
   const prompts = promptLibrary.prompts;
+  // Prompt form above the message box: `undefined` closed, `null` a new
+  // prompt, else the one being edited.
+  const [editingPrompt, setEditingPrompt] = React.useState<
+    PromptChoice | null | undefined
+  >();
   const prompt = doc.promptRef
     ? prompts?.find(
         (p) =>
@@ -338,13 +346,15 @@ export default function ChatPane({
     }
   };
 
-  const send = async () => {
+  const canSend = Boolean(selected && doc.model.trim() && !streamingId);
+  const coarse = useCoarsePointer();
+
+  /** Sends `raw` as the next user message, with any pending references. */
+  const sendText = async (raw: string) => {
     // A trailing space (e.g. after an inserted @mention) exports as `&#x20;`.
-    const text = draft.replace(/(?:\s|&#x20;|&#32;)+$/, "").trim();
+    const text = raw.replace(/(?:\s|&#x20;|&#32;)+$/, "").trim();
     if (!text || streamingId || !selected || !docRef.current.model.trim())
       return;
-    setDraft("");
-    composerRef.current?.clear();
     const attachments = [
       ...references.map((r) => ({ path: r.path, content: r.content })),
       ...(await resolveAttachments(text, mentionFiles)),
@@ -360,6 +370,23 @@ export default function ChatPane({
         ...(attachments.length ? { attachments } : {}),
       },
     ]);
+  };
+
+  const send = () => {
+    if (!draft.trim() || !canSend) return;
+    const text = draft;
+    setDraft("");
+    composerRef.current?.clear();
+    void sendText(text);
+  };
+
+  /** Removes a prompt; a chat using it as its system prompt drops it too. */
+  const deletePrompt = async (p: PromptChoice) => {
+    await promptLibrary.remove(p);
+    const ref = docRef.current.promptRef;
+    if (ref?.fileId === p.fileId && ref.name === p.name) {
+      update((d) => ({ ...d, promptRef: null }));
+    }
   };
 
   /** Asks again for the last reply (or answers a trailing question). */
@@ -422,15 +449,7 @@ export default function ChatPane({
             }))
           }
           onSavePrompt={promptLibrary.save}
-          onDeletePrompt={async (p) => {
-            await promptLibrary.remove(p);
-            if (
-              doc.promptRef?.fileId === p.fileId &&
-              doc.promptRef.name === p.name
-            ) {
-              update((d) => ({ ...d, promptRef: null }));
-            }
-          }}
+          onDeletePrompt={deletePrompt}
           onTemperature={(temperature) =>
             update((d) => ({ ...d, temperature }))
           }
@@ -583,42 +602,72 @@ export default function ChatPane({
             noKeys && "chat-pane__composer--attached",
           )}
         >
-          <ChatComposer
-            composerRef={composerRef}
-            isDark={isDark}
-            disabled={!selected}
-            autoFocus={focusOnMount}
-            placeholder={
-              selected
-                ? `Message · @ to reference a file · ${isMac ? "⌘" : "Ctrl"}+Enter to send`
-                : "Add an API key to start"
-            }
-            mentionFiles={mentionFiles}
-            onChange={setDraft}
-            onSubmit={() => void send()}
-          />
-          {streamingId ? (
-            <Button
-              type="button"
-              variant="outline"
-              data-testid="chat-pane-stop-button"
-              onClick={() => abortRef.current?.abort()}
-            >
-              <IconPlayerStopFilled aria-hidden className="pane-icon" />
-              Stop
-            </Button>
+          {editingPrompt !== undefined ? (
+            <div className="chat-pane__prompt-editor">
+              <PromptEditor
+                key={
+                  editingPrompt
+                    ? `${editingPrompt.fileId}/${editingPrompt.name}`
+                    : "new"
+                }
+                prompt={editingPrompt}
+                testIdPrefix="chat-pane"
+                onSave={promptLibrary.save}
+                onDelete={deletePrompt}
+                onDone={() => setEditingPrompt(undefined)}
+              />
+            </div>
           ) : (
-            <Button
-              type="button"
-              data-testid="chat-pane-send-button"
-              title={`Send (${isMac ? "⌘" : "Ctrl"} + Enter)`}
-              disabled={!draft.trim() || !selected || !doc.model.trim()}
-              onClick={() => void send()}
-            >
-              <IconSend2 aria-hidden className="pane-icon" />
-              Send
-            </Button>
+            <PromptChips
+              prompts={prompts}
+              disabled={!canSend}
+              testIdPrefix="chat-pane"
+              onSend={(text) => void sendText(text)}
+              onEdit={setEditingPrompt}
+              onNew={() => setEditingPrompt(null)}
+            />
           )}
+          <div className="chat-pane__composer-row">
+            <ChatComposer
+              composerRef={composerRef}
+              isDark={isDark}
+              disabled={!selected}
+              autoFocus={focusOnMount}
+              placeholder={
+                selected
+                  ? // Touch: no shortcut to advertise — the Send button sends.
+                    coarse
+                    ? "Message · @ to reference a file"
+                    : `Message · @ to reference a file · ${isMac ? "⌘" : "Ctrl"}+Enter to send`
+                  : "Add an API key to start"
+              }
+              mentionFiles={mentionFiles}
+              onChange={setDraft}
+              onSubmit={send}
+            />
+            {streamingId ? (
+              <Button
+                type="button"
+                variant="outline"
+                data-testid="chat-pane-stop-button"
+                onClick={() => abortRef.current?.abort()}
+              >
+                <IconPlayerStopFilled aria-hidden className="pane-icon" />
+                Stop
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                data-testid="chat-pane-send-button"
+                title={`Send (${isMac ? "⌘" : "Ctrl"} + Enter)`}
+                disabled={!draft.trim() || !canSend}
+                onClick={send}
+              >
+                <IconSend2 aria-hidden className="pane-icon" />
+                Send
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -8,6 +8,7 @@ import App from "@/App";
 import { MotionProvider } from "@/components/motion-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { applyAppTheme } from "@/lib/color-themes";
+import { installTouchDrag } from "@/lib/touch-drag";
 import { createAppStore } from "@/store";
 import { seedWorkspace } from "@/store/actions";
 
@@ -39,6 +40,8 @@ async function boot() {
   // Timer starts now so store + CSS loading run in parallel, not after it.
   const splashDone = new Promise((resolve) => setTimeout(resolve, MIN_SPLASH_MS));
   applyAppTheme();
+  // Long-press-and-move drags rows, tabs and cards on touch screens.
+  installTouchDrag();
   const { store, isFirstRun } = await createAppStore();
   if (isFirstRun) await store.dispatch(seedWorkspace());
   await Promise.all([appStylesReady(), splashDone]);

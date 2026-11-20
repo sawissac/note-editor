@@ -151,13 +151,23 @@ export function commitCreate(rawName: string): AppThunk<boolean> {
       return false;
     }
     dispatch(fsActions.draftCancelled());
-    dispatch(
+    const node = dispatch(
       addEntry(
         normalizeName(rawName, draft.nodeType),
         draft.nodeType,
         draft.parentId,
       ),
     );
+    // Land where the input was: right below the sibling it was opened
+    // under, via the same manual order drag-to-reorder sets.
+    const { afterId } = draft;
+    if (afterId && getState().fs.nodes[afterId]?.parentId === draft.parentId) {
+      const order = getSortedChildren(getState().fs.nodes, draft.parentId)
+        .map((n) => n.id)
+        .filter((id) => id !== node.id);
+      order.splice(order.indexOf(afterId) + 1, 0, node.id);
+      dispatch(fsActions.childrenOrdered(order));
+    }
     return true;
   };
 }

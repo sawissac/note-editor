@@ -1,7 +1,13 @@
+import "@/styles/env-pane.css";
 import { IconAlertTriangle, IconWand } from "@tabler/icons-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/cn";
 import { type EnvProblem, formatEnv, parseEnv } from "@/lib/data-formats";
 import { saveContent } from "@/store/actions";
@@ -21,7 +27,12 @@ import { useDebouncedSave } from "@/features/editors/use-file-content";
 /**
  * dotenv files (`.env`, `.env.local`, …): a Monaco editor with duplicate-key
  * and syntax problems underlined, a problem count and a Format button in the
- * file bar.
+ * file bar. The count opens the list of problems (Monaco only shows them on
+ * hover, which touch screens lack); picking one selects its line.
+ *
+ * Test ids: `env-pane-source-input`, `env-pane-format-button`,
+ * `env-pane-status-message` (the problem count / list trigger),
+ * `env-pane-problems-list`, `env-pane-problem-<index>-button`.
  */
 export default function EnvPane({
   id,
@@ -54,7 +65,13 @@ export default function EnvPane({
   return (
     <>
       <FileBarSlot>
-        <ProblemCount problems={problems} />
+        <ProblemCount
+          problems={problems}
+          onShow={(line) => {
+            const [start, end] = lineRange(text, line);
+            apiRef.current?.reveal(start, end);
+          }}
+        />
         <Button
           variant="outline"
           size="sm"
@@ -92,19 +109,83 @@ export default function EnvPane({
   );
 }
 
-function ProblemCount({ problems }: { problems: EnvProblem[] }) {
+/** Offsets of 1-based `line` in `text`, without its line break. */
+function lineRange(text: string, line: number): [number, number] {
+  const lines = text.split("\n");
+  let start = 0;
+  for (let i = 0; i < line - 1 && i < lines.length; i++) {
+    start += lines[i].length + 1;
+  }
+  return [start, start + (lines[line - 1]?.length ?? 0)];
+}
+
+/** File-bar problem count; opens the list, a pick selects that line. */
+function ProblemCount({
+  problems,
+  onShow,
+}: {
+  problems: EnvProblem[];
+  onShow: (line: number) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  // A pick moves focus into the editor; closing must not pull it back.
+  const picked = React.useRef(false);
   if (!problems.length) return null;
   const errors = problems.filter((p) => p.severity === "error").length;
   return (
-    <span
-      className={cn(
-        "flex items-center gap-1 text-[11px]",
-        errors ? "text-app-error" : "text-app-warn",
-      )}
-      data-testid="env-pane-status-message"
-    >
-      <IconAlertTriangle className="size-3.5" />
-      {problems.length} {problems.length === 1 ? "problem" : "problems"}
-    </span>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "env-pane__problems",
+            errors
+              ? "env-pane__problems--tone-error"
+              : "env-pane__problems--tone-warn",
+          )}
+          title="Show the problems"
+          data-testid="env-pane-status-message"
+        >
+          <IconAlertTriangle className="env-pane__icon" />
+          {problems.length} {problems.length === 1 ? "problem" : "problems"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="env-pane__popover"
+        onCloseAutoFocus={(event) => {
+          if (picked.current) event.preventDefault();
+          picked.current = false;
+        }}
+      >
+        <ul className="env-pane__problem-list" data-testid="env-pane-problems-list">
+          {problems.map((p, i) => (
+            <li key={`${p.line}:${i}`}>
+              <button
+                type="button"
+                className="env-pane__problem"
+                data-testid={`env-pane-problem-${i}-button`}
+                onClick={() => {
+                  picked.current = true;
+                  setOpen(false);
+                  onShow(p.line);
+                }}
+              >
+                <span className="env-pane__problem-line">L{p.line}</span>
+                <span
+                  className={cn(
+                    "env-pane__problem-message",
+                    p.severity === "error" &&
+                      "env-pane__problem-message--tone-error",
+                  )}
+                >
+                  {p.message}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }

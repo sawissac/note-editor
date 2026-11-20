@@ -5,11 +5,8 @@ import {
   IconCheck,
   IconCopy,
   IconMessageForward,
-  IconPencil,
-  IconPlus,
   IconPlayerStopFilled,
   IconReplace,
-  IconScript,
   IconSparkles,
   IconX,
 } from "@tabler/icons-react";
@@ -31,13 +28,16 @@ import { storage } from "@/lib/storage";
 import { askAiAboutSelection, createAtPath } from "@/store/actions";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { ChatMarkdown } from "@/features/editors/ChatMarkdown";
-import { PromptEditor } from "@/features/editors/PromptPicker";
+import { PromptChips, PromptEditor } from "@/features/editors/PromptPicker";
 import {
   type PromptChoice,
   usePromptLibrary,
 } from "@/features/editors/use-prompts";
 
-/** One-click questions; each is sent as typed. */
+/**
+ * One-click questions; each is sent as typed. Shown only while the workspace
+ * has no `.prompt` entries — its own prompts replace them.
+ */
 const QUICK_ASKS = [
   "Explain this",
   "Summarize this",
@@ -92,23 +92,83 @@ function useAiKey(): AiKey | null | undefined {
   return found;
 }
 
-/** Below the anchor when it fits, else above; clamped to the viewport. */
-function placement(anchor: DOMRect | null, pane: DOMRect | undefined) {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+/** The part of the page on screen: the layout viewport minus an on-screen
+ *  keyboard (iOS shrinks only the visual viewport). */
+type Viewport = { width: number; height: number; offsetTop: number };
+
+function readViewport(): Viewport {
+  const vv = window.visualViewport;
+  return {
+    width: window.innerWidth,
+    height: vv ? Math.min(vv.height, window.innerHeight) : window.innerHeight,
+    offsetTop: vv?.offsetTop ?? 0,
+  };
+}
+
+/** {@link readViewport}, re-read when the on-screen keyboard opens / closes. */
+function useViewport(): Viewport {
+  const [viewport, setViewport] = React.useState(readViewport);
+  React.useEffect(() => {
+    const vv = window.visualViewport;
+    const update = () => setViewport(readViewport());
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return viewport;
+}
+
+/**
+ * Below the anchor when it fits, else above; clamped to the visible part of
+ * the viewport (so an on-screen keyboard never covers the question box), and
+ * never wider than the screen.
+ */
+function placement(
+  anchor: DOMRect | null,
+  pane: DOMRect | undefined,
+  viewport: Viewport,
+) {
+  const { width: vw, offsetTop } = viewport;
+  const width = Math.min(PANEL_WIDTH, vw - 16);
+  // Visible band, in layout-viewport coordinates (what `fixed` uses).
+  const visTop = offsetTop;
+  const visBottom = offsetTop + viewport.height;
   const left = Math.max(
     8,
     Math.min(
-      anchor ? anchor.left : (pane?.right ?? vw) - PANEL_WIDTH - 12,
-      vw - PANEL_WIDTH - 8,
+      anchor ? anchor.left : (pane?.right ?? vw) - width - 12,
+      vw - width - 8,
     ),
   );
-  if (!anchor) return { left, top: (pane?.top ?? 48) + 8, maxHeight: vh * 0.7 };
-  const below = vh - anchor.bottom - GAP - 8;
-  const above = anchor.top - GAP - 8;
-  return below >= 260 || below >= above
-    ? { left, top: anchor.bottom + GAP, maxHeight: Math.max(200, below) }
-    : { left, bottom: vh - anchor.top + GAP, maxHeight: Math.max(200, above) };
+  if (!anchor) {
+    const top = Math.max(visTop + 8, (pane?.top ?? 48) + 8);
+    return {
+      left,
+      width,
+      top,
+      maxHeight: Math.max(
+        200,
+        Math.min(viewport.height * 0.7, visBottom - top - 8),
+      ),
+    };
+  }
+  const below = visBottom - anchor.bottom - GAP - 8;
+  const above = anchor.top - visTop - GAP - 8;
+  if (below >= 260 || below >= above) {
+    const top = Math.min(anchor.bottom + GAP, visBottom - 200 - 8);
+    return { left, width, top, maxHeight: Math.max(200, visBottom - top - 8) };
+  }
+  return {
+    left,
+    width,
+    bottom: window.innerHeight - Math.min(anchor.top - GAP, visBottom - 8),
+    maxHeight: Math.max(200, above),
+  };
 }
 
 /**
@@ -118,9 +178,10 @@ function placement(anchor: DOMRect | null, pane: DOMRect | undefined) {
  * in for the selection (code editors), or carried on in a chat.
  *
  * Uses the first key in the workspace's `.gemini` / `.openrouter` files
- * with that provider's default model. Beside the built-in quick questions,
- * each prompt of the workspace's `.prompt` files is a chip that sends its
- * text; its pencil (or "+") opens a form that writes the file.
+ * with that provider's default model. Each prompt of the workspace's
+ * `.prompt` files is a chip that sends its text (replacing the built-in
+ * quick questions once there is one); its pencil (or "+") opens a form that
+ * writes the file.
  *
  * CSS: BEM block `ask-ai-panel` (`src/styles/ask-ai.css`); answers reuse
  * `chat-markdown`.
@@ -255,7 +316,8 @@ export default function AskAiPanel({
     }
   };
 
-  const place = placement(request.anchor, paneRect);
+  const viewport = useViewport();
+  const place = placement(request.anchor, paneRect, viewport);
 
   return createPortal(
     <section
@@ -265,7 +327,7 @@ export default function AskAiPanel({
         top: place.top,
         bottom: place.bottom,
         maxHeight: place.maxHeight,
-        width: PANEL_WIDTH,
+        width: place.width,
       }}
       role="dialog"
       aria-label="Ask AI"
@@ -351,64 +413,16 @@ export default function AskAiPanel({
               />
             </div>
           ) : (
-            <div
-              className="ask-ai-panel__quick"
-              role="group"
-              aria-label="Quick questions"
-            >
-              {QUICK_ASKS.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className="ask-ai-panel__chip"
-                  disabled={!aiKey}
-                  onClick={() => void ask(q)}
-                >
-                  {q}
-                </button>
-              ))}
-              {/* The workspace's own prompts (`.prompt` files), sent as typed. */}
-              {(promptLibrary.prompts ?? []).map((p) => (
-                <span
-                  key={`${p.fileId}/${p.name}`}
-                  className="ask-ai-panel__custom"
-                >
-                  <button
-                    type="button"
-                    className="ask-ai-panel__chip ask-ai-panel__chip--custom"
-                    title={p.text}
-                    disabled={!aiKey || !p.text.trim()}
-                    data-testid={`ask-ai-panel-prompt-${p.fileId}-$<span className="ask-ai-panel__chip-text">{p.name}</span>-button`}
-                    onClick={() => void ask(p.text)}
-                  >
-                    <IconScript
-                      aria-hidden
-                      className="ask-ai-panel__chip-icon"
-                    />
-                    {p.name}
-                  </button>
-                  <button
-                    type="button"
-                    className="ask-ai-panel__chip-edit"
-                    aria-label={`Edit prompt ${p.name}`}
-                    title="Edit"
-                    data-testid={`ask-ai-panel-prompt-${p.fileId}-${p.name}-edit-button`}
-                    onClick={() => setEditing(p)}
-                  >
-                    <IconPencil aria-hidden />
-                  </button>
-                </span>
-              ))}
-              <button
-                type="button"
-                className="ask-ai-panel__chip ask-ai-panel__chip--add"
-                aria-label="New prompt"
-                title="New prompt"
-                data-testid="ask-ai-panel-prompt-new-button"
-                onClick={() => setEditing(null)}
-              >
-                <IconPlus aria-hidden className="ask-ai-panel__chip-icon" />
-              </button>
+            <div className="ask-ai-panel__quick">
+              <PromptChips
+                prompts={promptLibrary.prompts}
+                defaults={QUICK_ASKS}
+                disabled={!aiKey}
+                testIdPrefix="ask-ai-panel"
+                onSend={(text) => void ask(text)}
+                onEdit={setEditing}
+                onNew={() => setEditing(null)}
+              />
             </div>
           )}
 

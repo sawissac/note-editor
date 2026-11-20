@@ -1,3 +1,5 @@
+import "@/styles/calendar-pane.css";
+
 import {
   IconCalendarEvent,
   IconCalendarPlus,
@@ -52,6 +54,7 @@ import { cn } from "@/lib/cn";
 import { enter, exit, glide, quick } from "@/lib/motion";
 import { downloadFile } from "@/lib/storage";
 import * as ui from "@/lib/ui-styles";
+import { isCoarsePointer, useCoarsePointer } from "@/lib/use-media-query";
 import { saveContent } from "@/store/actions";
 import { useAppDispatch } from "@/store";
 import { FileBarSlot } from "@/features/editors/file-bar-slot";
@@ -75,6 +78,10 @@ const HOUR_PX = 48;
 const SNAP_MIN = 15;
 /** Pixels a pointer must travel before a press becomes a drag. */
 const DRAG_THRESHOLD = 4;
+/** Touch: hold this long before a press can drag; moving sooner scrolls. */
+const TOUCH_HOLD_MS = 300;
+/** Finger travel during the hold that makes the press a scroll instead. */
+const TOUCH_SLOP = 10;
 const TODAY_RED = "#ff3b30";
 const WEEKDAYS = Array.from({ length: 7 }, (_, i) =>
   new Date(2026, 10, 1 + i).toLocaleDateString(undefined, { weekday: "short" }),
@@ -94,6 +101,109 @@ function eventStyle(color: EventColor, selected: boolean): React.CSSProperties {
       };
 }
 
+/* ───────────────────────────── Press tracking ───────────────────────────── */
+
+type Press = {
+  /** Touch only: the finger held still long enough; it may now drag. */
+  onHold?: (at: { x: number; y: number }) => void;
+  /** The pointer moved while the press can drag. */
+  onMove: (e: PointerEvent) => void;
+  /**
+   * Released — a tap, or the end of a drag. Return `true` when a touch tap
+   * acted (opened a popover…) so the browser's emulated mouse events that
+   * trail it cannot refocus the pane and dismiss what just opened.
+   */
+  onUp: (e: PointerEvent) => boolean | void;
+  /** Abandoned: the finger scrolled instead, or the browser took over. */
+  onCancel: () => void;
+};
+
+/**
+ * Follows one press from `pointerdown` to release on window listeners, for
+ * the calendar's drag-to-move / resize / create gestures.
+ *
+ * Mouse and pen can drag at once. A finger must first hold still for
+ * {@link TOUCH_HOLD_MS}: moving sooner is a scroll, so the press is dropped
+ * and the browser pans as usual. Once held, panning (and the long-press
+ * callout) is blocked for the rest of the press, and the emulated
+ * mousedown / click the browser fires after the release are swallowed (see
+ * {@link swallowEmulatedMouse}). `immediate` skips the hold, for a surface
+ * that claims the finger itself (`touch-action: none`).
+ */
+function trackPress(pe: React.PointerEvent, press: Press, immediate = false) {
+  const touch = pe.pointerType === "touch";
+  const pointerId = pe.pointerId;
+  const origin = { x: pe.clientX, y: pe.clientY };
+  let last = origin;
+  let live = !touch || immediate;
+  const holdTimer = live
+    ? 0
+    : window.setTimeout(() => {
+        live = true;
+        press.onHold?.(last);
+      }, TOUCH_HOLD_MS);
+  const blockWhileLive = (e: Event) => {
+    if (live && e.cancelable) e.preventDefault();
+  };
+  const stop = () => {
+    window.clearTimeout(holdTimer);
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", cancel);
+    window.removeEventListener("touchmove", blockWhileLive);
+    window.removeEventListener("contextmenu", blockWhileLive, true);
+  };
+  const move = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) return;
+    last = { x: e.clientX, y: e.clientY };
+    if (!live) {
+      if (Math.hypot(last.x - origin.x, last.y - origin.y) > TOUCH_SLOP) {
+        stop();
+        press.onCancel();
+      }
+      return;
+    }
+    press.onMove(e);
+  };
+  const up = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) return;
+    stop();
+    const acted = press.onUp(e);
+    if (touch && (live || acted)) swallowEmulatedMouse();
+  };
+  const cancel = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) return;
+    stop();
+    press.onCancel();
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", cancel);
+  if (touch) {
+    window.addEventListener("touchmove", blockWhileLive, { passive: false });
+    window.addEventListener("contextmenu", blockWhileLive, true);
+  }
+}
+
+/**
+ * After a touch release the browser replays it as mouse events (a tap) —
+ * `mousedown` would move focus to the pane, which dismisses a popover the
+ * release just opened, and `click` would select whatever lies under the
+ * finger. Drops both for a moment.
+ */
+function swallowEmulatedMouse() {
+  const swallow = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  window.addEventListener("mousedown", swallow, true);
+  window.addEventListener("click", swallow, true);
+  window.setTimeout(() => {
+    window.removeEventListener("mousedown", swallow, true);
+    window.removeEventListener("click", swallow, true);
+  }, 400);
+}
+
 /* ───────────────────────────── Pane ───────────────────────────── */
 
 type EditorState = { id: string; rect: DOMRect } | null;
@@ -102,7 +212,8 @@ type EditorState = { id: string; rect: DOMRect } | null;
  * `.calendar` files: an Apple Calendar–style planner over the file's JSON
  * events. Day / Week / Month / Year views; drag events to move them, drag an
  * event's bottom edge to resize it, drag or double-click empty time to create
- * one. Edits save automatically.
+ * one. Edits save automatically. On a touch screen a swipe scrolls; press
+ * and hold an event to lift it, or empty time / a month day to create one.
  *
  * Keys (when the calendar has focus): ← → previous / next, T today,
  * D W M Y switch view, N new event, Enter edit, Delete remove.
@@ -318,7 +429,7 @@ export default function CalendarPane({
       tabIndex={-1}
       onKeyDown={onKeyDown}
       data-testid="calendar-pane"
-      className="bg-app-panel flex h-full min-h-0 flex-col outline-none select-none"
+      className="calendar-pane"
     >
       <FileBarSlot>
         <Button
@@ -665,7 +776,8 @@ function DayNumber({
 
 /* ───────────────────────────── Month ───────────────────────────── */
 
-const CHIP_PX = 20;
+/** Row pitch of a month / all-day chip (19px, 24px on touch) plus a 1px gap. */
+const chipHeight = (coarse: boolean) => (coarse ? 25 : 20);
 
 function MonthView({
   cursor,
@@ -689,6 +801,7 @@ function MonthView({
   onEventMove: (e: CalendarEvent, days: number) => void;
 }) {
   const days = React.useMemo(() => monthGrid(cursor), [cursor]);
+  const coarse = useCoarsePointer();
   const gridRef = React.useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = React.useState(110);
   const [drag, setDrag] = React.useState<{
@@ -705,16 +818,19 @@ function MonthView({
   }, []);
 
   // Room for chips under the 28px date line; the last slot becomes "+N more".
-  const capacity = Math.max(1, Math.floor((rowHeight - 30) / CHIP_PX));
+  const capacity = Math.max(
+    1,
+    Math.floor((rowHeight - 30) / chipHeight(coarse)),
+  );
 
   const startDrag = (pe: React.PointerEvent, event: CalendarEvent) => {
     if (pe.button !== 0) return;
     pe.stopPropagation();
     const el = pe.currentTarget;
-    const origin = { x: pe.clientX, y: pe.clientY };
-    const fromKey = (
-      pe.currentTarget.closest("[data-day]") as HTMLElement | null
-    )?.dataset.day;
+    let origin = { x: pe.clientX, y: pe.clientY };
+    const fromKey =
+      (pe.currentTarget.closest("[data-day]") as HTMLElement | null)?.dataset
+        .day ?? null;
     let moved = false;
     const keyAt = (x: number, y: number) =>
       (
@@ -722,30 +838,35 @@ function MonthView({
           .elementFromPoint(x, y)
           ?.closest("[data-day]") as HTMLElement | null
       )?.dataset.day ?? null;
-    const move = (e: PointerEvent) => {
-      if (
-        !moved &&
-        Math.hypot(e.clientX - origin.x, e.clientY - origin.y) < DRAG_THRESHOLD
-      )
-        return;
-      moved = true;
-      setDrag({ event, overKey: keyAt(e.clientX, e.clientY) });
-    };
-    const up = (e: PointerEvent) => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      setDrag(null);
-      if (!moved) {
-        onEventOpen(event.id, el);
-        return;
-      }
-      const toKey = keyAt(e.clientX, e.clientY);
-      if (toKey && fromKey && toKey !== fromKey) {
-        onEventMove(event, dayDiff(parseLocal(fromKey), parseLocal(toKey)));
-      }
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+    trackPress(pe, {
+      // Touch: the held chip lifts in place, ready to move.
+      onHold: (at) => {
+        origin = at;
+        setDrag({ event, overKey: fromKey });
+      },
+      onMove: (e) => {
+        if (
+          !moved &&
+          Math.hypot(e.clientX - origin.x, e.clientY - origin.y) <
+            DRAG_THRESHOLD
+        )
+          return;
+        moved = true;
+        setDrag({ event, overKey: keyAt(e.clientX, e.clientY) });
+      },
+      onUp: (e) => {
+        setDrag(null);
+        if (!moved) {
+          onEventOpen(event.id, el);
+          return true;
+        }
+        const toKey = keyAt(e.clientX, e.clientY);
+        if (toKey && fromKey && toKey !== fromKey) {
+          onEventMove(event, dayDiff(parseLocal(fromKey), parseLocal(toKey)));
+        }
+      },
+      onCancel: () => setDrag(null),
+    });
   };
 
   return (
@@ -783,6 +904,16 @@ function MonthView({
               )}
               data-selected={isCursor || undefined}
               onClick={() => onSelectDay(day)}
+              // Touch has no double-click: press and hold a day instead.
+              onPointerDown={(pe) => {
+                if (pe.pointerType !== "touch") return;
+                trackPress(pe, {
+                  onHold: () => onCreate(day),
+                  onMove: () => {},
+                  onUp: () => {},
+                  onCancel: () => {},
+                });
+              }}
               onDoubleClick={(e) => {
                 if (
                   e.target === e.currentTarget ||
@@ -810,9 +941,11 @@ function MonthView({
                 <button
                   type="button"
                   className={cn(
-                    "rounded-full",
-                    isCursor && !sameDay(day, now) && "ring-app-accent ring-2",
-                    !inMonth && "opacity-45",
+                    "calendar-month__day-button",
+                    isCursor &&
+                      !sameDay(day, now) &&
+                      "calendar-month__day-button--selected",
+                    !inMonth && "calendar-month__day-button--outside",
                   )}
                   data-testid={`calendar-month-view-day-${key}-button`}
                   aria-label={day.toDateString()}
@@ -840,7 +973,7 @@ function MonthView({
                 {overflow ? (
                   <button
                     type="button"
-                    className="text-app-dim hover:bg-app-hover hover:text-app-bright truncate rounded px-1 text-left text-[11px]"
+                    className="calendar-month__more"
                     data-testid={`calendar-month-view-more-${key}-button`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -887,7 +1020,7 @@ function MonthChip({
       initial={{ opacity: 0, scale: 0.92 }}
       animate={{ opacity: dragging ? 0.4 : 1, scale: 1, transition: quick }}
       exit={{ opacity: 0, scale: 0.92, transition: exit }}
-      className="flex h-[19px] w-full shrink-0 cursor-default items-center gap-1 truncate rounded px-1 text-left text-[11px] leading-none"
+      className="calendar-chip"
       style={
         event.allDay
           ? eventStyle(event.color, selected)
@@ -979,6 +1112,7 @@ function TimeGridView({
 }) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const colsRef = React.useRef<HTMLDivElement>(null);
+  const coarse = useCoarsePointer();
   const [drag, setDrag] = React.useState<GridDrag | null>(null);
   const dragRef = React.useRef<GridDrag | null>(null);
   // The ref is the source of truth during a gesture (pointer events can
@@ -1031,54 +1165,80 @@ function TimeGridView({
     return { day, minute, raw };
   };
 
+  /**
+   * Starts a move / resize / create gesture. Mouse: travel past
+   * {@link DRAG_THRESHOLD} starts it, a click is a tap. Touch (see
+   * {@link trackPress}): hold first — the preview appears (a new event
+   * previews an hour, which a release right there creates), then move.
+   */
   const begin = (
     pe: React.PointerEvent,
     next: GridDrag,
     onTap?: (el: Element) => void,
+    immediate = false,
   ) => {
     if (pe.button !== 0) return;
     pe.stopPropagation();
     const target = pe.currentTarget;
-    const origin = { x: pe.clientX, y: pe.clientY };
+    let origin = { x: pe.clientX, y: pe.clientY };
+    // The pointer has travelled since the gesture could start.
+    let tracking = false;
     setGridDrag(next);
-    const move = (e: PointerEvent) => {
-      const cur = dragRef.current;
-      if (!cur) return;
-      const moved =
-        cur.moved ||
-        Math.hypot(e.clientX - origin.x, e.clientY - origin.y) >=
-          DRAG_THRESHOLD;
-      if (!moved) return;
-      const { day, minute, raw } = locate(e.clientX, e.clientY);
-      if (cur.kind === "move") {
-        const start = Math.round((raw - cur.grab) / SNAP_MIN) * SNAP_MIN;
-        setGridDrag({
-          ...cur,
-          day,
-          startMin: Math.max(0, Math.min(1440 - SNAP_MIN, start)),
-          moved,
-        });
-      } else if (cur.kind === "resize") {
-        setGridDrag({ ...cur, endMin: minute, moved });
-      } else {
-        setGridDrag({ ...cur, current: minute, moved });
-      }
-      autoScroll(e.clientY);
-    };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      const cur = dragRef.current;
-      setGridDrag(null);
-      if (!cur) return;
-      if (!cur.moved) {
-        onTap?.(target);
-        return;
-      }
-      finish(cur);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+    trackPress(
+      pe,
+      {
+        onHold: (at) => {
+          origin = at;
+          const cur = dragRef.current;
+          if (!cur) return;
+          setGridDrag(
+            cur.kind === "create"
+              ? { ...cur, current: Math.min(1440, cur.anchor + 60), moved: true }
+              : { ...cur, moved: true },
+          );
+        },
+        onMove: (e) => {
+          const cur = dragRef.current;
+          if (!cur) return;
+          if (
+            !tracking &&
+            Math.hypot(e.clientX - origin.x, e.clientY - origin.y) <
+              DRAG_THRESHOLD
+          )
+            return;
+          tracking = true;
+          const { day, minute, raw } = locate(e.clientX, e.clientY);
+          if (cur.kind === "move") {
+            const start = Math.round((raw - cur.grab) / SNAP_MIN) * SNAP_MIN;
+            setGridDrag({
+              ...cur,
+              day,
+              startMin: Math.max(0, Math.min(1440 - SNAP_MIN, start)),
+              moved: true,
+            });
+          } else if (cur.kind === "resize") {
+            setGridDrag({ ...cur, endMin: minute, moved: true });
+          } else {
+            setGridDrag({ ...cur, current: minute, moved: true });
+          }
+          autoScroll(e.clientY);
+        },
+        onUp: () => {
+          const cur = dragRef.current;
+          setGridDrag(null);
+          if (!cur) return;
+          // Untravelled: a tap (or a held event let go where it was).
+          if (!cur.moved || (cur.kind === "move" && !tracking)) {
+            onTap?.(target);
+            return true;
+          }
+          if (cur.kind === "resize" && !tracking) return;
+          finish(cur);
+        },
+        onCancel: () => setGridDrag(null),
+      },
+      immediate,
+    );
   };
 
   const autoScroll = (y: number) => {
@@ -1165,7 +1325,9 @@ function TimeGridView({
             <div
               key={dateKey(day)}
               className="border-app-border flex flex-col gap-px border-l p-0.5"
-              style={{ minHeight: Math.min(allDayRows, 4) * CHIP_PX + 6 }}
+              style={{
+                minHeight: Math.min(allDayRows, 4) * chipHeight(coarse) + 6,
+              }}
               onClick={() => onSelectDay(day)}
             >
               {allDay.map((event) => (
@@ -1174,7 +1336,7 @@ function TimeGridView({
                   type="button"
                   data-event-id={event.id}
                   data-testid={`calendar-time-grid-allday-${event.id}-${dateKey(day)}`}
-                  className="h-[19px] shrink-0 cursor-default truncate rounded border-l-[3px] px-1 text-left text-[11px] font-medium"
+                  className="calendar-time-grid__allday-event"
                   style={eventStyle(event.color, event.id === selectedId)}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1287,14 +1449,19 @@ function TimeGridView({
                           (el) => onEventOpen(p.event.id, el),
                         );
                       }}
-                      onResizeStart={(pe) =>
-                        begin(pe, {
-                          kind: "resize",
-                          event: p.event,
-                          endMin: p.bottom,
-                          day: dayIndex,
-                          moved: false,
-                        })
+                      onResizeStart={(pe, immediate) =>
+                        begin(
+                          pe,
+                          {
+                            kind: "resize",
+                            event: p.event,
+                            endMin: p.bottom,
+                            day: dayIndex,
+                            moved: false,
+                          },
+                          undefined,
+                          immediate,
+                        )
                       }
                     />
                   );
@@ -1396,8 +1563,16 @@ const TimedEvent = React.memo(function TimedEvent({
   selected: boolean;
   faded: boolean;
   onMoveStart: (e: React.PointerEvent<HTMLDivElement>) => void;
-  onResizeStart: (e: React.PointerEvent<HTMLDivElement>) => void;
+  /** `immediate`: the touch grip, which resizes without a hold. */
+  onResizeStart: (
+    e: React.PointerEvent<HTMLDivElement>,
+    immediate: boolean,
+  ) => void;
 }) {
+  const coarse = useCoarsePointer();
+  // Touch: only the selected event gets a resize grip; elsewhere its bottom
+  // edge is part of the block (hold to move).
+  const grip = coarse && selected;
   const height = ((bottom - top) / 60) * HOUR_PX;
   const compact = height < 34;
   const start = parseLocal(event.start);
@@ -1410,9 +1585,9 @@ const TimedEvent = React.memo(function TimedEvent({
       onPointerDown={onMoveStart}
       onDoubleClick={(e) => e.stopPropagation()}
       className={cn(
-        "absolute z-10 overflow-hidden rounded-md border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight",
-        selected && "z-20",
-        faded && "opacity-30",
+        "calendar-event",
+        selected && "calendar-event--selected",
+        faded && "calendar-event--faded",
       )}
       style={{
         ...eventStyle(event.color, selected),
@@ -1439,9 +1614,16 @@ const TimedEvent = React.memo(function TimedEvent({
         </>
       )}
       <div
-        className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+        className={cn(
+          "calendar-event__resize",
+          grip && "calendar-event__resize--grip",
+        )}
         data-testid={`calendar-time-grid-event-${event.id}-${dayKey}-resize`}
-        onPointerDown={onResizeStart}
+        onPointerDown={(pe) => {
+          // An unselected event's edge on touch: let the block take it.
+          if (pe.pointerType === "touch" && !grip) return;
+          onResizeStart(pe, pe.pointerType === "touch");
+        }}
       />
     </div>
   );
@@ -1468,7 +1650,7 @@ function YearView({
       className="h-full overflow-y-auto p-5"
       data-testid="calendar-year-view"
     >
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-x-8 gap-y-6">
+      <div className="calendar-year__months">
         {Array.from({ length: 12 }, (_, m) => {
           const month = new Date(year, m, 1);
           return (
@@ -1496,7 +1678,9 @@ function YearView({
                 {monthGrid(month).map((day) => {
                   const inMonth = day.getMonth() === m;
                   if (!inMonth)
-                    return <span key={dateKey(day)} className="h-6" />;
+                    return (
+                      <span key={dateKey(day)} className="calendar-year__blank" />
+                    );
                   const today = sameDay(day, now);
                   const busy = byDay.has(dateKey(day));
                   return (
@@ -1506,10 +1690,8 @@ function YearView({
                       onClick={() => onOpenDay(day)}
                       data-testid={`calendar-year-view-day-${dateKey(day)}-button`}
                       className={cn(
-                        "hover:bg-app-hover relative mx-auto flex size-6 items-center justify-center rounded-full text-[11px] tabular-nums",
-                        today
-                          ? "font-semibold text-white hover:bg-transparent"
-                          : "text-app-bright",
+                        "calendar-year__day",
+                        today && "calendar-year__day--today",
                       )}
                       style={today ? { background: TODAY_RED } : undefined}
                     >
@@ -1597,8 +1779,11 @@ function EventEditor({
         data-testid="calendar-event-editor"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
+          const fresh = event.title === "New Event";
+          // Touch: opening an existing event should not raise the keyboard.
+          if (!fresh && isCoarsePointer()) return;
           titleRef.current?.focus();
-          if (event.title === "New Event") titleRef.current?.select();
+          if (fresh) titleRef.current?.select();
         }}
         onKeyDown={(e) => e.stopPropagation()}
       >
@@ -1714,7 +1899,7 @@ function EventEditor({
           </div>
 
           <div
-            className="flex items-center gap-1.5"
+            className="calendar-editor__swatches"
             role="radiogroup"
             aria-label="Colour"
           >
@@ -1727,8 +1912,8 @@ function EventEditor({
                 aria-label={c}
                 data-testid={`calendar-event-editor-color-${c}-button`}
                 className={cn(
-                  "ring-offset-app-panel size-5 rounded-full ring-offset-2 transition-transform hover:scale-110",
-                  event.color === c && "ring-2",
+                  "calendar-editor__swatch",
+                  event.color === c && "calendar-editor__swatch--selected",
                 )}
                 style={{
                   background: COLOR_HEX[c],

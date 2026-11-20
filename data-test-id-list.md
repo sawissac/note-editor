@@ -127,8 +127,10 @@
 
 ## EnvPane (.env)
 - `env-pane-source-input` — EnvPane / Monaco dotenv editor root
-- `env-pane-status-message` — EnvPane / problem count (file bar; absent when there are none)
+- `env-pane-status-message` — EnvPane / file-bar problem count button (absent when there are none); opens the problem list
 - `env-pane-format-button` — EnvPane / Format (file bar; disabled while the file has syntax errors)
+- `env-pane-problems-list` — EnvPane / popover listing every problem as "L<n> message" (touch has no Monaco hover)
+- `env-pane-problem-<index>-button` — EnvPane / one problem; selects its line in the editor
 
 ## RegexPane (.regex)
 - `regex-pane-text-input` — RegexPane / Monaco test-text editor root (left)
@@ -334,7 +336,7 @@
 - `chat-setup-model-search-input` / `chat-setup-model-list` / `chat-setup-model-custom-item` — ChatSetup / model combobox
 - `<prefix>-prompt-none-item` / `<prefix>-prompt-<fileId>-<name>-item` / `<prefix>-prompt-<fileId>-<name>-edit-button` / `<prefix>-prompt-new-button` — PromptList / system prompt radio list (prefix `chat-setup`)
 - `<prefix>-prompt-editor` / `<prefix>-prompt-name-input` / `<prefix>-prompt-text-input` / `<prefix>-prompt-save-button` / `<prefix>-prompt-cancel-button` / `<prefix>-prompt-delete-button` / `<prefix>-prompt-error-message` — PromptEditor / write a prompt into its `.prompt` file
-- `ask-ai-panel-prompt-<fileId>-<name>-button` / `ask-ai-panel-prompt-<fileId>-<name>-edit-button` / `ask-ai-panel-prompt-new-button` — AskAiPanel / workspace prompt chips (send the prompt), their edit pencil, and "+" for a new one
+- `<prefix>-quick-<slug>-button` / `<prefix>-prompt-<fileId>-<name>-button` / `<prefix>-prompt-<fileId>-<name>-edit-button` / `<prefix>-prompt-new-button` — PromptChips / built-in quick question (only while no `.prompt` entries exist), workspace prompt chip (sends the prompt), its edit pencil, and "+" for a new one (prefix `ask-ai-panel`, `chat-pane`)
 - `chat-setup-temperature-input` — ChatSetup / temperature
 - `chat-pane-clear-button` — ChatPane / file-bar clear action
 - `chat-pane-message-list` — ChatPane / messages
@@ -475,9 +477,19 @@
 - `pptx-inspector-x-input` / `-y-input` / `-width-input` / `-height-input` / `-rotation-input` — PptxInspector / exact box (single selection)
 - `pptx-inspector-duplicate-button` / `pptx-inspector-delete-button` — PptxInspector / selection actions
 
+- `pptx-inspector-edit-text-button` — PptxInspector / Text section "Edit text" (opens the text editor; the touch/double-click-free route)
+- `pptx-inspector-select-all-button` — PptxInspector / Slide section "Select all" elements (multi-select without Shift / ⌘A)
+
 ## PptxShow
 - `pptx-show` — PptxShow / full-screen slide show root (click advances)
 - `pptx-show-slide-content` / `pptx-show-count-message` / `pptx-show-close-button` — PptxShow / slide, position, exit
 
 ## DocxEditor (.docx)
 - `docx-editor-import-button` — DocxEditor file bar / "Import": replace the document with a DOCX file
+
+## App shell (tablet / narrow layout)
+- `explorer-drawer` — App / explorer overlay drawer, shown instead of the docked sidebar below 1024px wide
+- `explorer-drawer-scrim` — App / dimmed backdrop behind the drawer; tap closes it
+
+## TabBar
+- `tab-bar-show-sidebar-button` — TabBar / "Show sidebar" button (sidebar hidden, or the drawer closed on narrow layouts)

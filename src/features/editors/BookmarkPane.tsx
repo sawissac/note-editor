@@ -688,7 +688,7 @@ export default function BookmarkPane({
           type="button"
           variant="outline"
           size="sm"
-          className={cn(ui.paneToolbarBtn, "w-7 px-0")}
+          className={cn(ui.paneToolbarBtn, "w-7 px-0 pointer-coarse:w-9")}
           data-active={doc.view === "grid" || undefined}
           aria-pressed={doc.view === "grid"}
           aria-label="Cards"
@@ -701,7 +701,7 @@ export default function BookmarkPane({
           type="button"
           variant="outline"
           size="sm"
-          className={cn(ui.paneToolbarBtn, "w-7 px-0")}
+          className={cn(ui.paneToolbarBtn, "w-7 px-0 pointer-coarse:w-9")}
           data-active={doc.view === "list" || undefined}
           aria-pressed={doc.view === "list"}
           aria-label="List"
@@ -1203,18 +1203,36 @@ function BookmarkFolderRow({
   const testBase = `bookmark-folder-row-${id}`;
   const [hovered, setHovered] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
+  const rowRef = React.useRef<HTMLLIElement>(null);
   // Actions show on the open folder, on hover and on keyboard focus; while
   // they do, the count steps aside and the name truncates before them.
   const revealed = selected || hovered || focused;
+  // The rename field unmounts without a blur event; re-read where focus is.
+  React.useEffect(() => {
+    if (!renaming) {
+      setFocused(
+        Boolean(rowRef.current?.querySelector(":focus-visible")),
+      );
+    }
+  }, [renaming]);
   return (
     <li
+      ref={rowRef}
       className="bookmark-pane__folder"
       // Indent per nesting level — per-row geometry, not a style choice.
       style={{ "--depth": depth } as React.CSSProperties}
       data-testid={`${testBase}-item`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocus={() => setFocused(true)}
+      // Mouse only: a tap's emulated hover would stick on the row it hit.
+      // On touch the actions show on the selected folder.
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") setHovered(true);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") setHovered(false);
+      }}
+      // Keyboard focus only: a tap or click focuses the button too, and
+      // would otherwise leave this row's actions showing after it moves on.
+      onFocus={(e) => setFocused(e.target.matches(":focus-visible"))}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
           setFocused(false);

@@ -37,9 +37,9 @@ export const fieldLabel =
 /** Monospace metadata (counts, keys, ids). */
 export const meta = "font-mono text-[11px] text-app-dim";
 
-/** Icon-only control. 32px hit area regardless of glyph size. */
+/** Icon-only control. 32px hit area (36px on touch) regardless of glyph size. */
 export const iconBtn =
-  `flex size-8 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-app-dim transition-colors duration-200 ` +
+  `flex size-8 pointer-coarse:size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-app-dim transition-colors duration-200 ` +
   `hover:bg-app-hover hover:text-app-accent disabled:pointer-events-none disabled:opacity-50 ` +
   `${FOCUS} focus-visible:ring-offset-app-sidebar`;
 
@@ -49,17 +49,20 @@ export const iconBtn =
  * same property.
  */
 export const iconBtnDanger =
-  `flex size-8 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-app-error transition-all duration-200 ` +
+  `flex size-8 pointer-coarse:size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-app-error transition-all duration-200 ` +
   `hover:bg-app-error/10 ` +
   `${FOCUS} focus-visible:ring-app-error focus-visible:ring-offset-app-sidebar`;
 
-/** Hidden until the enclosing `group` is hovered, or something in it takes focus. */
+/**
+ * Hidden until the enclosing `group` is hovered, or something in it takes
+ * focus. Always shown on touch screens: there is no hover to reveal it.
+ */
 export const reveal =
-  "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100";
+  "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100";
 
-/** Present but recessive; comes forward on row hover or focus. */
+/** Present but recessive; comes forward on row hover or focus (always on touch). */
 export const dim =
-  "opacity-60 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100";
+  "opacity-60 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100";
 
 /** Bordered label button — the flat "secondary" action. */
 export const ghostBtn =

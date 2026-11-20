@@ -69,3 +69,69 @@
     @apply bg-app-selected pointer-events-none absolute inset-0 -z-10;
   }
 }
+
+/* Explorer row — BEM block `tree-row`.
+ *
+ * One file/folder line in the tree (TreeRow.tsx), plus the inline "new
+ * file" draft row (Explorer.tsx). 26px with a mouse; 36px with larger text
+ * on touch screens so a fingertip hits one row, not two. `padding-left`
+ * (the indent) is set inline per depth. */
+
+@layer components {
+  .tree-row {
+    @apply text-app-text hover:bg-app-hover relative isolate flex h-[26px] cursor-pointer items-center gap-1.5 pr-1 text-[12px] outline-none transition-colors duration-(--motion-duration-fast) select-none pointer-coarse:h-9 pointer-coarse:gap-2 pointer-coarse:text-[13px];
+  }
+  .tree-row--selected {
+    @apply text-app-bright;
+  }
+  .tree-row--multi-selected {
+    @apply bg-app-selected;
+  }
+  .tree-row--focused {
+    @apply ring-app-border-mid ring-1 ring-inset;
+  }
+  /* Dragged rows / files hover it, or its context menu is open. */
+  .tree-row--drop-target {
+    @apply bg-app-accent-faint ring-app-border-accent ring-1 ring-inset;
+  }
+  .tree-row--draft {
+    @apply bg-app-selected cursor-auto;
+  }
+  /* Hover toolbar: hidden until hover / selection; always there on touch,
+   * which has no hover. */
+  .tree-row__actions {
+    @apply opacity-0 group-hover:opacity-100 group-data-selected:opacity-100 pointer-coarse:opacity-100;
+  }
+}
+
+/* ── tree-row × compacto ────────────────────────────────────────────────
+ * Unlayered so it outranks the compacto Button's own size utilities. On
+ * touch the button keeps touch.css's 36px floor but drops its frame, so a
+ * row reads as a row, not a toolbar. */
+.tree-row__action {
+  @apply bg-app-bg text-app-dim hover:text-app-accent size-5 rounded-sm pointer-coarse:border-transparent pointer-coarse:bg-transparent [&_svg:not([class*='size-'])]:size-3 pointer-coarse:[&_svg:not([class*='size-'])]:size-4;
+}
+.tree-row__action--create {
+  @apply pointer-coarse:hidden;
+}
+
+/* Explorer header — BEM block `explorer-header` (× compacto SidebarHeader).
+ *
+ * Title plus the create / folder / hide actions. Same 36px height as the
+ * tab bar beside it (44px on touch, matching the touch tab bar). On touch
+ * the 36px buttons may not fit a narrow sidebar, so the row wraps instead
+ * of clipping actions. Unlayered so it outranks SidebarHeader's and
+ * Button's own utilities. */
+.explorer-header {
+  @apply h-9 gap-1 pr-1.5 pl-3 pointer-coarse:h-auto pointer-coarse:min-h-11 pointer-coarse:flex-wrap pointer-coarse:gap-y-1 pointer-coarse:py-1;
+}
+/* Brand mark in place of a text label: 20px, 24px on touch. */
+.explorer-header__title {
+  @apply flex items-center;
+}
+.explorer-header__logo {
+  @apply size-5 shrink-0 pointer-coarse:size-6;
+}
+.explorer-header__action {
+  @apply text-app-dim hover:text-app-accent size-6 bg-transparent [&_svg:not([class*='size-'])]:size-3.5 pointer-coarse:[&_svg:not([class*='size-'])]:size-4;
+}

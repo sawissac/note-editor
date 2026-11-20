@@ -14,6 +14,8 @@
 @import "./styles/pane-skeleton.css";
 @import "./styles/code-skeleton.css";
 @import "./styles/ask-ai.css";
+@import "./styles/app-shell.css";
+@import "./styles/touch.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -387,6 +389,21 @@ body {
   outline: 2px solid var(--app-accent);
   outline-offset: -2px;
 }
+/* Touch: finger-sized joined groups (38px frame, 36px controls). The
+ * `!important`s only match the desktop rule above, which needs them to
+ * flatten every child into the group. */
+@media (pointer: coarse) {
+  [data-slot="toolbar-group"] {
+    height: 38px;
+  }
+  [data-slot="toolbar-group"]
+    :is(button, [role="combobox"], input:not([type="file"]):not([type="hidden"])) {
+    height: 36px !important;
+  }
+  [data-slot="toolbar-group"] button:not([role="combobox"]) {
+    min-width: 36px;
+  }
+}
 
 /* Selects inside a group: label left, chevron right, compact gutters. */
 [data-slot="toolbar-group"] [data-slot="select-trigger"] {
@@ -471,4 +488,128 @@ body {
 .app-mdx [class*="_editImageToolbar_"] svg {
   width: 16px;
   height: 16px;
+}
+
+/* ---- MDXEditor on touch screens ------------------------------------------
+   Finger-sized toolbar and table/image tools when a finger is the primary
+   pointer (iPad); desktop density above is untouched. MDXEditor reveals its
+   table tools on `:hover` (behind `@media (hover: hover)`) and its image
+   toolbar here does too, so on touch they would stay faded forever — show
+   them outright. The toolbar keeps wrapping, so at tablet widths every tool
+   stays reachable on a second row instead of clipping. */
+@media (pointer: coarse) {
+  .app-mdx .md-toolbar {
+    gap: 6px;
+    padding: 6px 12px;
+  }
+  .app-mdx .md-group,
+  .app-mdx [class*="_diffSourceToggle_"] {
+    height: 38px;
+  }
+  .app-mdx .md-group button,
+  .app-mdx [class*="_diffSourceToggle_"] button {
+    height: 36px;
+    min-width: 34px;
+    padding: 0 8px;
+  }
+  .app-mdx .md-group svg,
+  .app-mdx [class*="_diffSourceToggle_"] svg {
+    width: 18px;
+    height: 18px;
+  }
+  .app-mdx .md-toolbar [class*="_selectTrigger_"] {
+    width: 7.5rem;
+    height: 38px;
+  }
+  .mdxeditor-popup-container [class*="_selectItem_"] {
+    min-height: 40px;
+  }
+
+  /* Table tools: wider tool row / column, bigger "⋯" menus, always visible. */
+  .app-mdx [class*="_tableEditor_"] > colgroup > col:first-child,
+  .app-mdx [class*="_tableEditor_"] > colgroup > col:last-child:not([class]) {
+    width: 34px !important;
+  }
+  .app-mdx [class*="_tableEditor_"] > thead > tr > th,
+  .app-mdx [class*="_tableEditor_"] > tfoot > tr > * {
+    height: 34px;
+  }
+  .app-mdx [class*="_tableEditor_"] [class*="_tableColumnEditorTrigger_"],
+  .app-mdx [class*="_tableEditor_"] [class*="_tableRowEditorTrigger_"],
+  .app-mdx [class*="_tableEditor_"] [class*="_iconButton_"] {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 4px !important;
+    border-radius: 6px;
+  }
+  /* Three-part selectors: MDXEditor's own fade (`.tableEditor .trigger`)
+     loads after this file. */
+  .app-mdx [class*="_tableEditor_"] [class*="_tableColumnEditorTrigger_"],
+  .app-mdx [class*="_tableEditor_"] [class*="_tableRowEditorTrigger_"],
+  .app-mdx [class*="_tableEditor_"] [class*="_iconButton_"],
+  .app-mdx [class*="_tableEditor_"] [class*="_addRowButton_"],
+  .app-mdx [class*="_tableEditor_"] [class*="_addColumnButton_"] {
+    opacity: 0.65;
+  }
+  .app-mdx [class*="_tableEditor_"] [class*="_tableColumnEditorTrigger_"] svg,
+  .app-mdx [class*="_tableEditor_"] [class*="_tableRowEditorTrigger_"] svg,
+  .app-mdx [class*="_tableEditor_"] [class*="_iconButton_"] svg {
+    width: 20px;
+    height: 20px;
+  }
+  .app-mdx [class*="_addRowButton_"] {
+    height: 30px;
+  }
+  .app-mdx [class*="_addColumnButton_"] {
+    width: 30px;
+  }
+  .app-mdx [class*="_addRowButton_"] svg,
+  .app-mdx [class*="_addColumnButton_"] svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* The column / row menu that a "⋯" opens, and the link popover. */
+  .mdxeditor-popup-container [class*="_tableColumnEditorToolbar_"] > button,
+  .mdxeditor-popup-container [class*="_toggleGroupRoot_"] button,
+  .mdxeditor-popup-container [class*="_actionButton_"],
+  .mdxeditor-popup-container [class*="_iconButton_"] {
+    display: flex;
+    min-width: 36px;
+    min-height: 36px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Code blocks: the language select and delete button in their corner. */
+  .app-mdx [class*="_codeMirrorToolbar_"] [class*="_iconButton_"] {
+    display: flex;
+    min-width: 32px;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+  }
+  .app-mdx [class*="_codeMirrorToolbar_"] [class*="_selectTrigger_"] {
+    min-height: 32px;
+  }
+
+  /* Images: edit / delete always shown; resize handles big enough to grab. */
+  .app-mdx [class*="_editImageToolbar_"] {
+    opacity: 1;
+  }
+  .app-mdx [class*="_editImageToolbar_"] button {
+    width: 36px;
+    height: 36px;
+  }
+  .app-mdx [class*="_imageResizer_"] {
+    width: 12px;
+    height: 12px;
+  }
+  .app-mdx [class*="_imageResizer_"]::after {
+    content: "";
+    position: absolute;
+    inset: -12px;
+  }
 }

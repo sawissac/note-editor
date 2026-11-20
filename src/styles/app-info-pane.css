@@ -61,16 +61,17 @@
   .app-info-pane__row-title {
     @apply font-title text-app-bright truncate text-[13px] font-semibold;
   }
+  /* Wraps on touch: no hover to reveal what the ellipsis hid. */
   .app-info-pane__row-names {
-    @apply font-description text-app-dim truncate text-[12px] whitespace-pre;
+    @apply font-description text-app-dim truncate text-[12px] whitespace-pre pointer-coarse:whitespace-pre-wrap;
   }
 
   /* ── Library chips ────────────────────────────────────────────────── */
   .app-info-pane__libs {
-    @apply m-0 flex w-full list-none flex-wrap gap-1.5 p-0 pl-12 sm:w-auto sm:max-w-[55%] sm:justify-end sm:pl-0;
+    @apply m-0 flex w-full list-none flex-wrap gap-1.5 p-0 pl-12 pointer-coarse:gap-2 sm:w-auto sm:max-w-[55%] sm:justify-end sm:pl-0;
   }
   .app-info-pane__lib {
-    @apply border-app-border bg-app-bg font-description text-app-text hover:border-app-border-accent hover:text-app-accent focus-visible:ring-app-accent inline-flex h-6 items-center gap-1 rounded-full border px-2.5 text-[11.5px] whitespace-nowrap no-underline transition-colors duration-150 outline-none focus-visible:ring-2;
+    @apply border-app-border bg-app-bg font-description text-app-text hover:border-app-border-accent hover:text-app-accent focus-visible:ring-app-accent inline-flex h-6 items-center gap-1 rounded-full border px-2.5 text-[11.5px] whitespace-nowrap no-underline transition-colors duration-150 outline-none focus-visible:ring-2 pointer-coarse:h-8 pointer-coarse:px-3;
   }
   .app-info-pane__lib--builtin {
     @apply text-app-dim hover:border-app-border hover:text-app-dim border-dashed;

@@ -61,6 +61,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { IconDots, IconMoon, IconDownload, IconUpload, IconSearch, IconChevronLeft, IconCircleMinus, IconCirclePlus, IconLoader2, IconChevronRight } from "@tabler/icons-react"
+import { useTouchSelectionGuard } from "@/components/extend/document-touch"
+import "@/styles/office-touch.css"
 
 export const XLSX_CONTEXT_MENU_CLASS_NAME =
   "origin-(--transform-origin) rounded-lg border bg-popover text-popover-foreground shadow-lg/5 outline-none not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] dark:before:shadow-[0_-1px_--theme(--color-white/6%)]"
@@ -94,9 +96,10 @@ export function renderXlsxContextMenu({
             tabIndex={-1}
             disabled={busy || action.disabled}
             data-action={action.id}
+            data-testid={`xlsx-context-menu-${action.id}-item`}
             className={cn(
-              "flex min-h-8 w-full cursor-default items-center gap-2 rounded-sm px-2 py-1 text-left text-base text-foreground outline-none select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-64 sm:min-h-7 sm:text-sm",
-              action.destructive && "text-destructive-foreground"
+              "xlsx-context-menu__item",
+              action.destructive && "xlsx-context-menu__item--destructive"
             )}
             onPointerMove={(event) =>
               event.currentTarget.focus({ preventScroll: true })
@@ -530,14 +533,28 @@ function WorkbookFileActionsMenu({
     </DropdownMenu>
   )
 }
-export function renderXlsxScroller({
-  children,
-  viewportProps,
-}: XlsxScrollerRenderProps) {
+export function renderXlsxScroller(props: XlsxScrollerRenderProps) {
+  return <XlsxTouchScroller {...props} />
+}
+const XLSX_TOUCH_UNGUARDED =
+  "a,button,input,textarea,select,[role='button'],[role='menu'],[contenteditable='true']"
+/** Presses on cells / headers the grid would turn into a range drag. */
+function isXlsxTouchSelectionTarget(target: Element) {
+  return !target.closest(XLSX_TOUCH_UNGUARDED)
+}
+/**
+ * The grid's scroller. On touch, a swipe scrolls instead of dragging a cell
+ * range; tap selects, hold-and-drag selects a range, hold-and-lift opens the
+ * cell / row / column menu (insert, delete, …) — see document-touch.ts.
+ */
+function XlsxTouchScroller({ children, viewportProps }: XlsxScrollerRenderProps) {
+  const [viewport, setViewport] = React.useState<HTMLDivElement | null>(null)
+  useTouchSelectionGuard(viewport, { shouldGuard: isXlsxTouchSelectionTarget })
   return (
     <InlineScrollArea2
       className="h-full min-h-0 w-full min-w-0 flex-1"
       viewportProps={viewportProps}
+      viewportRef={setViewport}
     >
       {children}
     </InlineScrollArea2>
@@ -1163,7 +1180,7 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
   return (
     <div
       className="border-t bg-muted/40 px-3 py-2"
-      onMouseLeave={handleContainerLeave}
+      onPointerLeave={handleContainerLeave}
     >
       <Tabs
         value={String(activeSheetIndex)}
@@ -1187,7 +1204,11 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
                   }}
                   value={String(index)}
                   className="max-w-48 flex-none"
-                  onMouseEnter={() => handleItemEnter(index)}
+                  onPointerEnter={(event) => {
+                    // Hover preview is mouse-only: a tap fires enter but
+                    // never leave, which would strand the card on screen.
+                    if (event.pointerType === "mouse") handleItemEnter(index)
+                  }}
                 >
                   <span className="truncate">{sheet.name}</span>
                 </TabsTrigger>

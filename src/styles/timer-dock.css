@@ -5,8 +5,21 @@
  * `src/index.css`, so `@apply` resolves the app-* theme. */
 
 @layer components {
+  /* Clear of the status bar and, on an iPad / home-screen web app, of the
+   * home indicator and a landscape side inset (`viewport-fit=cover`); the
+   * status bar is taller on touch. */
   .timer-dock {
-    @apply pointer-events-none fixed bottom-10 left-3 z-50 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col gap-2;
+    @apply pointer-events-none fixed z-50 flex w-80 flex-col gap-2;
+    bottom: calc(2.5rem + env(safe-area-inset-bottom));
+    left: calc(0.75rem + env(safe-area-inset-left));
+    max-width: calc(
+      100vw - 1.5rem - env(safe-area-inset-left) - env(safe-area-inset-right)
+    );
+  }
+  @media (pointer: coarse) {
+    .timer-dock {
+      bottom: calc(3rem + env(safe-area-inset-bottom));
+    }
   }
   .timer-dock__toast {
     /* Enter/exit motion is driven by motion/react (TimerDock.tsx). */

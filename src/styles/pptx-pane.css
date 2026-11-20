@@ -20,8 +20,10 @@
   .pptx-pane__slide-list {
     @apply m-0 flex min-h-0 flex-1 list-none flex-col gap-2 overflow-y-auto p-0;
   }
+  /* On touch screens the open slide's actions wrap onto their own row
+   * (finger-sized buttons would cover the whole thumbnail). */
   .pptx-pane__slide {
-    @apply relative flex shrink-0 gap-1;
+    @apply relative flex shrink-0 gap-1 pointer-coarse:flex-wrap;
   }
   .pptx-pane__slide--dragging {
     @apply z-10 opacity-60;
@@ -43,7 +45,7 @@
   }
   /* Duplicate / delete, over the open slide's thumbnail corner. */
   .pptx-pane__slide-actions {
-    @apply bg-app-panel border-app-border absolute top-1 right-1 flex rounded-md border;
+    @apply bg-app-panel border-app-border absolute top-1 right-1 flex rounded-md border pointer-coarse:static pointer-coarse:basis-full pointer-coarse:justify-end pointer-coarse:gap-1 pointer-coarse:border-0 pointer-coarse:bg-transparent;
   }
 
   /* ── Slide being edited ───────────────────────────────────────────── */
@@ -101,10 +103,11 @@
     @apply flex flex-wrap gap-1.5;
   }
   .pptx-pane__swatches {
-    @apply flex flex-wrap gap-1;
+    @apply flex flex-wrap gap-1 pointer-coarse:gap-1.5;
   }
+  /* 16px under a mouse; finger-sized on touch screens. */
   .pptx-pane__swatch {
-    @apply border-app-border-mid hover:border-app-accent focus-visible:ring-app-accent size-4 cursor-pointer rounded-sm border p-0 outline-none focus-visible:ring-2;
+    @apply border-app-border-mid hover:border-app-accent focus-visible:ring-app-accent size-4 cursor-pointer rounded-sm border p-0 outline-none focus-visible:ring-2 pointer-coarse:size-8 pointer-coarse:rounded-md;
   }
   .pptx-pane__swatch--selected {
     @apply border-app-accent ring-app-accent ring-1;
@@ -114,8 +117,9 @@
   }
 
   /* ── Slide show ───────────────────────────────────────────────────── */
+  /* `touch-none`: swipes turn the page instead of scrolling / zooming. */
   .pptx-show {
-    @apply fixed inset-0 z-100 flex cursor-pointer items-center justify-center bg-black outline-none;
+    @apply fixed inset-0 z-100 flex cursor-pointer touch-none items-center justify-center bg-black outline-none;
   }
   .pptx-show__slide {
     @apply block size-full object-contain select-none;
@@ -124,7 +128,7 @@
     @apply absolute right-4 bottom-3 m-0 font-mono text-[12px] text-white/60;
   }
   .pptx-show__close {
-    @apply absolute top-3 right-3 flex size-8 cursor-pointer items-center justify-center rounded-md border-0 bg-white/10 text-white/70 outline-none hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white;
+    @apply absolute top-3 right-3 flex size-8 pointer-coarse:size-11 cursor-pointer items-center justify-center rounded-md border-0 bg-white/10 text-white/70 outline-none hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-white;
   }
 }
 

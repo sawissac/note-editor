@@ -279,6 +279,8 @@ import {
   type PdfEditorSelectionAction,
   type PdfEditorSelectionPage,
   type PdfEditorSelectionPayload,
+  allowTouchScrollInPointerMode,
+  PdfTouchZoom,
 } from "@/components/extend/pdf-editor-shared"
 import { PdfEditorWorkspace } from "@/components/extend/pdf-editor-workspace"
 import { ToastPrimitive, ToastProvider } from "@/components/extend/ui-toast"
@@ -3600,12 +3602,14 @@ function PdfEditorInner({
                     <PdfEditorViewportBridge
                       viewportElementRef={viewportElementRef}
                     />
-                    <GlobalPointerProvider documentId={documentId}>
-                      <Scroller
-                        documentId={documentId}
-                        renderPage={renderPage}
-                      />
-                    </GlobalPointerProvider>
+                    <PdfTouchZoom documentId={documentId}>
+                      <GlobalPointerProvider documentId={documentId}>
+                        <Scroller
+                          documentId={documentId}
+                          renderPage={renderPage}
+                        />
+                      </GlobalPointerProvider>
+                    </PdfTouchZoom>
                     <CopyToClipboard />
                   </PdfEditorViewport>
                 )}
@@ -4110,7 +4114,11 @@ export const PDFEditor = React.forwardRef<PDFEditorHandle, PDFEditorProps>(
           value={resolveScrollAreaViewport ?? resolveDefaultScrollAreaViewport}
         >
           {engine ? (
-            <EmbedPDF engine={engine} plugins={plugins}>
+            <EmbedPDF
+              engine={engine}
+              plugins={plugins}
+              onInitialized={allowTouchScrollInPointerMode}
+            >
               {editor}
             </EmbedPDF>
           ) : (

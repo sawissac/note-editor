@@ -65,6 +65,10 @@ import { flushSync } from "react-dom"
 
 import { getPdfSourceUrl, loadSharedPdfEngine } from "@/lib/pdf-thumbnail-utils"
 import { cn } from "@/lib/utils"
+import {
+  allowTouchScrollInPointerMode,
+  PdfTouchZoom,
+} from "@/components/extend/pdf-editor-shared"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -2449,14 +2453,16 @@ function PDFViewerInner({
             <PDFViewerViewportBridge viewportElementRef={viewportElementRef} />
             <PDFViewerSelectionCopyShortcut documentId={documentId} />
             <PDFViewerSelectionReleaseGuard documentId={documentId} />
-            <GlobalPointerProvider documentId={documentId}>
-              <PDFViewerScroller
-                basePageRotations={basePageRotations}
-                documentId={documentId}
-                pageRotationDeltas={pageRotationDeltas}
-                renderPage={renderPage}
-              />
-            </GlobalPointerProvider>
+            <PdfTouchZoom documentId={documentId}>
+              <GlobalPointerProvider documentId={documentId}>
+                <PDFViewerScroller
+                  basePageRotations={basePageRotations}
+                  documentId={documentId}
+                  pageRotationDeltas={pageRotationDeltas}
+                  renderPage={renderPage}
+                />
+              </GlobalPointerProvider>
+            </PdfTouchZoom>
             <CopyToClipboard />
           </PDFViewerScrollAreaViewport>
         </div>
@@ -2673,7 +2679,11 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
       <PDFViewerScrollAreaResolverContext.Provider
         value={resolveScrollAreaViewport ?? resolveDefaultScrollAreaViewport}
       >
-        <EmbedPDF engine={engine} plugins={plugins}>
+        <EmbedPDF
+          engine={engine}
+          plugins={plugins}
+          onInitialized={allowTouchScrollInPointerMode}
+        >
           <PDFViewerDocumentLoader
             viewerRef={ref}
             pdfFile={pdfFile}

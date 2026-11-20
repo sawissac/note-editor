@@ -44,7 +44,7 @@
     @apply font-description text-app-dim px-1.5 py-1 text-[11px];
   }
   .chat-setup__choice {
-    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/40 flex h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/40 flex h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[12px] transition-colors duration-150 outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:h-10 pointer-coarse:text-[13px];
   }
   .chat-setup__choice--selected {
     @apply bg-app-selected text-app-bright font-medium;
@@ -59,7 +59,7 @@
     @apply min-w-0 truncate;
   }
   .chat-setup__manage {
-    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent/40 mt-1 flex h-6 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-1.5 text-[11px] transition-colors duration-150 outline-none focus-visible:ring-2;
+    @apply text-app-dim hover:text-app-accent focus-visible:ring-app-accent/40 mt-1 flex h-6 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-1.5 text-[11px] transition-colors duration-150 outline-none focus-visible:ring-2 pointer-coarse:h-9 pointer-coarse:text-[12px];
   }
   .chat-setup__manage-icon {
     @apply size-3 shrink-0;
@@ -142,13 +142,13 @@
     @apply mt-px size-3.5 shrink-0;
   }
   .chat-pane__tools {
-    @apply text-app-dim flex h-5 items-center gap-0 opacity-70 transition-opacity duration-150 hover:opacity-100 focus-within:opacity-100;
+    @apply text-app-dim flex h-5 items-center gap-0 opacity-70 transition-opacity duration-150 hover:opacity-100 focus-within:opacity-100 pointer-coarse:h-9 pointer-coarse:gap-1 pointer-coarse:opacity-100;
   }
   .chat-pane__meta {
     @apply text-app-dim mr-1 font-mono text-[10px];
   }
   .chat-pane__tool-icon {
-    @apply size-3;
+    @apply size-3 pointer-coarse:size-4;
   }
   /* Waiting for the first words of a reply. */
   .chat-pane__pending {
@@ -168,8 +168,16 @@
   }
 
   /* ── chat-pane: composer ──────────────────────────────────────────── */
+  /* Prompt chips (block `prompt-chips`) or the prompt form, then the
+     message box and its button. */
   .chat-pane__composer {
-    @apply border-app-border bg-app-panel mx-auto flex w-full max-w-3xl shrink-0 items-end gap-2 border-t px-2 py-2 md:rounded-t-lg md:border-x;
+    @apply border-app-border bg-app-panel mx-auto flex w-full max-w-3xl shrink-0 flex-col gap-2 border-t px-2 py-2 md:rounded-t-lg md:border-x;
+  }
+  .chat-pane__composer-row {
+    @apply flex items-end gap-2;
+  }
+  .chat-pane__prompt-editor {
+    @apply border-app-border flex h-64 min-h-0 flex-col rounded-md border;
   }
   /* A banner sits on top: square the top corners so the two read as one. */
   .chat-pane__composer--attached {
@@ -198,7 +206,7 @@
     @apply flex items-center gap-0.5;
   }
   .chat-composer__placeholder {
-    @apply font-description text-app-dim pointer-events-none absolute top-0 left-0 truncate px-3 py-2 text-[13px] leading-normal select-none;
+    @apply font-description text-app-dim pointer-events-none absolute top-0 left-0 truncate px-3 py-2 text-[13px] leading-normal select-none pointer-coarse:py-2.5 pointer-coarse:text-[14px];
   }
 
   /* ── chat-markdown ────────────────────────────────────────────────── */
@@ -315,6 +323,27 @@
   line-height: 1.5;
   color: var(--app-bright);
 }
+/* Touch: a taller box and finger-sized format buttons. MDXEditor renders
+ * those buttons with its own hashed classes only, so they are reached by
+ * that class name under this block's modifier. */
+@media (pointer: coarse) {
+  .chat-composer--rich .chat-composer__toolbar {
+    padding: 4px 6px;
+  }
+  .chat-composer--rich .chat-composer__content {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .chat-composer--rich [class*="_toolbarToggleItem_"],
+  .chat-composer--rich [class*="_toolbarButton_"] {
+    display: flex;
+    min-width: 36px;
+    min-height: 36px;
+    align-items: center;
+    justify-content: center;
+  }
+}
 
 /* ── chat-setup × compacto ─────────────────────────────────────────────
  * The compacto Popover / Command / Select / ToggleGroup primitives size
@@ -336,10 +365,10 @@
   @apply p-1;
 }
 .chat-setup__option {
-  @apply min-h-6 gap-1.5 px-1.5 py-1 text-[12px];
+  @apply min-h-6 gap-1.5 px-1.5 py-1 text-[12px] pointer-coarse:min-h-10;
 }
 .chat-setup__slider {
-  @apply w-28;
+  @apply w-28 pointer-coarse:w-36;
 }
 
 .chat-pane__tool {
@@ -366,7 +395,7 @@
     @apply border-app-border bg-app-panel fixed z-50 flex max-h-72 w-80 flex-col overflow-y-auto rounded-md border p-1 shadow-lg;
   }
   .chat-mention__item {
-    @apply text-app-text flex w-full cursor-pointer items-center gap-2 rounded border-0 bg-transparent px-2 py-1.5 text-left;
+    @apply text-app-text flex w-full cursor-pointer items-center gap-2 rounded border-0 bg-transparent px-2 py-1.5 text-left pointer-coarse:min-h-10;
   }
   .chat-mention__item--active {
     @apply bg-app-hover text-app-bright;
@@ -391,9 +420,9 @@
     @apply m-0 mx-auto flex w-full max-w-3xl list-none flex-wrap gap-1 px-2 pt-1.5 pb-1;
   }
   .chat-pane__reference {
-    @apply border-app-border-accent bg-app-accent-faint text-app-text flex max-w-80 items-center gap-1 rounded border py-0.5 pr-0.5 pl-1.5 font-mono text-[10px];
+    @apply border-app-border-accent bg-app-accent-faint text-app-text flex max-w-80 items-center gap-1 rounded border py-0.5 pr-0.5 pl-1.5 font-mono text-[10px] pointer-coarse:text-[11px];
   }
   .chat-pane__reference-remove {
-    @apply text-app-dim hover:text-app-error flex size-4 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0;
+    @apply text-app-dim hover:text-app-error flex size-4 shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 pointer-coarse:size-8;
   }
 }

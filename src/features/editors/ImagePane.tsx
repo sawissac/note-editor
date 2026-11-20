@@ -79,6 +79,7 @@ import {
 } from "@/lib/image-tools";
 import { downloadFile, toArrayBuffer } from "@/lib/storage";
 import * as ui from "@/lib/ui-styles";
+import { useCoarsePointer } from "@/lib/use-media-query";
 import { addFileWithContent, saveContent } from "@/store/actions";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { FileBarSlot } from "@/features/editors/file-bar-slot";
@@ -167,6 +168,7 @@ export default function ImagePane(props: PaneProps) {
   const [version, setVersion] = React.useState(0);
   const [replacing, setReplacing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const coarse = useCoarsePointer();
 
   const replaceWith = (next: ArrayBuffer) => {
     setBytes(next);
@@ -202,7 +204,7 @@ export default function ImagePane(props: PaneProps) {
             maxSize={MAX_IMPORT_BYTES}
             maxFiles={1}
             multiple={false}
-            title="Click or drop an image"
+            title={coarse ? "Tap to choose an image" : "Click or drop an image"}
             onFilesAdded={(files) => {
               if (files[0]) void importFile(files[0]);
             }}
@@ -310,7 +312,9 @@ function ImageEditor({
   const [copied, setCopied] = React.useState(false);
 
   const stageRef = React.useRef<HTMLDivElement>(null);
+  const frameRef = React.useRef<HTMLDivElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const coarse = useCoarsePointer();
   const previewScaleRef = React.useRef(1);
 
   const setHistory = (next: History) => {
@@ -489,6 +493,76 @@ function ImageEditor({
     stage.addEventListener("wheel", onWheel, { passive: false });
     return () => stage.removeEventListener("wheel", onWheel);
   }, [history !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Two-finger pinch zooms (and pans) on touch screens, keeping the picture
+  // under the fingers in place; one finger still scrolls the stage.
+  // Touch events, not pointer events: the stage scrolls natively, which
+  // cancels pointer streams. Non-passive so the pinch can't scroll too.
+  /** Where the zoom should stay put, applied once the new size renders. */
+  const pinchAnchorRef = React.useRef<{
+    fx: number;
+    fy: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  React.useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    let pinch: { span: number; zoom: number } | null = null;
+    const spanOf = (t: TouchList) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) ||
+      1;
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+      pinch = { span: spanOf(e.touches), zoom: zoomRef.current };
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!pinch || e.touches.length !== 2) return;
+      if (e.cancelable) e.preventDefault();
+      const frame = frameRef.current;
+      const x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      if (frame) {
+        const r = frame.getBoundingClientRect();
+        pinchAnchorRef.current = {
+          fx: (x - r.left) / (r.width || 1),
+          fy: (y - r.top) / (r.height || 1),
+          x,
+          y,
+        };
+      }
+      setZoomSetting(
+        Math.min(
+          MAX_ZOOM,
+          Math.max(MIN_ZOOM, (pinch.zoom * spanOf(e.touches)) / pinch.span),
+        ),
+      );
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinch = null;
+    };
+    stage.addEventListener("touchstart", onStart, { passive: false });
+    stage.addEventListener("touchmove", onMove, { passive: false });
+    stage.addEventListener("touchend", onEnd);
+    stage.addEventListener("touchcancel", onEnd);
+    return () => {
+      stage.removeEventListener("touchstart", onStart);
+      stage.removeEventListener("touchmove", onMove);
+      stage.removeEventListener("touchend", onEnd);
+      stage.removeEventListener("touchcancel", onEnd);
+    };
+  }, [history !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useLayoutEffect(() => {
+    const anchor = pinchAnchorRef.current;
+    pinchAnchorRef.current = null;
+    const stage = stageRef.current;
+    const frame = frameRef.current;
+    if (!anchor || !stage || !frame) return;
+    const r = frame.getBoundingClientRect();
+    stage.scrollLeft += r.left + anchor.fx * r.width - anchor.x;
+    stage.scrollTop += r.top + anchor.fy * r.height - anchor.y;
+  }, [zoom]);
 
   /* ── Crop ─────────────────────────────────────────────────────────── */
 
@@ -800,14 +874,21 @@ function ImageEditor({
 
   const frame = (
     <div
+      ref={frameRef}
       className="image-pane__frame"
       style={{ width: width * zoom, height: height * zoom }}
       data-testid="image-pane-preview-content"
-      onPointerMove={(e) => setReadout(pointAt(e))}
-      onPointerLeave={() => setReadout(null)}
+      onPointerMove={(e) => {
+        // A finger has no hover; its readout comes from the tap below.
+        if (e.pointerType !== "touch") setReadout(pointAt(e));
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType !== "touch") setReadout(null);
+      }}
       onClick={(e) => {
         if (crop) return;
         const point = pointAt(e);
+        if (coarse) setReadout(point);
         if (point) void copyColour(point.hex);
       }}
     >
@@ -1006,7 +1087,9 @@ function ImageEditor({
                 </span>
               ) : (
                 <span className="image-pane__status-item image-pane__status-item--hint">
-                  Click to copy a colour · ⌘-scroll to zoom
+                  {coarse
+                    ? "Tap to copy a colour · pinch to zoom"
+                    : "Click to copy a colour · ⌘-scroll to zoom"}
                 </span>
               )}
             </div>

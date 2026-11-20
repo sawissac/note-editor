@@ -86,6 +86,12 @@ import {
   createDocxTrackedChangeCardRenderer,
 } from "@/components/extend/docx-annotation-card"
 import { FileThumbnail } from "@/components/extend/file-thumbnail"
+import {
+  dispatchSyntheticPointer,
+  useTouchSelectionGuard,
+} from "@/components/extend/document-touch"
+import { BREAKPOINT, useMediaQuery } from "@/lib/use-media-query"
+import "@/styles/office-touch.css"
 import { IconArrowDownRight, IconArrowUpRight, IconBorderAll, IconBorderBottom, IconBorderHorizontal, IconBorderInner, IconBorderLeft, IconBorderNone, IconBorderRight, IconBorderTop, IconBorderVertical, IconMinus, IconMoon, IconSun, IconTextColor, IconLayoutSidebar, IconFileDiff, IconMessage, IconPencilOff, IconUpload, IconDownload, IconArrowBackUp, IconArrowForwardUp, IconBold, IconItalic, IconUnderline, IconStrikethrough, IconSuperscript, IconSubscript, IconHighlight, IconLink, IconAlignLeft, IconAlignCenter, IconAlignRight, IconAlignJustified, IconList, IconListNumbers, IconPencil, IconPhotoPlus, IconTable, IconColumns3, IconCircleMinus, IconCirclePlus, IconLoader2 } from "@tabler/icons-react"
 
 function DocxContextMenuItems({
@@ -294,9 +300,11 @@ function placeCaretInParagraph(host: HTMLElement, at: "start" | "end") {
     detail: 1,
   }
   const pointer = { ...init, pointerId: 1, pointerType: "mouse", isPrimary: true }
-  target.dispatchEvent(new PointerEvent("pointerdown", { ...pointer, buttons: 1 }))
+  // Safe dispatch: a touch-only device has no mouse pointer 1, so the
+  // editor's setPointerCapture(1) would throw and abort the caret placement.
+  dispatchSyntheticPointer(target, new PointerEvent("pointerdown", { ...pointer, buttons: 1 }))
   target.dispatchEvent(new MouseEvent("mousedown", { ...init, buttons: 1 }))
-  target.dispatchEvent(new PointerEvent("pointerup", { ...pointer, buttons: 0 }))
+  dispatchSyntheticPointer(target, new PointerEvent("pointerup", { ...pointer, buttons: 0 }))
   target.dispatchEvent(new MouseEvent("mouseup", { ...init, buttons: 0 }))
   target.dispatchEvent(new MouseEvent("click", { ...init, buttons: 0 }))
 }
@@ -374,6 +382,17 @@ function handleParagraphNavKeyDown(event: React.KeyboardEvent<HTMLElement>) {
   }
   // Two frames: let the editor apply its own handling first.
   requestAnimationFrame(() => requestAnimationFrame(check))
+}
+
+const DOCX_TOUCH_UNGUARDED =
+  "a,button,input,textarea,select,[role='button'],[contenteditable='true'],[data-docx-image-location],[data-docx-drop-cap='true'],[data-docx-table-move-handle='true'],[data-image-resize-handle='true'],[data-docx-form-field='true'],[data-docx-context-menu]"
+
+/** Presses on page text the editor would turn into a drag-selection. */
+function isDocxTouchSelectionTarget(target: Element) {
+  return Boolean(
+    target.closest("[data-docx-page-wrapper]") &&
+      !target.closest(DOCX_TOUCH_UNGUARDED)
+  )
 }
 
 /**
@@ -1873,6 +1892,41 @@ function DocxEditorContent({
     [viewportElement, zoomScale]
   )
   useSuppressDocxPaddingWarning(!isLoadingDocument && !loadError)
+  // Touch: swipes scroll, taps place the caret, hold-and-drag selects,
+  // hold-and-lift opens the context menu (see document-touch.ts).
+  const [pagesHost, setPagesHost] = React.useState<HTMLDivElement | null>(null)
+  useTouchSelectionGuard(pagesHost, {
+    shouldGuard: isDocxTouchSelectionTarget,
+    disabled: isReadOnly,
+  })
+  // Narrow viewports (tablet portrait): open each document zoomed to fit the
+  // page width instead of cutting off its right edge. Wide screens keep the
+  // default zoom.
+  const isCompact = useMediaQuery(BREAKPOINT.compact)
+  const fittedDocumentRef = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    if (!isCompact || isLoadingDocument || loadError || !viewportElement) return
+    const identity = `${url ?? ""}|${uploadedDocxFile?.identity ?? ""}`
+    if (fittedDocumentRef.current === identity) return
+    const available = viewportElement.clientWidth - 32
+    const pageWidth = pageLayout.pageWidthPx
+    if (available <= 0 || !pageWidth) return
+    fittedDocumentRef.current = identity
+    if (pageWidth * (resolvedDefaultZoomScale / 100) <= available) return
+    const fit = [...ZOOM_OPTIONS]
+      .reverse()
+      .find((value) => pageWidth * (value / 100) <= available)
+    setZoomScale(fit ?? ZOOM_OPTIONS[0])
+  }, [
+    isCompact,
+    isLoadingDocument,
+    loadError,
+    pageLayout.pageWidthPx,
+    resolvedDefaultZoomScale,
+    uploadedDocxFile?.identity,
+    url,
+    viewportElement,
+  ])
 
   // New documents: caret in the first paragraph as soon as it is laid out.
   React.useEffect(() => {
@@ -2187,7 +2241,8 @@ function DocxEditorContent({
             loadingState
           ) : (
             <div
-              className="mx-auto flex min-h-full justify-center"
+              ref={setPagesHost}
+              className="docx-editor__pages"
               onMouseDownCapture={
                 isReadOnly ? undefined : handleBlankPageMouseDown
               }

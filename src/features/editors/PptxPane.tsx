@@ -3,10 +3,6 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -32,11 +28,13 @@ import {
   IconCopyPlus,
   IconDiamond,
   IconItalic,
+  IconCursorText,
   IconLetterT,
   IconMinus,
   IconPhotoPlus,
   IconPlayerPlay,
   IconPlus,
+  IconSelectAll,
   IconShape,
   IconSquare,
   IconSquareRounded,
@@ -53,7 +51,7 @@ import {
 } from "@tabler/icons-react";
 import Konva from "konva";
 import * as React from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -78,6 +76,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useDragSensors } from "@/lib/dnd-sensors";
 import { cn } from "@/lib/cn";
 import {
   cloneElement,
@@ -122,7 +121,11 @@ import {
   syncElementNode,
   textHeight,
 } from "@/lib/pptx-render";
-import { BREAKPOINT, useMediaQuery } from "@/lib/use-media-query";
+import {
+  BREAKPOINT,
+  useCoarsePointer,
+  useMediaQuery,
+} from "@/lib/use-media-query";
 import * as ui from "@/lib/ui-styles";
 import { saveContent } from "@/store/actions";
 import { useAppDispatch } from "@/store";
@@ -516,19 +519,17 @@ export default function PptxPane({ id, content, registerSave }: PaneProps) {
     }
   };
 
-  const sensors = useSensors(
-    // 5px of travel before a press becomes a drag, so clicks still select.
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    // Space lifts a slide; Enter is left alone so it still opens one.
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-      keyboardCodes: {
-        start: ["Space"],
-        cancel: ["Escape"],
-        end: ["Space", "Enter"],
-      },
-    }),
-  );
+  // Mouse: 5px of travel first, so clicks still select. Touch: press and
+  // hold, so a swipe still scrolls the strip. Space lifts a slide; Enter is
+  // left alone so it still opens one.
+  const sensors = useDragSensors({
+    coordinateGetter: sortableKeyboardCoordinates,
+    keyboardCodes: {
+      start: ["Space"],
+      cancel: ["Escape"],
+      end: ["Space", "Enter"],
+    },
+  });
   const onSlideDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
     update((d) => {
@@ -1013,6 +1014,13 @@ export default function PptxPane({ id, content, registerSave }: PaneProps) {
             }
             onDuplicate={duplicateSelection}
             onRemove={removeSelection}
+            onSelectAll={() =>
+              setSelection(slide.elements.map((el) => el.id))
+            }
+            onEditText={(elementId) => {
+              setSelection([elementId]);
+              setEditingId(elementId);
+            }}
           />
         </PaneSplit>
       </div>
@@ -1237,6 +1245,11 @@ function PptxStage({
   const nodesRef = React.useRef(new Map<string, Konva.Group>());
   const latest = React.useRef({ selection, scale, onSelect, onBoxes, onEdit });
   latest.current = { selection, scale, onSelect, onBoxes, onEdit };
+  // A finger needs bigger handles, and a few px of slack before a tap on an
+  // element turns into a move.
+  const coarse = useCoarsePointer();
+  const coarseRef = React.useRef(coarse);
+  coarseRef.current = coarse;
 
   React.useEffect(() => {
     const host = hostRef.current;
@@ -1296,6 +1309,20 @@ function PptxStage({
     k.layer.batchDraw();
   }, [scale]);
 
+  React.useEffect(() => {
+    const k = konvaRef.current;
+    if (!k) return;
+    k.transformer.setAttrs(
+      coarse
+        ? { anchorSize: 20, rotateAnchorOffset: 36, anchorCornerRadius: 10 }
+        : { anchorSize: 9, rotateAnchorOffset: 22, anchorCornerRadius: 2 },
+    );
+    for (const node of nodesRef.current.values()) {
+      node.dragDistance(coarse ? 4 : 0);
+    }
+    k.layer.batchDraw();
+  }, [coarse]);
+
   // Rebuild the slide's nodes. Moves and resizes run on the nodes themselves
   // and only reach `slide` when they end, so this never fires mid-gesture.
   React.useEffect(() => {
@@ -1333,6 +1360,7 @@ function PptxStage({
       const elementId = group.id();
       nodes.set(elementId, group);
       group.draggable(true);
+      group.dragDistance(coarseRef.current ? 4 : 0);
 
       group.on("mousedown touchstart", (e) => {
         const { selection: current, onSelect: select } = latest.current;
@@ -1355,7 +1383,9 @@ function PptxStage({
       });
       group.on("dblclick dbltap", () => {
         if (live.get(elementId)?.type === "text") {
-          latest.current.onEdit(elementId);
+          // Mount the editor (and focus it) inside this gesture, or iOS
+          // will not raise the on-screen keyboard.
+          flushSync(() => latest.current.onEdit(elementId));
         }
       });
 
@@ -1602,6 +1632,14 @@ type PptxInspectorProps = {
   onDuplicate: () => void;
   /** Fires when Delete is clicked. */
   onRemove: () => void;
+  /** Fires when "Select all" is clicked (the ⌘/Ctrl+A of touch screens). */
+  onSelectAll: () => void;
+  /**
+   * Fires when "Edit text" is clicked — the tap alternative to
+   * double-clicking a text box.
+   * @param id - the selected text element's id
+   */
+  onEditText: (id: string) => void;
 };
 
 /**
@@ -1618,7 +1656,8 @@ type PptxInspectorProps = {
  * `text-color-*`, `text-fill-*`, `shape-select`, `fill-*`, `stroke-*`,
  * `stroke-width-input`, `opacity-input`, `arrange-<mode>-button`,
  * `x-input`, `y-input`, `width-input`, `height-input`, `rotation-input`,
- * `duplicate-button`, `delete-button`. A colour field `<name>-*` has
+ * `duplicate-button`, `delete-button`, `select-all-button`,
+ * `edit-text-button`. A colour field `<name>-*` has
  * `-picker-input`, `-hex-input`, `-none-checkbox` (optional) and
  * `-swatch-<rrggbb>-button`.
  *
@@ -1636,7 +1675,10 @@ function PptxInspector({
   onArrange,
   onDuplicate,
   onRemove,
+  onSelectAll,
+  onEditText,
 }: PptxInspectorProps) {
+  const coarse = useCoarsePointer();
   if (!selected.length) {
     return (
       <aside className="pptx-pane__side" aria-label="Slide settings">
@@ -1658,6 +1700,19 @@ function PptxInspector({
           >
             Use on every slide
           </Button>
+          {slide.elements.length > 1 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              title="Select every element on this slide (⌘/Ctrl+A)"
+              data-testid="pptx-inspector-select-all-button"
+              onClick={onSelectAll}
+            >
+              <IconSelectAll aria-hidden className="pane-icon" />
+              Select all
+            </Button>
+          ) : null}
         </Section>
         <Section title="Speaker notes">
           <textarea
@@ -1672,8 +1727,9 @@ function PptxInspector({
         </Section>
         <Section title="Tips">
           <p className="pane-field__hint">
-            Double-click a text box to type. Shift-click selects several
-            elements. Paste or drop pictures onto the slide.
+            {coarse
+              ? "Double-tap a text box (or tap Edit text) to type. Drag the round handles to resize or rotate. Select all picks every element to move them together."
+              : "Double-click a text box to type. Shift-click selects several elements. Paste or drop pictures onto the slide."}
           </p>
         </Section>
       </aside>
@@ -1689,6 +1745,19 @@ function PptxInspector({
     <aside className="pptx-pane__side" aria-label="Selection settings">
       {text ? (
         <Section title="Text">
+          {single?.type === "text" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              title="Type in this text box (or double-click it)"
+              data-testid="pptx-inspector-edit-text-button"
+              onClick={() => onEditText(single.id)}
+            >
+              <IconCursorText aria-hidden className="pane-icon" />
+              Edit text
+            </Button>
+          ) : null}
           <div className="pptx-pane__pair">
             <SelectField
               label="Font"
@@ -2247,8 +2316,9 @@ type PptxShowProps = {
 
 /**
  * The deck full-screen, one slide at a time, portalled to `document.body`.
- * Click, →, ↓, Space, Enter or PageDown advance; ←, ↑, Backspace or PageUp
- * go back; Home / End jump; Escape ends the show. Asks the browser for full
+ * Click / tap, →, ↓, Space, Enter or PageDown advance; ←, ↑, Backspace or
+ * PageUp go back; a horizontal swipe goes either way; Home / End jump;
+ * Escape ends the show. Asks the browser for full
  * screen and still works as a full-window overlay when that is refused.
  *
  * Accessibility: `role="dialog"`, `aria-modal`, focused on mount; each slide
@@ -2267,6 +2337,16 @@ function PptxShow({ doc, images, start, onClose }: PptxShowProps) {
   state.current = { index, onClose, count: doc.slides.length };
 
   const slide = doc.slides[Math.min(index, doc.slides.length - 1)];
+  const go = (by: number) => {
+    const next = index + by;
+    if (next >= doc.slides.length) onClose(index);
+    else setIndex(Math.max(0, next));
+  };
+  // Touch: a horizontal swipe turns the page; a plain tap still advances.
+  const swipe = React.useRef<{ id: number; x: number; y: number } | null>(
+    null,
+  );
+  const swiped = React.useRef(false);
   const src = React.useMemo(() => {
     const hit = cache.current.get(slide.id);
     if (hit) return hit;
@@ -2333,9 +2413,32 @@ function PptxShow({ doc, images, start, onClose }: PptxShowProps) {
       aria-label="Slide show"
       tabIndex={-1}
       data-testid="pptx-show"
+      onPointerDown={(e) => {
+        swiped.current = false;
+        swipe.current =
+          e.pointerType === "mouse"
+            ? null
+            : { id: e.pointerId, x: e.clientX, y: e.clientY };
+      }}
+      onPointerUp={(e) => {
+        const start = swipe.current;
+        swipe.current = null;
+        if (!start || start.id !== e.pointerId) return;
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+        swiped.current = true;
+        go(dx < 0 ? 1 : -1);
+      }}
+      onPointerCancel={() => {
+        swipe.current = null;
+      }}
       onClick={() => {
-        if (index + 1 >= doc.slides.length) onClose(index);
-        else setIndex(index + 1);
+        if (swiped.current) {
+          swiped.current = false;
+          return;
+        }
+        go(1);
       }}
     >
       <img

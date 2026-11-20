@@ -21,6 +21,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/cn";
 import * as ui from "@/lib/ui-styles";
+import { BREAKPOINT, useMediaQuery } from "@/lib/use-media-query";
 import {
   compileRegex,
   explainRegex,
@@ -274,6 +275,9 @@ export default function RegexPane({
   };
 
   const isMac = navigator.platform.toLowerCase().includes("mac");
+  // Text | expression side by side from `md` (iPad portrait and up); below
+  // that (phones, iPad split-view) they stack so neither column is crushed.
+  const wide = useMediaQuery(BREAKPOINT.md);
 
   return (
     <>
@@ -302,8 +306,11 @@ export default function RegexPane({
           Copy
         </Button>
       </FileBarSlot>
-      <ResizableGroup orientation="horizontal" className="regex-pane">
-        <ResizablePanel defaultSize="56%" minSize="200px">
+      <ResizableGroup
+        orientation={wide ? "horizontal" : "vertical"}
+        className="regex-pane"
+      >
+        <ResizablePanel defaultSize="56%" minSize={wide ? "200px" : "120px"}>
           <LazyCodeEditor
             path={`${id}.txt`}
             language="plaintext"
@@ -318,7 +325,7 @@ export default function RegexPane({
           />
         </ResizablePanel>
         <ResizableHandle />
-        <ResizablePanel minSize="280px">
+        <ResizablePanel minSize={wide ? "280px" : "200px"}>
           <div className="regex-pane__side">
             <section
               className="regex-pane__pattern"

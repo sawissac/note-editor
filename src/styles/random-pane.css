@@ -63,6 +63,7 @@
   }
 
   /* ── Dock ─────────────────────────────────────────────────────────── */
+  /* Stepper buttons and field grow to finger size on touch screens. */
   .random-pane__dock {
     @apply border-app-border bg-app-panel/90 absolute bottom-4 left-1/2 z-20 m-0 flex -translate-x-1/2 items-center gap-2 rounded-xl border py-1.5 pr-1.5 pl-3 backdrop-blur-sm;
   }
@@ -73,13 +74,13 @@
     @apply font-description text-app-dim pr-1 text-[12px] whitespace-nowrap tabular-nums;
   }
   .random-pane__stepper {
-    @apply border-app-border-mid bg-app-bg flex h-8 items-center rounded-md border;
+    @apply border-app-border-mid bg-app-bg flex h-8 items-center rounded-md border pointer-coarse:h-10;
   }
   .random-pane__step {
-    @apply text-app-dim hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/30 flex h-full w-7 items-center justify-center border-0 bg-transparent transition-colors outline-none first:rounded-l-md last:rounded-r-md focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-40;
+    @apply text-app-dim hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent/30 flex h-full w-7 pointer-coarse:w-10 items-center justify-center border-0 bg-transparent transition-colors outline-none first:rounded-l-md last:rounded-r-md focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-40;
   }
   .random-pane__step-icon {
-    @apply size-3.5;
+    @apply size-3.5 pointer-coarse:size-4;
   }
   .random-pane__count {
     @apply text-app-bright h-full w-10 [appearance:textfield] border-0 bg-transparent text-center font-mono text-[13px] font-semibold tabular-nums outline-none disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
