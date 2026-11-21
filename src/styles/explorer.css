@@ -97,6 +97,12 @@
   .tree-row--draft {
     @apply bg-app-selected cursor-auto;
   }
+  /* Its name field is open. `isolate` makes every row its own stacking
+   * context, so the field's suggestion list can only rise above the rows
+   * below if the row itself does. */
+  .tree-row--editing {
+    @apply z-20;
+  }
   /* Hover toolbar: hidden until hover / selection; always there on touch,
    * which has no hover. */
   .tree-row__actions {

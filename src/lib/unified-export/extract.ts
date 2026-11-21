@@ -148,6 +148,7 @@ export async function toBlocks(
       return codeFileBlocks(maskApiKeys(text), "json");
     case "appinfo":
     case "appstate":
+    case "canvas":
       // Not offered by the export dialog; the saved snapshot is plain JSON.
       return text.trim() ? codeFileBlocks(text, "json") : [emptyNote()];
     case "docx":

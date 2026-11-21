@@ -1,18 +1,25 @@
 /* App shell — BEM blocks `app-shell` and `app-drawer`.
  *
- * `app-shell`: the root column (workspace + status bar). Uses the dynamic
- * viewport height so iPadOS Safari's collapsing toolbar never hides the
- * status bar, and pads itself out of the notch / home-indicator areas when
- * installed to the home screen (`viewport-fit=cover` in index.html).
+ * `app-shell`: the root column (workspace + status bar), pinned to the
+ * layout viewport so the status bar is always on screen, padded out of the
+ * notch / side insets
+ * (`viewport-fit=cover` in index.html); the status bar fills the bottom one.
  *
  * `app-drawer`: the explorer as an overlay panel on layouts too narrow to
  * dock it (src/App.tsx `ExplorerDrawer`). Imported from `src/index.css`. */
 
 @layer components {
+  /* Pinned to the top of the screen; height comes from `--app-height`,
+   * the real visible height that src/lib/viewport-reset.ts re-measures once
+   * the iPad keyboard closes. `100dvh` / `bottom: 0` alone kept the
+   * keyboard-shrunk size afterwards, leaving a blank strip under the status
+   * bar. Falls back to the full window before the script runs. */
   .app-shell {
-    @apply flex h-dvh flex-col;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right)
-      env(safe-area-inset-bottom) env(safe-area-inset-left);
+    @apply fixed inset-x-0 top-0 flex h-(--app-height,100dvh) flex-col;
+    /* No bottom inset here: the status bar paints into the home-indicator
+     * strip itself (status-bar.css), so no bare gap shows under it. */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0
+      env(safe-area-inset-left);
   }
 
   .app-drawer {

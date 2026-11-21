@@ -144,6 +144,7 @@ const SHAPES: Record<Exclude<FileKind, "markdown">, Shape> = {
   image: ImageShape,
   pptx: PptxShape,
   chat: ChatShape,
+  canvas: CanvasShape,
   appinfo: AppInfoShape,
   appstate: AppStateShape,
   timer: TimerShape,
@@ -552,6 +553,16 @@ function ImageShape() {
         </div>
         <Settings sections={[2, 1, 2]} />
       </div>
+    </div>
+  );
+}
+
+/** Canvas: the tool bar top centre, history / zoom bottom left. */
+function CanvasShape() {
+  return (
+    <div className="pane-skeleton__sketchpad">
+      <Bone className="pane-skeleton__sketch-tools" />
+      <Bone className="pane-skeleton__sketch-view" />
     </div>
   );
 }

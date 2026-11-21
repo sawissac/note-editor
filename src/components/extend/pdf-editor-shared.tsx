@@ -1,3 +1,4 @@
+import "@/styles/pdf-editor.css"
 import * as React from "react"
 import type { PluginRegistry } from "@embedpdf/core"
 import type { DocumentPermissions } from "@embedpdf/core/react"
@@ -1527,28 +1528,21 @@ export function PdfEditorCheckbox({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
-      className={cn(
-        "flex w-full items-start gap-2 rounded-md px-1 py-1 text-left text-sm outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
-        className
-      )}
+      className={cn("pdf-check-row", className)}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "mt-0.5 grid size-4 shrink-0 place-items-center rounded border transition-colors",
-          checked
-            ? "border-primary bg-primary text-primary-foreground"
-            : "border-input bg-background"
+          "pdf-check-row__box",
+          checked && "pdf-check-row__box--checked"
         )}
       >
         {checked ? <CheckGlyph className="size-3" /> : null}
       </span>
-      <span className="min-w-0">
-        <span className="block leading-4">{label}</span>
+      <span className="pdf-check-row__text">
+        <span className="pdf-check-row__label">{label}</span>
         {description ? (
-          <span className="block text-xs text-muted-foreground">
-            {description}
-          </span>
+          <span className="pdf-check-row__description">{description}</span>
         ) : null}
       </span>
     </button>
@@ -1576,9 +1570,9 @@ export function PdfEditorSwatch({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "relative shrink-0 rounded-full border border-black/10 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/15",
-        size === "sm" ? "size-4" : "size-5",
-        active && "ring-2 ring-ring ring-offset-2 ring-offset-background"
+        "pdf-swatch",
+        size === "sm" && "pdf-swatch--small",
+        active && "pdf-swatch--active"
       )}
       style={
         isTransparent

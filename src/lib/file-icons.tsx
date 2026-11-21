@@ -28,6 +28,7 @@ import {
   IconGitCompare,
   IconMarkdown,
   IconSchema,
+  IconChalkboard,
   IconSitemap,
   type Icon,
 } from "@tabler/icons-react";
@@ -59,6 +60,7 @@ const KIND_ICON: Record<FileKind, Icon> = {
   bookmark: IconBookmarks,
   pptx: IconPresentation,
   chat: IconMessageChatbot,
+  canvas: IconChalkboard,
   appinfo: IconInfoHexagon,
   appstate: IconBinaryTree,
   image: IconPhoto,
@@ -96,6 +98,7 @@ const KIND_TONE: Record<FileKind, string> = {
   bookmark: "text-blue-500",
   pptx: "text-orange-700",
   chat: "text-purple-600",
+  canvas: "text-indigo-500",
   appinfo: "text-sky-700",
   appstate: "text-emerald-700",
   image: "text-pink-600",

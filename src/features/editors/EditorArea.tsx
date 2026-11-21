@@ -97,6 +97,7 @@ const BookmarkPane = React.lazy(
 // Konva (the slide canvas) only loads with a `.pptx` file.
 const PptxPane = React.lazy(() => import("@/features/editors/PptxPane"));
 const ChatPane = React.lazy(() => import("@/features/editors/ChatPane"));
+const CanvasPane = React.lazy(() => import("@/features/editors/CanvasPane"));
 const ImagePane = React.lazy(() => import("@/features/editors/ImagePane"));
 // d3 only loads with the app.info / app.state panes.
 const AppInfoPane = React.lazy(() => import("@/features/editors/AppInfoPane"));
@@ -332,6 +333,9 @@ function FilePane({ id, name }: { id: string; name: string }) {
         break;
       case "chat":
         body = <ChatPane {...props} />;
+        break;
+      case "canvas":
+        body = <CanvasPane {...props} />;
         break;
       case "appinfo":
         body = <AppInfoPane {...props} />;

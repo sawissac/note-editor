@@ -16,6 +16,7 @@
 @import "./styles/ask-ai.css";
 @import "./styles/app-shell.css";
 @import "./styles/touch.css";
+@import "./styles/not-available.css";
 
 @custom-variant dark (&:is(.dark *));
 

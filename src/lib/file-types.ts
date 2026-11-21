@@ -31,6 +31,7 @@ export type FileKind =
   | "bookmark"
   | "pptx"
   | "chat"
+  | "canvas"
   | "appinfo"
   | "appstate"
   | "image"
@@ -89,6 +90,7 @@ const EXT_KIND: Record<string, FileKind> = {
   bookmark: "bookmark",
   pptx: "pptx",
   chat: "chat",
+  canvas: "canvas",
   // Holds one image of any format (PNG, JPEG, WebP, SVG, HEIC, …).
   img: "image",
 };
@@ -139,6 +141,7 @@ export const CREATABLE_EXTENSIONS = [
   "bookmark",
   "pptx",
   "chat",
+  "canvas",
   "img",
   "txt",
 ];
@@ -217,6 +220,7 @@ export const IMPORT_ACCEPT: Record<string, string[]> = {
   "application/vnd.note-editor.bookmark+json": [".bookmark"],
   "application/vnd.note-editor.pptx+json": [".pptx"],
   "application/vnd.note-editor.chat+json": [".chat"],
+  "application/vnd.note-editor.canvas+json": [".canvas"],
   "application/json": [".json"],
   "application/yaml": [".yaml", ".yml"],
   "application/toml": [".toml"],
@@ -260,6 +264,7 @@ const MIME: Record<FileKind, string> = {
   bookmark: "application/json",
   pptx: "application/json",
   chat: "application/json",
+  canvas: "application/json",
   appinfo: "application/json",
   appstate: "application/json",
   image: "application/octet-stream",
@@ -346,6 +351,7 @@ export const KIND_LABEL: Record<FileKind, string> = {
   bookmark: "Bookmarks",
   pptx: "Slides",
   chat: "Chat",
+  canvas: "Canvas",
   appinfo: "App info",
   appstate: "App state",
   image: "Image",

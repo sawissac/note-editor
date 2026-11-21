@@ -71,6 +71,7 @@ export const KIND_LIBRARIES: Record<FileKind, Library[]> = {
   bookmark: [],
   pptx: [LIB.konva, LIB.pptxgen, LIB.pdfLib, LIB.dndKit],
   chat: [LIB.reactMarkdown, LIB.remarkGfm, LIB.mdxeditor],
+  canvas: [LIB.konva],
   appinfo: [],
   appstate: [LIB.d3],
   image: [LIB.imageCrop, LIB.pica, LIB.utif, LIB.gifenc, LIB.heic2any],

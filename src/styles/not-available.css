@@ -1,0 +1,20 @@
+/* NotAvailable — BEM block `not-available`.
+ *
+ * Full-screen screen shown on phones, tablets and narrow windows: an icon,
+ * a heading and one line. Imported from `src/index.css`, so `@apply`
+ * resolves the app-* theme. */
+
+@layer components {
+  .not-available {
+    @apply bg-app-bg fixed inset-0 z-100 flex flex-col items-center justify-center gap-2 p-6 text-center;
+  }
+  .not-available__icon {
+    @apply text-app-accent mb-2 size-10;
+  }
+  .not-available__title {
+    @apply text-app-bright font-display m-0 text-xl font-semibold;
+  }
+  .not-available__message {
+    @apply text-app-dim m-0 text-sm;
+  }
+}

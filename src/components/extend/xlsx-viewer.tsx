@@ -547,14 +547,27 @@ function isXlsxTouchSelectionTarget(target: Element) {
  * range; tap selects, hold-and-drag selects a range, hold-and-lift opens the
  * cell / row / column menu (insert, delete, …) — see document-touch.ts.
  */
-function XlsxTouchScroller({ children, viewportProps }: XlsxScrollerRenderProps) {
+function XlsxTouchScroller({
+  children,
+  viewportProps,
+  viewportRef,
+}: XlsxScrollerRenderProps & {
+  viewportRef?: React.RefObject<HTMLDivElement | null>
+}) {
   const [viewport, setViewport] = React.useState<HTMLDivElement | null>(null)
   useTouchSelectionGuard(viewport, { shouldGuard: isXlsxTouchSelectionTarget })
+  const handleViewportRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      setViewport(node)
+      if (viewportRef) viewportRef.current = node
+    },
+    [viewportRef]
+  )
   return (
     <InlineScrollArea2
       className="h-full min-h-0 w-full min-w-0 flex-1"
       viewportProps={viewportProps}
-      viewportRef={setViewport}
+      viewportRef={handleViewportRef}
     >
       {children}
     </InlineScrollArea2>
@@ -1279,13 +1292,12 @@ export function XlsxWorkbookSurface({
   const viewportRef = React.useRef<HTMLDivElement | null>(null)
   const renderSearchableScroller = React.useCallback(
     ({ children, viewportProps }: XlsxScrollerRenderProps) => (
-      <InlineScrollArea2
-        className="h-full min-h-0 w-full min-w-0 flex-1"
+      <XlsxTouchScroller
         viewportProps={viewportProps}
         viewportRef={viewportRef}
       >
         {children}
-      </InlineScrollArea2>
+      </XlsxTouchScroller>
     ),
     []
   )

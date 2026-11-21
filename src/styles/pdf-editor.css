@@ -1,0 +1,76 @@
+@reference "../index.css";
+
+/* PDF editor / viewer (`src/components/extend/pdf-*.tsx`) — BEM blocks
+ * `pdf-swatch`, `pdf-check-row`, `pdf-outline`, `pdf-stamp-tile` and
+ * `pdf-scrollbar`.
+ *
+ * Mostly touch sizing: everything with `pointer-coarse:` only changes when a
+ * finger is the primary pointer, so desktop density is untouched. Imported
+ * from `pdf-editor-shared.tsx`, which every PDF component loads. */
+
+@layer components {
+  /* ── Colour swatch (style panel, signature ink colours) ────────────── */
+  .pdf-swatch {
+    @apply relative size-5 shrink-0 rounded-full border border-black/10 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:size-8 dark:border-white/15;
+  }
+  .pdf-swatch--small {
+    @apply size-4 pointer-coarse:size-7;
+  }
+  .pdf-swatch--active {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* ── Checkbox row (print / export / security options) ───────────────── */
+  .pdf-check-row {
+    @apply flex w-full items-start gap-2 rounded-md px-1 py-1 text-left text-sm outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 pointer-coarse:min-h-10 pointer-coarse:py-2;
+  }
+  .pdf-check-row__box {
+    @apply mt-0.5 grid size-4 shrink-0 place-items-center rounded border border-input bg-background transition-colors pointer-coarse:size-5;
+  }
+  .pdf-check-row__box--checked {
+    @apply border-primary bg-primary text-primary-foreground;
+  }
+  .pdf-check-row__text {
+    @apply min-w-0;
+  }
+  .pdf-check-row__label {
+    @apply block leading-4;
+  }
+  .pdf-check-row__description {
+    @apply block text-xs text-muted-foreground;
+  }
+
+  /* ── Outline (bookmarks) tree ──────────────────────────────────────── */
+  .pdf-outline__row {
+    @apply flex cursor-default items-center gap-1 rounded-md py-1 pr-2 text-sm hover:bg-sidebar-accent pointer-coarse:min-h-10;
+  }
+  .pdf-outline__toggle {
+    @apply grid size-5 shrink-0 place-items-center rounded text-muted-foreground hover:text-foreground pointer-coarse:size-8;
+  }
+  .pdf-outline__spacer {
+    @apply size-5 shrink-0 pointer-coarse:size-8;
+  }
+  .pdf-outline__link {
+    @apply min-w-0 flex-1 truncate text-left text-foreground/90 outline-none pointer-coarse:self-stretch;
+  }
+
+  /* ── Rubber-stamp tile (stamps panel) ──────────────────────────────── */
+  .pdf-stamp-tile {
+    @apply relative;
+  }
+  /* Revealed on hover with a mouse; always visible (and finger-sized) on
+     touch, where there is no hover. */
+  .pdf-stamp-tile__remove {
+    @apply absolute top-1 right-1 grid size-5 place-items-center rounded-full border bg-background text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100 pointer-coarse:size-8 pointer-coarse:opacity-100;
+  }
+}
+
+/* ── pdf-scrollbar × compacto ScrollBar ─────────────────────────────────
+ * The toolbar / ribbon / side-panel scroll areas draw an always-on 8px
+ * scrollbar that, on a touch screen, sits over the bottom of the toolbar
+ * buttons and swallows swipes (`touch-none`). Fingers scroll the strip
+ * directly, so drop the bar there. Unlayered so it outranks the ScrollBar's
+ * own `flex` utility, without `!`. */
+.pdf-scrollbar {
+  @apply pointer-coarse:hidden;
+}

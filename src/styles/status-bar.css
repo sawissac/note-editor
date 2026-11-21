@@ -6,6 +6,10 @@
 @layer components {
   .status-bar {
     @apply border-app-border bg-app-sidebar text-app-dim flex h-7 shrink-0 items-center gap-3 border-t px-2 pointer-coarse:h-10 pointer-coarse:px-3;
+    /* iPad / iPhone home-indicator strip: the bar's own background fills it
+     * (content-box, so the inset adds to the 28/40px instead of eating it). */
+    box-sizing: content-box;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .status-bar__item {
     @apply flex min-w-0 items-center gap-1 truncate font-mono text-[11px];

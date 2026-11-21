@@ -1279,7 +1279,7 @@ export function PdfEditorSignatureDialog({
                 type="button"
                 onClick={() => handleTabChange(item.id)}
                 className={cn(
-                  "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors pointer-coarse:min-h-9",
                   tab === item.id
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -1301,7 +1301,7 @@ export function PdfEditorSignatureDialog({
                       aria-pressed={activeTarget === target}
                       onClick={() => setActiveTarget(target)}
                       className={cn(
-                        "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                        "rounded-md px-3 py-1 text-xs font-medium transition-colors pointer-coarse:min-h-9",
                         activeTarget === target
                           ? "bg-background text-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
@@ -1664,7 +1664,7 @@ export function PdfEditorLinkDialog({
                 type="button"
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors pointer-coarse:min-h-9",
                   tab === id
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"

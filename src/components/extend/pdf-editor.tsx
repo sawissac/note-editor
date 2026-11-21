@@ -130,6 +130,7 @@ import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
 import { getPdfSourceUrl, loadSharedPdfEngine } from "@/lib/pdf-thumbnail-utils"
 import { cn } from "@/lib/utils"
+import { useCoarsePointer } from "@/lib/use-media-query"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -395,6 +396,11 @@ const THUMBNAIL_LABEL_HEIGHT = 24
 const THUMBNAIL_GAP = 12
 const THUMBNAIL_PANE_PADDING_Y = 16
 const RIGHT_PANEL_INLINE_MIN_WIDTH = 1100
+/**
+ * On touch devices the pages sidebar docks only from this width up; below it
+ * (iPad portrait, ~820px) it overlays the document instead of squeezing it.
+ */
+const COARSE_LEFT_PANEL_INLINE_MIN_WIDTH = 900
 const TOOLBAR_STACK_MAX_WIDTH = 640
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4]
 const MIN_ZOOM = 0.1
@@ -1317,7 +1323,7 @@ function PdfEditorPageControl({
           type="button"
           variant="outline"
           size="sm"
-          className="text-foreground h-6 min-w-7 rounded-md px-1.5 text-xs font-medium"
+          className="text-foreground h-6 min-w-7 rounded-md px-1.5 text-xs font-medium pointer-coarse:min-w-9"
           aria-label={`Current page ${displayPage}. Edit page number`}
           disabled={disabled || !numPages}
           onClick={() => {
@@ -1979,8 +1985,16 @@ function PdfEditorInner({
   const uploadInputRef = React.useRef<HTMLInputElement>(null)
   const annotationImportInputRef = React.useRef<HTMLInputElement>(null)
   const [shellRef, shellWidth] = useElementWidth<HTMLDivElement>()
-  const leftInline = useInlineThumbnailSidebar(shellWidth)
+  const coarsePointer = useCoarsePointer()
+  const leftInline =
+    useInlineThumbnailSidebar(shellWidth) &&
+    !(coarsePointer && shellWidth < COARSE_LEFT_PANEL_INLINE_MIN_WIDTH)
   const rightInline = shellWidth >= RIGHT_PANEL_INLINE_MIN_WIDTH
+  // setMode reads these without re-creating the callback.
+  const rightPanelOverlaysRef = React.useRef(false)
+  React.useEffect(() => {
+    rightPanelOverlaysRef.current = coarsePointer && !rightInline
+  }, [coarsePointer, rightInline])
   const compactToolbar = shellWidth > 0 && shellWidth <= TOOLBAR_STACK_MAX_WIDTH
   const activePage = scrollState.currentPage
   const numPages = pdfDocument?.pageCount ?? 0
@@ -2083,7 +2097,11 @@ function PdfEditorInner({
         forms: "forms",
         redact: "redactions",
       }
-      const panel = defaultPanel[nextMode]
+      let panel = defaultPanel[nextMode]
+      // On a touch screen too narrow to dock it, the style panel would cover
+      // the page the user is about to draw on — leave it for the Details
+      // button. (Sign / forms / redact panels hold the tools themselves.)
+      if (panel === "properties" && rightPanelOverlaysRef.current) panel = null
       if (panel) setRightPanel(panel)
       else setRightPanel(null)
     },
@@ -4205,7 +4223,7 @@ function InlineScrollArea2({
       >
         {children}
         {orientation !== "vertical" ? (
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="pdf-scrollbar" />
         ) : null}
       </InlineScrollArea>
     )
@@ -4236,10 +4254,10 @@ function InlineScrollArea2({
         {children}
       </ScrollAreaPrimitive.Viewport>
       {orientation !== "horizontal" ? (
-        <ScrollBar orientation="vertical" />
+        <ScrollBar orientation="vertical" className="pdf-scrollbar" />
       ) : null}
       {orientation !== "vertical" ? (
-        <ScrollBar orientation="horizontal" />
+        <ScrollBar orientation="horizontal" className="pdf-scrollbar" />
       ) : null}
       {orientation === "both" ? <ScrollAreaPrimitive.Corner /> : null}
     </ScrollAreaPrimitive.Root>

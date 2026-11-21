@@ -226,6 +226,7 @@ export function TreeRow({
             selected && multi && "tree-row--multi-selected",
             focused && multi && "tree-row--focused",
             (isDropTarget || menuOpen) && "tree-row--drop-target",
+            renaming && "tree-row--editing",
           )}
         >
           {/* Single selection: one shared fill that slides from the previously

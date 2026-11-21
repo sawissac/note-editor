@@ -864,6 +864,7 @@ Everything you write here is saved in this browser (IndexedDB), automatically.
 | \`.random\` | Random picker — list values (CSV), draw any number of them |
 | \`.bookmark\` | Bookmark manager — links with tags, folders, descriptions and website previews |
 | \`.pptx\` | Slide editor — text, shapes, pictures and colours; present, or export to .pptx / PDF |
+| \`.canvas\` | Whiteboard — pen, shapes, arrows and text on an endless board; export as PNG |
 | \`.chat\` | Chat with Gemini or OpenRouter, using a key from a \`.gemini\` / \`.openrouter\` file |
 
 Create any of these from the explorer — type a name and pick the type — or use **Import** to bring in files you already have.

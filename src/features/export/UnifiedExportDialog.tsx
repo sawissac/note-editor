@@ -139,6 +139,7 @@ const RESULT_LABEL: Record<FileKind, string> = {
   random: "Text",
   bookmark: "Table",
   pptx: "Images",
+  canvas: "Not exported",
   chat: "Text",
   appinfo: "Not exported",
   appstate: "Not exported",

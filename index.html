@@ -4,11 +4,12 @@
     <meta charset="UTF-8" />
     <!-- maximum-scale=1 stops iPadOS zooming in on every focused input
          (pinch-zoom still works); viewport-fit=cover lets the layout pad
-         itself with env(safe-area-inset-*); resizes-content shrinks the
-         layout above the on-screen keyboard instead of covering it. -->
+         itself with env(safe-area-inset-*). No interactive-widget: with
+         resizes-content, iPad Chrome shrank the layout for the keyboard
+         bar and never grew it back, leaving a blank strip at the bottom. -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
 
     <!-- Primary SEO. Title ≤ 60 chars, description ≤ 160 chars. Absolute

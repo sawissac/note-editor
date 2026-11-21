@@ -705,7 +705,7 @@ function PDFViewerPageNumberControl({
           type="button"
           variant="outline"
           size="sm"
-          className="text-foreground h-6 min-w-7 rounded-md px-1.5 text-xs font-medium"
+          className="text-foreground h-6 min-w-7 rounded-md px-1.5 text-xs font-medium pointer-coarse:min-w-9"
           aria-label={`Current page ${displayPage}. Edit page number`}
           disabled={controlsDisabled || !numPages}
           onClick={() => {
@@ -1503,7 +1503,7 @@ function PDFViewerThumbnailScrollArea({
         "aria-label": "PDF pages",
         "aria-multiselectable": true,
         onKeyDown,
-        onMouseDown: (event) => {
+        onPointerDown: (event) => {
           event.currentTarget.focus({ preventScroll: true })
         },
         role: "listbox",

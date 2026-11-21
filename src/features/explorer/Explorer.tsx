@@ -570,7 +570,7 @@ function DraftRow({
       aria-level={depth + 1}
       aria-selected
       data-testid="tree-draft-row"
-      className="tree-row tree-row--draft"
+      className="tree-row tree-row--draft tree-row--editing"
       style={{ paddingLeft: rowPadding(depth) }}
     >
       <IndentGuides depth={depth} />

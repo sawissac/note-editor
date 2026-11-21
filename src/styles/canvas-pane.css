@@ -1,0 +1,195 @@
+@reference "../index.css";
+
+/* CanvasPane (`.canvas` files) — BEM block `canvas-pane`.
+ *
+ * Imported from CanvasPane.tsx. The Konva stage fills the pane; every
+ * control floats over it in "islands" so the board keeps all of the room
+ * and nothing depends on the file bar's width:
+ *   tools   — top centre
+ *   style   — left edge, only while a drawing tool or a selection is active
+ *   view    — bottom left (history, zoom)
+ *   export  — bottom right
+ * The dot grid's size / offset are set inline so it pans and zooms with
+ * the board. */
+
+@layer components {
+  .canvas-pane {
+    @apply @container relative isolate h-full min-h-0 overflow-hidden;
+  }
+
+  /* ── Board ────────────────────────────────────────────────────────── */
+  .canvas-pane__stage {
+    @apply bg-app-bg absolute inset-0 cursor-crosshair touch-none outline-none select-none;
+    background-image: radial-gradient(
+      circle,
+      var(--app-border-mid) 1px,
+      transparent 1.2px
+    );
+  }
+  .canvas-pane__stage--select {
+    @apply cursor-default;
+  }
+  .canvas-pane__stage--hand {
+    @apply cursor-grab active:cursor-grabbing;
+  }
+  .canvas-pane__stage--text {
+    @apply cursor-text;
+  }
+  .canvas-pane__stage--eraser {
+    @apply cursor-cell;
+  }
+  /* Space held: drag the board whatever the tool. */
+  .canvas-pane__stage--panning {
+    @apply cursor-grab active:cursor-grabbing;
+  }
+
+  /* ── Empty board ──────────────────────────────────────────────────── */
+  .canvas-pane__empty {
+    @apply pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 p-8 text-center;
+  }
+  .canvas-pane__empty-icon {
+    @apply text-app-border-mid mb-1 size-10 stroke-[1.25];
+  }
+  .canvas-pane__empty-title {
+    @apply font-title text-app-bright m-0 text-sm font-semibold;
+  }
+  .canvas-pane__empty-text {
+    @apply font-description text-app-dim m-0 max-w-xs text-[12px] leading-relaxed;
+  }
+  .canvas-pane__kbd {
+    @apply border-app-border bg-app-panel text-app-text inline-flex h-4.5 min-w-4.5 items-center justify-center rounded border px-1 font-mono text-[10px] leading-none;
+  }
+
+  /* ── Islands ──────────────────────────────────────────────────────── */
+  .canvas-pane__island {
+    @apply border-app-border bg-app-panel/95 absolute z-10 flex rounded-xl border p-1 shadow-lg shadow-black/5 backdrop-blur-sm;
+  }
+  .canvas-pane__island--tools {
+    @apply top-3 left-1/2 max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto [scrollbar-width:none];
+  }
+  .canvas-pane__island--style {
+    @apply top-[4.25rem] left-3 max-h-[calc(100%-8.5rem)] w-38 flex-col gap-3 overflow-y-auto p-2.5 pointer-coarse:top-[4.75rem] pointer-coarse:w-44;
+  }
+  .canvas-pane__island--view {
+    @apply bottom-3 left-3 items-center gap-0.5;
+  }
+  .canvas-pane__island--export {
+    @apply right-3 bottom-3;
+  }
+  .canvas-pane__divider {
+    @apply bg-app-border mx-0.5 h-5 w-px shrink-0 self-center;
+  }
+  .canvas-pane__icon {
+    @apply size-4.5 shrink-0;
+  }
+
+  /* ── Tools ────────────────────────────────────────────────────────── */
+  .canvas-pane__tool {
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent relative flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent outline-none focus-visible:ring-2 pointer-coarse:size-10;
+  }
+  .canvas-pane__tool--active {
+    @apply bg-app-accent-faint text-app-accent ring-app-border-accent hover:bg-app-accent-faint hover:text-app-accent ring-1 ring-inset;
+  }
+  /* Shortcut letter, tucked into the corner (no keyboard on touch). */
+  .canvas-pane__key {
+    @apply text-app-dim pointer-events-none absolute right-1 bottom-0.5 font-mono text-[8px] leading-none pointer-coarse:hidden;
+  }
+
+  /* ── Style panel ──────────────────────────────────────────────────── */
+  .canvas-pane__section {
+    @apply flex flex-col gap-1.5;
+  }
+  .canvas-pane__label {
+    @apply text-app-dim m-0 font-mono text-[10px] font-medium tracking-wider uppercase;
+  }
+  .canvas-pane__swatches {
+    @apply grid grid-cols-4 gap-1.5;
+  }
+  .canvas-pane__swatch {
+    @apply focus-visible:outline-app-accent aspect-square w-full cursor-pointer rounded-md border-0 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.12)] outline-none transition-transform duration-(--motion-duration-fast) hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid;
+  }
+  .canvas-pane__swatch--active {
+    @apply outline-app-accent outline-2 outline-offset-2 outline-solid hover:scale-100;
+  }
+  .canvas-pane__segmented {
+    @apply bg-app-hover grid auto-cols-fr grid-flow-col gap-0.5 rounded-lg p-0.5;
+  }
+
+  /* Icon button: in the segmented rows and the view island. */
+  .canvas-pane__option {
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent flex h-8 min-w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-35 pointer-coarse:h-10 pointer-coarse:min-w-10;
+  }
+  .canvas-pane__option--active {
+    @apply bg-app-panel text-app-bright hover:bg-app-panel shadow-sm;
+  }
+  .canvas-pane__option--danger {
+    @apply text-app-error hover:text-app-error;
+  }
+  .canvas-pane__width-mark {
+    @apply block w-4 rounded-full bg-current;
+  }
+  .canvas-pane__fill-mark {
+    @apply block size-3.5 rounded-sm border-2 border-current;
+  }
+  .canvas-pane__fill-mark--filled {
+    @apply bg-current/35;
+  }
+
+  /* ── View and export ──────────────────────────────────────────────── */
+  .canvas-pane__zoom {
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent h-8 min-w-12 cursor-pointer rounded-md border-0 bg-transparent px-1 font-mono text-[11px] tabular-nums outline-none focus-visible:ring-2 pointer-coarse:h-10;
+  }
+  .canvas-pane__export {
+    @apply text-app-text hover:bg-app-hover hover:text-app-bright focus-visible:ring-app-accent flex h-8 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2.5 text-[12px] font-medium outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-35 pointer-coarse:h-10;
+  }
+
+  /* ── Narrow pane (phone, or a squeezed split) ─────────────────────── *
+   * Tools shrink to fit one row; the style panel turns into a strip just
+   * above the bottom bar instead of covering half the board; the export
+   * button drops its label. A container query, so it follows the pane's
+   * width, not the window's. */
+  @container (width < 40rem) {
+    .canvas-pane__tool {
+      @apply size-9;
+    }
+    .canvas-pane__island--tools {
+      @apply gap-0;
+    }
+    .canvas-pane__island--style {
+      @apply top-auto right-3 bottom-[4.25rem] w-auto max-h-none flex-row items-center gap-2.5 overflow-x-auto overflow-y-hidden p-1.5 [scrollbar-width:none] pointer-coarse:top-auto pointer-coarse:bottom-[4.75rem] pointer-coarse:w-auto;
+    }
+    .canvas-pane__section {
+      @apply shrink-0;
+    }
+    .canvas-pane__label {
+      @apply sr-only;
+    }
+    .canvas-pane__swatches {
+      @apply flex gap-1;
+    }
+    .canvas-pane__swatch {
+      @apply size-7 w-7;
+    }
+    .canvas-pane__export-label {
+      @apply sr-only;
+    }
+  }
+
+  /* ── Text being typed, laid over the hidden Konva text ───────────── */
+  .canvas-pane__text-input {
+    @apply absolute z-20 m-0 min-w-8 origin-top-left resize-none overflow-hidden border-0 bg-transparent p-0 leading-[1.25] whitespace-pre outline-none;
+    font-family: Inter, system-ui, sans-serif;
+    field-sizing: content;
+  }
+
+  /* ── Unreadable file ──────────────────────────────────────────────── */
+  .canvas-pane__error {
+    @apply flex h-full flex-col items-center justify-center gap-3 p-6 text-center;
+  }
+  .canvas-pane__error-title {
+    @apply font-title text-app-bright m-0 text-sm font-semibold;
+  }
+  .canvas-pane__error-text {
+    @apply font-description text-app-dim m-0 max-w-md text-[12px] leading-snug;
+  }
+}

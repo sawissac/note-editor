@@ -170,6 +170,26 @@
 - `regex-suggestions-empty-message` — RegexSuggestions / no hints
 - `regex-suggestions-recipe-<recipeId>-button` — RegexSuggestions / ready-made pattern
 
+## CanvasPane (.canvas)
+- `canvas-pane` — CanvasPane / root
+- `canvas-pane-stage` — CanvasPane / Konva board (focusable)
+- `canvas-pane-empty-message` — CanvasPane / hint on an empty board
+- `canvas-pane-view-toolbar` — CanvasPane / history + zoom island (bottom left)
+- `canvas-pane-undo-button` / `canvas-pane-redo-button` — CanvasPane / history
+- `canvas-pane-zoom-out-button` / `canvas-pane-zoom-reset-button` / `canvas-pane-zoom-in-button` / `canvas-pane-fit-button` — CanvasPane / zoom
+- `canvas-pane-export-png-button` — CanvasPane / download PNG (bottom right)
+- `canvas-pane-tool-toolbar` — CanvasPane / tool bar (top centre)
+- `canvas-pane-tool-{select|hand|pen|rect|ellipse|arrow|line|text|eraser}-button` — CanvasPane / tool
+- `canvas-pane-style-toolbar` — CanvasPane / style panel (left; shown for drawing tools or a selection)
+- `canvas-pane-color-{ink|hex}-button` — CanvasPane / colour swatch
+- `canvas-pane-width-{s|m|l}-button` — CanvasPane / stroke width
+- `canvas-pane-fill-{none|tint}-button` — CanvasPane / fill (boxes)
+- `canvas-pane-front-button` / `canvas-pane-back-button` — CanvasPane / bring to front, send to back (selection)
+- `canvas-pane-duplicate-button` / `canvas-pane-delete-button` — CanvasPane / duplicate, delete (selection)
+- `canvas-pane-text-input` — CanvasPane / text being typed
+- `canvas-pane-error-message` — CanvasPane / invalid file message
+- `canvas-pane-reset-button` — CanvasPane / "Start a blank canvas"
+
 ## KanbanPane (.kanban)
 - `kanban-pane` — KanbanPane / root
 - `kanban-pane-count-message` — KanbanPane / "N columns · N cards" (file bar)
@@ -493,3 +513,14 @@
 
 ## TabBar
 - `tab-bar-show-sidebar-button` — TabBar / "Show sidebar" button (sidebar hidden, or the drawer closed on narrow layouts)
+
+## XlsxContextMenu (xlsx editor / viewer)
+- `xlsx-context-menu-<action-id>-item` — xlsx context menu / one row per library action id (cut, copy, merge, …); 40px on touch
+
+## PdfEditor panels (touch additions)
+- `pdf-editor-outline-toggle-button` — Outline panel / expand or collapse one bookmark
+- `pdf-editor-stamp-remove-button` — Stamps panel / remove a custom stamp (always visible on touch)
+- `pdf-editor-pages-goto-button` — Pages panel / go to the selected page (touch only; replaces double-click)
+
+## NotAvailable
+- `not-available-screen` — NotAvailable / screen shown instead of the app on phones and tablets

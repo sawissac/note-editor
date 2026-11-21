@@ -55,6 +55,7 @@ import {
 import type { degrees, ParseSpeeds, PDFDocument } from "pdf-lib"
 
 import { cn } from "@/lib/utils"
+import { useCoarsePointer } from "@/lib/use-media-query"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -69,6 +70,7 @@ import { getFormFieldTypeLabel } from "@/components/extend/pdf-editor-properties
 import {
   ArrowDownGlyph,
   ArrowUpGlyph,
+  EyeGlyph,
   CheckGlyph,
   ChevronDownGlyph,
   ChevronRightGlyph,
@@ -215,7 +217,7 @@ export function PdfEditorThumbnailsPanel({
           activePage > 0 ? `${listboxId}-page-${activePage}` : undefined,
         "aria-label": "Pages",
         onKeyDown: handleKeyDown,
-        onMouseDown: (event) => {
+        onPointerDown: (event) => {
           event.currentTarget.focus({ preventScroll: true })
         },
         role: "listbox",
@@ -395,14 +397,15 @@ export function PdfEditorOutlinePanel({ documentId }: { documentId: string }) {
     return (
       <div key={id}>
         <div
-          className="group flex cursor-default items-center gap-1 rounded-md py-1 pr-2 text-sm hover:bg-sidebar-accent"
+          className="pdf-outline__row"
           style={{ paddingLeft: level * 12 + 4 }}
         >
           {hasChildren ? (
             <button
               type="button"
               aria-label={isExpanded ? "Collapse" : "Expand"}
-              className="grid size-5 shrink-0 place-items-center rounded text-muted-foreground hover:text-foreground"
+              data-testid="pdf-editor-outline-toggle-button"
+              className="pdf-outline__toggle"
               onClick={(event) => {
                 event.stopPropagation()
                 setExpanded((previous) => {
@@ -420,11 +423,11 @@ export function PdfEditorOutlinePanel({ documentId }: { documentId: string }) {
               )}
             </button>
           ) : (
-            <span className="size-5 shrink-0" />
+            <span className="pdf-outline__spacer" />
           )}
           <button
             type="button"
-            className="min-w-0 flex-1 truncate text-left text-foreground/90 outline-none"
+            className="pdf-outline__link"
             onClick={() => navigate(item)}
           >
             {item.title || "Untitled"}
@@ -664,6 +667,9 @@ export function PdfEditorPagesPanel({
   const pages = React.useMemo(() => document?.pages ?? [], [document])
   const [selected, setSelected] = React.useState<Set<number>>(() => new Set())
   const [busy, setBusy] = React.useState<string | null>(null)
+  // No Shift/⌘ on a touch screen: a tap toggles a page in or out of the
+  // selection, and "Go to page" replaces the desktop double-click.
+  const coarsePointer = useCoarsePointer()
   const anchorRef = React.useRef<number | null>(null)
   const appendInputRef = React.useRef<HTMLInputElement>(null)
   React.useEffect(() => {
@@ -855,6 +861,19 @@ export function PdfEditorPagesPanel({
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-0.5 border-b px-2 py-1.5">
+        {coarsePointer ? (
+          <>
+            <PdfEditorToolButton
+              label="Go to page"
+              data-testid="pdf-editor-pages-goto-button"
+              disabled={selectedIndices.length !== 1}
+              onClick={() => scrollToPage(selectedIndices[0] + 1)}
+            >
+              <EyeGlyph className="size-4" />
+            </PdfEditorToolButton>
+            <PdfEditorToolbarSeparator />
+          </>
+        ) : null}
         <PdfEditorToolButton
           label="Rotate left"
           disabled={!canAssemble || !hasSelection}
@@ -984,7 +1003,7 @@ export function PdfEditorPagesPanel({
                     meta.pageIndex,
                     event.shiftKey
                       ? "range"
-                      : event.metaKey || event.ctrlKey
+                      : event.metaKey || event.ctrlKey || coarsePointer
                         ? "toggle"
                         : "replace"
                   )
@@ -1777,7 +1796,7 @@ export function PdfEditorStampsPanel({ documentId }: { documentId: string }) {
               return (
                 <div
                   key={`${library.id}-${stamp.id}`}
-                  className="group relative"
+                  className="pdf-stamp-tile group"
                 >
                   <button
                     type="button"
@@ -1807,7 +1826,8 @@ export function PdfEditorStampsPanel({ documentId }: { documentId: string }) {
                     <button
                       type="button"
                       aria-label="Remove stamp"
-                      className="absolute top-1 right-1 grid size-5 place-items-center rounded-full border bg-background text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
+                      data-testid="pdf-editor-stamp-remove-button"
+                      className="pdf-stamp-tile__remove"
                       onClick={() =>
                         stampCapability
                           ?.removeStampFromLibrary(library.id, stamp.id)

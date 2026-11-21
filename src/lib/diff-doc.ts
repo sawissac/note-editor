@@ -103,6 +103,7 @@ const KIND_LANG: Partial<Record<FileKind, string>> = {
   bookmark: "json",
   pptx: "json",
   chat: "json",
+  canvas: "json",
   text: "text",
 };
 
