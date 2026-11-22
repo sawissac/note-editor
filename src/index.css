@@ -6,6 +6,7 @@
 @import "./styles/explorer.css";
 @import "./styles/status-bar.css";
 @import "./styles/tab-bar.css";
+@import "./styles/editor-split.css";
 @import "./styles/unfold.css";
 @import "./styles/quick-open.css";
 @import "./styles/pane-controls.css";

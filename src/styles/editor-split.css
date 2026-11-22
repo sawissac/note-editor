@@ -1,0 +1,45 @@
+/* Split editor — BEM blocks `editor-split` and `split-drop`.
+ *
+ * `editor-split`: the editor area holding one pane, or two side by side /
+ * stacked (src/features/editors/EditorArea.tsx).
+ * `split-drop`: the drop target laid over it while a file is dragged
+ * (src/features/editors/split-drop.tsx).
+ * Imported from `src/index.css`, so `@apply` resolves the app-* theme. */
+
+@layer components {
+  .editor-split {
+    @apply relative flex min-h-0 flex-1 flex-col;
+  }
+  .editor-split__pane {
+    @apply relative flex h-full min-h-0 min-w-0 flex-col;
+  }
+  /* The pane keys and tab clicks go to, while split: accent line on top. */
+  .editor-split__pane--focused::after {
+    @apply bg-app-accent pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5 content-[''];
+  }
+
+  /* Transparent cover over the editor, present only during a drag. */
+  .split-drop {
+    @apply absolute inset-0 z-40;
+  }
+  /* Where the file will land. Hidden until the pointer picks a zone, then
+     glides between zones by animating its inset. */
+  .split-drop__preview {
+    @apply border-app-accent bg-app-accent/15 pointer-events-none absolute inset-0 rounded-sm border-2 opacity-0 transition-[inset,opacity] duration-(--motion-duration-fast) ease-out motion-reduce:transition-none;
+  }
+  .split-drop__preview--full {
+    @apply inset-1 opacity-100;
+  }
+  .split-drop__preview--left {
+    @apply inset-y-1 right-1/2 left-1 opacity-100;
+  }
+  .split-drop__preview--right {
+    @apply inset-y-1 right-1 left-1/2 opacity-100;
+  }
+  .split-drop__preview--top {
+    @apply inset-x-1 top-1 bottom-1/2 opacity-100;
+  }
+  .split-drop__preview--bottom {
+    @apply inset-x-1 top-1/2 bottom-1 opacity-100;
+  }
+}

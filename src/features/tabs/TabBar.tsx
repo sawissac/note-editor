@@ -4,7 +4,11 @@ import {
   IconChevronRight,
   IconClearAll,
   IconFolderSearch,
+  IconLayoutBottombar,
+  IconLayoutColumns,
+  IconLayoutRows,
   IconLayoutSidebarLeftExpand,
+  IconSquare,
   IconPoint,
   IconSquareX,
   IconX,
@@ -31,6 +35,11 @@ import {
   glide,
 } from "@/lib/motion";
 import { Unfold } from "@/components/unfold";
+import {
+  clearDraggingTab,
+  setTabPayload,
+  TAB_MIME,
+} from "@/features/explorer/dnd";
 import * as ui from "@/lib/ui-styles";
 import { openFile } from "@/store/actions";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -38,7 +47,6 @@ import { getPath, selectHasNodes } from "@/store/selectors";
 import { tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
 
-const TAB_MIME = "application/x-note-editor-tab";
 
 /**
  * Scroll arrows fold in and out on one unhurried, symmetric curve: the tabs
@@ -279,6 +287,12 @@ function Tab({
   const nodes = useAppSelector((s) => s.fs.nodes);
   const saveState = useAppSelector((s) => s.ui.saveState[id]);
   const openCount = useAppSelector((s) => s.tabs.openIds.length);
+  const split = useAppSelector((s) => s.tabs.split);
+  // Shown in the split's other (unfocused) pane.
+  const inOtherPane =
+    !active && !!split && (split.start === id || split.end === id);
+  // A lone file has nothing to split against.
+  const canSplit = !!split || (!active && openCount > 1);
   const node = nodes[id];
   const [dragOver, setDragOver] = React.useState(false);
   if (!node) return null;
@@ -309,10 +323,8 @@ function Tab({
           onKeyDown={(e) => {
             if (e.key === "Delete") dispatch(tabsActions.closed(id));
           }}
-          onDragStart={(e) => {
-            e.dataTransfer.setData(TAB_MIME, id);
-            e.dataTransfer.effectAllowed = "move";
-          }}
+          onDragStart={(e) => setTabPayload(e, id)}
+          onDragEnd={clearDraggingTab}
           onDragOver={(e) => {
             if (!e.dataTransfer.types.includes(TAB_MIME)) return;
             e.preventDefault();
@@ -332,6 +344,7 @@ function Tab({
           className={cn(
             "tab-bar__tab group",
             active && "tab-bar__tab--active",
+            inOtherPane && "tab-bar__tab--split",
             dragOver && "tab-bar__tab--drop-target",
           )}
         >
@@ -402,6 +415,59 @@ function Tab({
           <IconClearAll />
           Close all
         </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          disabled={!canSplit}
+          data-testid={`tab-split-right-menu-item-${id}`}
+          onSelect={() =>
+            dispatch(
+              tabsActions.splitOpened({ id, side: "end", orientation: "row" }),
+            )
+          }
+        >
+          <IconLayoutColumns />
+          Open to the right
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!canSplit}
+          data-testid={`tab-split-down-menu-item-${id}`}
+          onSelect={() =>
+            dispatch(
+              tabsActions.splitOpened({
+                id,
+                side: "end",
+                orientation: "column",
+              }),
+            )
+          }
+        >
+          <IconLayoutBottombar />
+          Open below
+        </ContextMenuItem>
+        {split ? (
+          <ContextMenuItem
+            data-testid={`tab-split-orientation-menu-item-${id}`}
+            onSelect={() => dispatch(tabsActions.splitOrientationToggled())}
+          >
+            {split.orientation === "row" ? (
+              <IconLayoutRows />
+            ) : (
+              <IconLayoutColumns />
+            )}
+            {split.orientation === "row"
+              ? "Split top and bottom"
+              : "Split left and right"}
+          </ContextMenuItem>
+        ) : null}
+        {split ? (
+          <ContextMenuItem
+            data-testid={`tab-close-split-menu-item-${id}`}
+            onSelect={() => dispatch(tabsActions.splitClosed())}
+          >
+            <IconSquare />
+            Close split
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuSeparator />
         <ContextMenuItem
           onSelect={() => {

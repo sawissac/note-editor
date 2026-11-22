@@ -24,6 +24,22 @@ type PersistedWorkspace = {
 
 const WORKSPACE_KEY = "workspace";
 
+/** Saved tabs over today's defaults; a split whose files are gone is dropped. */
+function restoreTabs(saved: Partial<TabsState>): TabsState {
+  const tabs = { ...initialTabsState, ...saved };
+  const split = tabs.split;
+  if (
+    split &&
+    (split.start === split.end ||
+      !tabs.openIds.includes(split.start) ||
+      !tabs.openIds.includes(split.end))
+  ) {
+    tabs.split = null;
+  }
+  if (tabs.split) tabs.activeId = tabs.split[tabs.split.focus];
+  return tabs;
+}
+
 /** Reads the saved workspace and builds the store around it. */
 export async function createAppStore() {
   const saved = await storage.getMeta<PersistedWorkspace>(WORKSPACE_KEY);
@@ -37,7 +53,7 @@ export async function createAppStore() {
             selectedIds: saved.fs.selectedId ? [saved.fs.selectedId] : [],
             anchorId: saved.fs.selectedId,
           },
-          tabs: { ...initialTabsState, ...saved.tabs },
+          tabs: restoreTabs(saved.tabs),
           ui: { ...initialUiState, sidebarOpen: saved.sidebarOpen },
         }
       : undefined,

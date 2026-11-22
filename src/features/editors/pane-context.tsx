@@ -12,6 +12,19 @@ export type PaneProps = {
   registerSave: (save: (() => Promise<void> | void) | null) => void;
 };
 
+/**
+ * Whether the pane is the focused one. Always true unless the editor is
+ * split; panes with window-wide shortcuts (undo, zoom) skip them when false,
+ * so a key press only reaches the pane the user is working in.
+ */
+const PaneFocusContext = React.createContext(true);
+
+export const PaneFocusProvider = PaneFocusContext.Provider;
+
+export function usePaneFocused() {
+  return React.useContext(PaneFocusContext);
+}
+
 /** Registers `save` for the lifetime of the calling pane. */
 export function useSaveHandler(
   registerSave: PaneProps["registerSave"],

@@ -3,6 +3,35 @@ import type { DropPosition } from "@/store/actions";
 /** MIME type carried by tree rows while they are dragged (ids, one per line). */
 export const NODE_MIME = "application/x-note-editor-node";
 
+/** MIME type carried by a dragged tab (its file id). */
+export const TAB_MIME = "application/x-note-editor-tab";
+
+/** File id of the tab being dragged right now (unreadable during `dragover`). */
+let draggingTabId: string | null = null;
+
+export function setTabPayload(e: React.DragEvent, id: string) {
+  e.dataTransfer.setData(TAB_MIME, id);
+  e.dataTransfer.effectAllowed = "move";
+  draggingTabId = id;
+}
+
+export function clearDraggingTab() {
+  draggingTabId = null;
+}
+
+/**
+ * The one file being dragged from a tab or the tree, which the editor can
+ * open in a split; null for folders, several rows, or outside drags.
+ */
+export function getDraggedFileId(
+  isFile: (id: string) => boolean,
+): string | null {
+  if (draggingTabId) return draggingTabId;
+  return draggingIds.length === 1 && isFile(draggingIds[0])
+    ? draggingIds[0]
+    : null;
+}
+
 export function hasNodePayload(e: React.DragEvent) {
   return e.dataTransfer.types.includes(NODE_MIME);
 }

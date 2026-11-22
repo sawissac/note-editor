@@ -15,7 +15,10 @@ import {
   IconSelectAll,
   IconTable,
   IconTrash,
+  IconLayoutColumns,
+  IconLayoutRows,
   IconUpload,
+  IconX,
 } from "@tabler/icons-react";
 import { AnimatePresence, m, type Variants } from "motion/react";
 import * as React from "react";
@@ -47,7 +50,7 @@ import { saveContent } from "@/store/actions";
 import { fsActions } from "@/store/fs-slice";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/store";
 import { getPath, getTargetFolderId } from "@/store/selectors";
-import { type TabMode, tabsActions } from "@/store/tabs-slice";
+import { type SplitSide, type TabMode, tabsActions } from "@/store/tabs-slice";
 import { uiActions } from "@/store/ui-slice";
 import { FileBarSlotProvider } from "@/features/editors/file-bar-slot";
 import { AskAiSelection } from "@/features/editors/AskAiSelection";
@@ -55,7 +58,16 @@ import type { AskAiRequest } from "@/lib/ask-ai";
 import { LazyCodeEditor } from "@/features/editors/LazyCodeEditor";
 import { MarkdownSkeleton } from "@/features/editors/MarkdownSkeleton";
 import { PaneSkeleton } from "@/features/editors/PaneSkeleton";
-import type { PaneProps } from "@/features/editors/pane-context";
+import {
+  type PaneProps,
+  PaneFocusProvider,
+} from "@/features/editors/pane-context";
+import { SplitDropOverlay } from "@/features/editors/split-drop";
+import {
+  ResizableGroup,
+  ResizableHandle,
+  ResizablePanel,
+} from "@/components/ui/resizable";
 import {
   useOpenEditorSave,
   useSaveHandler,
@@ -126,17 +138,118 @@ function defaultMode(kind: FileKind): TabMode {
     : "edit";
 }
 
-/** The active tab's editor, or a start screen when nothing is open. */
+/**
+ * The active tab's editor, two editors when split, or a start screen when
+ * nothing is open. Dragging a tab or a tree file over it shows where it
+ * would land; dropping on an edge splits the editor (see `SplitDropOverlay`).
+ *
+ * Panes are keyed by file id inside one resizable group, so splitting or
+ * unsplitting keeps the editor that stays on screen mounted.
+ *
+ * Uses BEM block `editor-split` (`src/styles/editor-split.css`).
+ */
 export function EditorArea() {
   const activeId = useAppSelector((s) => s.tabs.activeId);
-  const node = useAppSelector((s) =>
-    activeId ? s.fs.nodes[activeId] : undefined,
+  const split = useAppSelector((s) => s.tabs.split);
+  const hasActive = useAppSelector(
+    (s) => !!activeId && s.fs.nodes[activeId]?.type === "file",
   );
-  if (!node) return <StartScreen />;
-  return <FilePane key={node.id} id={node.id} name={node.name} />;
+
+  if (!split && !hasActive) {
+    return (
+      <div className="editor-split" data-testid="editor-split">
+        <StartScreen />
+        <SplitDropOverlay currentId={null} />
+      </div>
+    );
+  }
+
+  const panes: { id: string; side?: SplitSide }[] = split
+    ? [
+        { id: split.start, side: "start" },
+        { id: split.end, side: "end" },
+      ]
+    : [{ id: activeId! }];
+
+  return (
+    <div
+      className="editor-split"
+      data-testid="editor-split"
+      data-orientation={split?.orientation}
+    >
+      <ResizableGroup
+        orientation={split?.orientation === "column" ? "vertical" : "horizontal"}
+      >
+        {panes.map((pane, i) => (
+          <React.Fragment key={pane.id}>
+            {i > 0 ? <ResizableHandle /> : null}
+            <ResizablePanel
+              id={`editor-pane-${pane.id}`}
+              defaultSize={split ? "50%" : "100%"}
+              minSize={split ? "15%" : undefined}
+            >
+              <EditorPane
+                id={pane.id}
+                side={pane.side}
+                focused={!split || split.focus === pane.side}
+              />
+            </ResizablePanel>
+          </React.Fragment>
+        ))}
+      </ResizableGroup>
+      {split ? null : <SplitDropOverlay currentId={activeId} />}
+    </div>
+  );
 }
 
-function FilePane({ id, name }: { id: string; name: string }) {
+/**
+ * One editor of the area. In a split, pressing or focusing inside it makes
+ * it the focused pane, and it takes drops of its own.
+ */
+function EditorPane({
+  id,
+  side,
+  focused,
+}: {
+  id: string;
+  side?: SplitSide;
+  focused: boolean;
+}) {
+  const dispatch = useAppDispatch();
+  const name = useAppSelector((s) => s.fs.nodes[id]?.name);
+  if (!name) return null;
+  const focus = side ? () => dispatch(tabsActions.paneFocused(side)) : undefined;
+  return (
+    <div
+      className={cn(
+        "editor-split__pane",
+        side && focused && "editor-split__pane--focused",
+      )}
+      data-testid={side ? `editor-split-pane-${side}` : undefined}
+      onPointerDownCapture={focus}
+      onFocusCapture={focus}
+    >
+      <FilePane key={id} id={id} name={name} side={side} focused={focused} />
+      {side ? <SplitDropOverlay side={side} currentId={id} /> : null}
+    </div>
+  );
+}
+
+function FilePane({
+  id,
+  name,
+  side,
+  focused,
+}: {
+  id: string;
+  name: string;
+  /** Set while the editor is split: which pane this is. */
+  side?: SplitSide;
+  /** Keys (⌘S, pane shortcuts) go to the focused pane only. */
+  focused: boolean;
+}) {
+  const focusedRef = React.useRef(focused);
+  focusedRef.current = focused;
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const store = useAppStore();
   const [askAi, setAskAi] = React.useState<AskAiRequest | null>(null);
@@ -207,7 +320,11 @@ function FilePane({ id, name }: { id: string; name: string }) {
   React.useEffect(() => {
     const isMac = navigator.platform.toLowerCase().includes("mac");
     const onKey = (e: KeyboardEvent) => {
-      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "s") {
+      if (
+        focusedRef.current &&
+        (isMac ? e.metaKey : e.ctrlKey) &&
+        e.key.toLowerCase() === "s"
+      ) {
         e.preventDefault();
         void save();
       }
@@ -375,6 +492,17 @@ function FilePane({ id, name }: { id: string; name: string }) {
         onAskAi={kind === "chat" ? undefined : () => void askAboutFile()}
         askAiError={askAiError}
         slotRef={setBarSlot}
+        onToggleOrientation={
+          side ? () => dispatch(tabsActions.splitOrientationToggled()) : undefined
+        }
+        onClosePane={
+          side
+            ? () =>
+                dispatch(
+                  tabsActions.splitClosed(side === "start" ? "end" : "start"),
+                )
+            : undefined
+        }
       />
       {/* Clip sideways only: Monaco mounts its hovers (e.g. the find widget's
           button tooltips) inside the editor and places them above its top
@@ -388,9 +516,13 @@ function FilePane({ id, name }: { id: string; name: string }) {
             CSV keeps its in-memory text across Raw ⇄ Table. */}
         <ErrorBoundary key={BINARY_EDITORS.has(kind) ? `${id}:${mode}` : id}>
           <FileBarSlotProvider slot={barSlot}>
-            <React.Suspense fallback={<PaneSkeleton kind={kind} mode={mode} />}>
-              {body}
-            </React.Suspense>
+            <PaneFocusProvider value={focused}>
+              <React.Suspense
+                fallback={<PaneSkeleton kind={kind} mode={mode} />}
+              >
+                {body}
+              </React.Suspense>
+            </PaneFocusProvider>
           </FileBarSlotProvider>
         </ErrorBoundary>
         {/* Chats take references themselves; every other editor can send
@@ -486,6 +618,8 @@ function PaneToolbar({
   onAskAi,
   askAiError,
   slotRef,
+  onClosePane,
+  onToggleOrientation,
 }: {
   id: string;
   name: string;
@@ -497,8 +631,15 @@ function PaneToolbar({
   onAskAi?: () => void;
   askAiError?: string | null;
   slotRef: (el: HTMLDivElement | null) => void;
+  /** Set in a split: closes this pane, leaving the other one. */
+  onClosePane?: () => void;
+  /** Set in a split: flips it between side by side and stacked. */
+  onToggleOrientation?: () => void;
 }) {
   const dispatch = useAppDispatch();
+  const stacked = useAppSelector(
+    (s) => s.tabs.split?.orientation === "column",
+  );
   const nodes = useAppSelector((s) => s.fs.nodes);
   const saveState = useAppSelector((s) => s.ui.saveState[id]);
   const path = getPath(nodes, id);
@@ -637,6 +778,48 @@ function PaneToolbar({
             Download {name} to your computer
           </TooltipContent>
         </Tooltip>
+        {onToggleOrientation ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="pane-split-orientation-button"
+                aria-label={
+                  stacked ? "Split left and right" : "Split top and bottom"
+                }
+                className={cn(TOOLBAR_BTN, "w-7 px-0")}
+                onClick={onToggleOrientation}
+              >
+                {stacked ? <IconLayoutColumns /> : <IconLayoutRows />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {stacked
+                ? "Put the two panes side by side (left and right)"
+                : "Stack the two panes (top and bottom)"}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
+        {onClosePane ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="pane-close-split-button"
+                aria-label="Close this pane"
+                className={cn(TOOLBAR_BTN, "w-7 px-0")}
+                onClick={onClosePane}
+              >
+                <IconX />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Close this pane — the file stays open in its tab
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
       </ButtonGroup>
     </div>
   );

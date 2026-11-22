@@ -85,6 +85,7 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { FileBarSlot } from "@/features/editors/file-bar-slot";
 import {
   type PaneProps,
+  usePaneFocused,
   useSaveHandler,
 } from "@/features/editors/pane-context";
 import { useBinaryAutosave } from "@/features/editors/use-binary-autosave";
@@ -802,10 +803,12 @@ function ImageEditor({
 
   /* ── Keyboard ─────────────────────────────────────────────────────── */
 
+  const paneFocused = usePaneFocused();
   const keyRef = React.useRef<(e: KeyboardEvent) => void>(() => undefined);
   keyRef.current = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement | null;
     if (
+      !paneFocused ||
       e.defaultPrevented ||
       target?.closest(
         "input, textarea, select, [contenteditable], [role=dialog]",

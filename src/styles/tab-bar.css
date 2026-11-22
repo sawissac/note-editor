@@ -25,6 +25,13 @@
   .tab-bar__tab--active {
     @apply bg-app-bg text-app-bright hover:bg-app-bg;
   }
+  /* Open in the split's other pane: readable, with a muted marker. */
+  .tab-bar__tab--split {
+    @apply text-app-text;
+  }
+  .tab-bar__tab--split::before {
+    @apply bg-app-dim/50 pointer-events-none absolute inset-x-0 top-0 h-0.5 content-[''];
+  }
   /* Another tab is dragged over this one. */
   .tab-bar__tab--drop-target {
     @apply bg-app-accent-faint;

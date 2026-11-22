@@ -11,9 +11,12 @@ import {
   IconFocus2,
   IconFolderPlus,
   IconInfoHexagon,
+  IconLayoutColumns,
+  IconLayoutRows,
   IconLayoutSidebar,
   IconLink,
   IconPencil,
+  IconSquare,
   IconSquareX,
   IconTrash,
   IconUpload,
@@ -61,7 +64,7 @@ export function buildCommands(
   dispatch: AppDispatch,
 ): PaletteCommand[] {
   const { nodes, selectedId } = state.fs;
-  const { activeId, openIds } = state.tabs;
+  const { activeId, openIds, split } = state.tabs;
   const active = activeId ? nodes[activeId] : undefined;
   const target = getTargetFolderId(nodes, selectedId);
 
@@ -236,6 +239,48 @@ export function buildCommands(
         run: () => dispatch(tabsActions.closedOthers(active.id)),
       });
     }
+  }
+  if (split) {
+    list.push(
+      {
+        id: "close-split",
+        label: "Close split",
+        group: "Tabs",
+        icon: IconSquare,
+        keywords: "editor unsplit single pane",
+        run: () => dispatch(tabsActions.splitClosed()),
+      },
+      {
+        id: "toggle-split-orientation",
+        label:
+          split.orientation === "row"
+            ? "Split top and bottom"
+            : "Split left and right",
+        group: "Tabs",
+        icon: split.orientation === "row" ? IconLayoutRows : IconLayoutColumns,
+        keywords: "editor split orientation vertical horizontal stack side by side resplit",
+        run: () => dispatch(tabsActions.splitOrientationToggled()),
+      },
+    );
+  } else if (active && openIds.length > 1) {
+    // Split with the most recent other tab (the one to the right, else left).
+    const at = openIds.indexOf(active.id);
+    const partner = openIds[at + 1] ?? openIds[at - 1];
+    list.push({
+      id: "split-editor",
+      label: "Split editor",
+      group: "Tabs",
+      icon: IconLayoutColumns,
+      keywords: "side by side pane compare",
+      run: () =>
+        dispatch(
+          tabsActions.splitOpened({
+            id: partner,
+            side: "end",
+            orientation: "row",
+          }),
+        ),
+    });
   }
   if (openIds.length) {
     list.push({
